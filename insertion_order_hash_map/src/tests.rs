@@ -2,6 +2,7 @@ use std::ptr;
 
 use super::*;
 
+mod entry;
 mod stress_test;
 
 #[test]
