@@ -2,6 +2,8 @@ use std::ptr;
 
 use super::*;
 
+mod stress_test;
+
 #[test]
 fn test_empty() {
     let iohm: InsertionOrderHashMap<String, i32> = InsertionOrderHashMap::new();
