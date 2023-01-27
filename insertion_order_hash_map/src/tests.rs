@@ -15,7 +15,7 @@ fn test_empty() {
 #[test]
 fn test_get_existing_key() {
     let mut iohm = InsertionOrderHashMap::new();
-    iohm.set("A", 1);
+    iohm.insert("A", 1);
     let iohm = as_immutable(iohm);
 
     let result = iohm.get(&"A");
@@ -26,7 +26,7 @@ fn test_get_existing_key() {
 #[test]
 fn test_get_non_existing_key() {
     let mut iohm = InsertionOrderHashMap::new();
-    iohm.set("A", 1);
+    iohm.insert("A", 1);
     let iohm = as_immutable(iohm);
 
     let result = iohm.get(&"B");
@@ -35,10 +35,10 @@ fn test_get_non_existing_key() {
 }
 
 #[test]
-fn test_set_on_empty() {
+fn test_insert_on_empty() {
     let mut iohm = InsertionOrderHashMap::new();
 
-    let result = iohm.set("A", 1);
+    let result = iohm.insert("A", 1);
 
     let iohm = as_immutable(iohm);
     assert!(result.is_none());
@@ -51,11 +51,11 @@ fn test_set_on_empty() {
 }
 
 #[test]
-fn test_set_on_non_empty() {
+fn test_insert_on_non_empty() {
     let mut iohm = InsertionOrderHashMap::new();
-    iohm.set("A", 1);
+    iohm.insert("A", 1);
 
-    let result = iohm.set("B", 2);
+    let result = iohm.insert("B", 2);
 
     let iohm = as_immutable(iohm);
     assert!(result.is_none());
@@ -69,11 +69,11 @@ fn test_set_on_non_empty() {
 }
 
 #[test]
-fn test_set_existing_key() {
+fn test_insert_existing_key() {
     let mut iohm = InsertionOrderHashMap::new();
-    iohm.set("A", 1);
+    iohm.insert("A", 1);
 
-    let result = iohm.set("A", 2);
+    let result = iohm.insert("A", 2);
 
     let iohm = as_immutable(iohm);
     assert_eq!(result, Some(1));
@@ -86,13 +86,13 @@ fn test_set_existing_key() {
 }
 
 #[test]
-fn test_unset_first() {
+fn test_remove_first() {
     let mut iohm = InsertionOrderHashMap::new();
-    iohm.set("A", 1);
-    iohm.set("B", 2);
-    iohm.set("C", 3);
+    iohm.insert("A", 1);
+    iohm.insert("B", 2);
+    iohm.insert("C", 3);
 
-    let result = iohm.unset(&"A");
+    let result = iohm.remove(&"A");
 
     let iohm = as_immutable(iohm);
     assert_eq!(result, Some(1));
@@ -102,13 +102,13 @@ fn test_unset_first() {
 }
 
 #[test]
-fn test_unset_last() {
+fn test_remove_last() {
     let mut iohm = InsertionOrderHashMap::new();
-    iohm.set("A", 1);
-    iohm.set("B", 2);
-    iohm.set("C", 3);
+    iohm.insert("A", 1);
+    iohm.insert("B", 2);
+    iohm.insert("C", 3);
 
-    let result = iohm.unset(&"C");
+    let result = iohm.remove(&"C");
 
     let iohm = as_immutable(iohm);
     assert_eq!(result, Some(3));
@@ -118,13 +118,13 @@ fn test_unset_last() {
 }
 
 #[test]
-fn test_unset_in_the_middle() {
+fn test_remove_in_the_middle() {
     let mut iohm = InsertionOrderHashMap::new();
-    iohm.set("A", 1);
-    iohm.set("B", 2);
-    iohm.set("C", 3);
+    iohm.insert("A", 1);
+    iohm.insert("B", 2);
+    iohm.insert("C", 3);
 
-    let result = iohm.unset(&"B");
+    let result = iohm.remove(&"B");
 
     let iohm = as_immutable(iohm);
     assert_eq!(result, Some(2));
@@ -135,11 +135,11 @@ fn test_unset_in_the_middle() {
 }
 
 #[test]
-fn test_unset_single_item() {
+fn test_remove_single_item() {
     let mut iohm = InsertionOrderHashMap::new();
-    iohm.set("A", 1);
+    iohm.insert("A", 1);
 
-    let result = iohm.unset(&"A");
+    let result = iohm.remove(&"A");
 
     let iohm = as_immutable(iohm);
     assert_eq!(result, Some(1));
@@ -148,11 +148,11 @@ fn test_unset_single_item() {
 }
 
 #[test]
-fn test_unset_non_existing_key() {
+fn test_remove_non_existing_key() {
     let mut iohm = InsertionOrderHashMap::new();
-    iohm.set("A", 1);
+    iohm.insert("A", 1);
 
-    let result = iohm.unset(&"B");
+    let result = iohm.remove(&"B");
 
     let iohm = as_immutable(iohm);
     assert!(result.is_none());
@@ -172,9 +172,9 @@ fn test_keys_on_empty() {
 #[test]
 fn test_keys_on_non_empty() {
     let mut iohm = InsertionOrderHashMap::new();
-    iohm.set("A", 1);
-    iohm.set("B", 2);
-    iohm.set("C", 3);
+    iohm.insert("A", 1);
+    iohm.insert("B", 2);
+    iohm.insert("C", 3);
     let iohm = as_immutable(iohm);
 
     let keys = iohm.keys();

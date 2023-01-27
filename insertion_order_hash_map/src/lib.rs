@@ -31,17 +31,38 @@ impl<K, V> InsertionOrderHashMap<K, V> {
         InsertionOrderHashMap { nodes, order: None }
     }
 
-    pub fn get(&self, key: &K) -> Option<&V>
-    where
-        K: Hash + Eq,
-    {
+    pub fn keys(&self) -> Keys<K, V> {
+        Keys {
+            next_node: self.order.as_ref().map(|order| order.first),
+            phantom: PhantomData,
+        }
+    }
+}
+impl<K, V> InsertionOrderHashMap<K, V>
+where
+    K: Hash + Eq,
+{
+    pub fn reserve(&mut self, additional: usize) {
+        self.nodes.reserve(additional);
+    }
+
+    pub fn try_reserve(&mut self, additional: usize) -> Result<(), TryReserveError> {
+        self.nodes.try_reserve(additional)
+    }
+
+    pub fn shrink_to_fit(&mut self) {
+        self.nodes.shrink_to_fit();
+    }
+
+    pub fn shrink_to(&mut self, min_capacity: usize) {
+        self.nodes.shrink_to(min_capacity);
+    }
+
+    pub fn get(&self, key: &K) -> Option<&V> {
         self.nodes.get(key).map(|node| &node.value)
     }
 
-    pub fn set(&mut self, key: K, value: V) -> Option<V>
-    where
-        K: Hash + Eq,
-    {
+    pub fn insert(&mut self, key: K, value: V) -> Option<V> {
         match self.nodes.entry(Box::new(key)) {
             Entry::Occupied(mut occupied) => {
                 let previous_value = mem::replace(&mut occupied.get_mut().value, value);
@@ -73,10 +94,7 @@ impl<K, V> InsertionOrderHashMap<K, V> {
         }
     }
 
-    pub fn unset(&mut self, key: &K) -> Option<V>
-    where
-        K: Hash + Eq,
-    {
+    pub fn remove(&mut self, key: &K) -> Option<V> {
         match self.nodes.remove(key) {
             Some(node) => {
                 match (node.prev, node.next) {
@@ -98,33 +116,6 @@ impl<K, V> InsertionOrderHashMap<K, V> {
             }
             None => None,
         }
-    }
-
-    pub fn keys(&self) -> Keys<K, V> {
-        Keys {
-            next_node: self.order.as_ref().map(|order| order.first),
-            phantom: PhantomData,
-        }
-    }
-}
-impl<K, V> InsertionOrderHashMap<K, V>
-where
-    K: Hash + Eq,
-{
-    pub fn reserve(&mut self, additional: usize) {
-        self.nodes.reserve(additional);
-    }
-
-    pub fn try_reserve(&mut self, additional: usize) -> Result<(), TryReserveError> {
-        self.nodes.try_reserve(additional)
-    }
-
-    pub fn shrink_to_fit(&mut self) {
-        self.nodes.shrink_to_fit();
-    }
-
-    pub fn shrink_to(&mut self, min_capacity: usize) {
-        self.nodes.shrink_to(min_capacity);
     }
 }
 impl<K, V> Default for InsertionOrderHashMap<K, V> {

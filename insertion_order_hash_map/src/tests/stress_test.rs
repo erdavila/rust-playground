@@ -1,8 +1,7 @@
+use rand::{rngs::ThreadRng, seq::IteratorRandom, Rng};
 use std::collections::HashMap;
 use std::ops::Add;
 use std::time::{Duration, Instant};
-
-use rand::{rngs::ThreadRng, seq::IteratorRandom, Rng};
 
 use crate::InsertionOrderHashMap;
 
@@ -22,19 +21,19 @@ fn stress_test() {
 
     while Instant::now().cmp(&end).is_le() {
         for _ in 0..4 {
-            data.set_and_check();
+            data.insert_and_check();
         }
 
-        data.unset_and_check();
+        data.remove_and_check();
     }
 
     println!(">>>> Len: {}", data.map.len());
 
     while !data.iohm.nodes.is_empty() {
-        data.set_and_check();
+        data.insert_and_check();
 
         for _ in 0..4 {
-            data.unset_and_check();
+            data.remove_and_check();
         }
     }
 }
@@ -49,16 +48,16 @@ struct StressTestData {
     rng: ThreadRng,
 }
 impl StressTestData {
-    fn set_and_check(&mut self) {
-        self.set();
+    fn insert_and_check(&mut self) {
+        self.insert();
         self.check();
     }
 
-    fn set(&mut self) {
+    fn insert(&mut self) {
         let key: Key = self.rng.gen();
         let value: Value = self.rng.gen();
 
-        let result = self.iohm.set(key, value);
+        let result = self.iohm.insert(key, value);
 
         let previous_value = self.map.insert(key, value);
         assert_eq!(result, previous_value);
@@ -68,16 +67,16 @@ impl StressTestData {
         }
     }
 
-    fn unset_and_check(&mut self) {
-        self.unset();
+    fn remove_and_check(&mut self) {
+        self.remove();
         self.check();
     }
 
-    fn unset(&mut self) {
+    fn remove(&mut self) {
         if let Some(index) = (0..self.order.len()).choose(&mut self.rng) {
             let key = self.order.splice(index..=index, []).next().unwrap();
 
-            let result = self.iohm.unset(&key);
+            let result = self.iohm.remove(&key);
 
             let value = self.map.remove(&key);
             assert_eq!(result, value);
