@@ -1,3 +1,4 @@
+use std::collections::TryReserveError;
 use std::collections::{hash_map::Entry, HashMap};
 use std::hash::Hash;
 use std::marker::PhantomData;
@@ -7,13 +8,27 @@ use std::ptr::NonNull;
 #[cfg(test)]
 mod tests;
 
+type UnderlyingMap<K, V> = HashMap<Box<K>, Box<Node<K, V>>>;
+
 pub struct InsertionOrderHashMap<K, V> {
-    nodes: HashMap<Box<K>, Box<Node<K, V>>>,
+    nodes: UnderlyingMap<K, V>,
     order: Option<InsertionOrder<K, V>>,
 }
 impl<K, V> InsertionOrderHashMap<K, V> {
     pub fn new() -> Self {
-        Self::default()
+        Self::with_underlying_map(Default::default())
+    }
+
+    pub fn with_capacity(capacity: usize) -> Self {
+        Self::with_underlying_map(HashMap::with_capacity(capacity))
+    }
+
+    pub fn capacity(&self) -> usize {
+        self.nodes.capacity()
+    }
+
+    fn with_underlying_map(nodes: UnderlyingMap<K, V>) -> Self {
+        InsertionOrderHashMap { nodes, order: None }
     }
 
     pub fn get(&self, key: &K) -> Option<&V>
@@ -92,12 +107,29 @@ impl<K, V> InsertionOrderHashMap<K, V> {
         }
     }
 }
+impl<K, V> InsertionOrderHashMap<K, V>
+where
+    K: Hash + Eq,
+{
+    pub fn reserve(&mut self, additional: usize) {
+        self.nodes.reserve(additional);
+    }
+
+    pub fn try_reserve(&mut self, additional: usize) -> Result<(), TryReserveError> {
+        self.nodes.try_reserve(additional)
+    }
+
+    pub fn shrink_to_fit(&mut self) {
+        self.nodes.shrink_to_fit();
+    }
+
+    pub fn shrink_to(&mut self, min_capacity: usize) {
+        self.nodes.shrink_to(min_capacity);
+    }
+}
 impl<K, V> Default for InsertionOrderHashMap<K, V> {
     fn default() -> Self {
-        Self {
-            nodes: Default::default(),
-            order: Default::default(),
-        }
+        Self::new()
     }
 }
 
