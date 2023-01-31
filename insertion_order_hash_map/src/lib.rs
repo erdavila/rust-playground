@@ -3,6 +3,7 @@ use std::collections::{hash_map, HashMap};
 use std::hash::Hash;
 use std::marker::PhantomData;
 use std::mem;
+use std::ops::Deref;
 use std::ptr::NonNull;
 
 #[cfg(test)]
@@ -36,6 +37,19 @@ impl<K, V> InsertionOrderHashMap<K, V> {
             next_node: self.order.as_ref().map(|order| order.first),
             phantom: PhantomData,
         }
+    }
+
+    pub fn len(&self) -> usize {
+        self.nodes.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.nodes.is_empty()
+    }
+
+    pub fn clear(&mut self) {
+        self.nodes.clear();
+        self.order = None;
     }
 }
 impl<K, V> InsertionOrderHashMap<K, V>
@@ -77,6 +91,20 @@ where
         self.nodes.get(key).map(|node| &node.value)
     }
 
+    pub fn get_key_value(&self, key: &K) -> Option<(&K, &V)> {
+        self.nodes
+            .get_key_value(key)
+            .map(|(key, node)| (key.deref(), &node.value))
+    }
+
+    pub fn contains_key(&self, key: &K) -> bool {
+        self.nodes.contains_key(key)
+    }
+
+    pub fn get_mut(&mut self, key: &K) -> Option<&mut V> {
+        self.nodes.get_mut(key).map(|node| &mut node.value)
+    }
+
     pub fn insert(&mut self, key: K, value: V) -> Option<V> {
         match self.nodes.entry(Box::new(key)) {
             hash_map::Entry::Occupied(mut occupied) => {
@@ -100,10 +128,14 @@ where
     }
 
     pub fn remove(&mut self, key: &K) -> Option<V> {
-        match self.nodes.remove(key) {
-            Some(mut node) => {
+        self.remove_entry(key).map(|(_, value)| value)
+    }
+
+    pub fn remove_entry(&mut self, key: &K) -> Option<(K, V)> {
+        match self.nodes.remove_entry(key) {
+            Some((key, mut node)) => {
                 node.unlink(&mut self.order);
-                Some(node.value)
+                Some((*key, node.value))
             }
             None => None,
         }
