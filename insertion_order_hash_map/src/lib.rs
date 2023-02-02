@@ -101,6 +101,13 @@ impl<K, V> InsertionOrderHashMap<K, V> {
         self.nodes.is_empty()
     }
 
+    pub fn drain(&mut self) -> Drain<'_, K, V> {
+        Drain {
+            next_node: self.order.as_ref().map(|order| order.first),
+            iohm: self,
+        }
+    }
+
     pub fn clear(&mut self) {
         self.nodes.clear();
         self.order = None;
@@ -409,6 +416,48 @@ impl<K: Hash + Eq, V, O> FusedIterator for ConsumingIterator<K, V, O> {}
 
 pub type IntoKeys<K, V> = ConsumingIterator<K, V, K>;
 pub type IntoValues<K, V> = ConsumingIterator<K, V, V>;
+
+pub struct Drain<'a, K, V> {
+    next_node: Option<NonNull<Node<K, V>>>,
+    iohm: &'a mut InsertionOrderHashMap<K, V>,
+}
+impl<K: Hash + Eq, V> Iterator for Drain<'_, K, V> {
+    type Item = (K, V);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.next_node {
+            Some(mut node) => {
+                let node = unsafe { node.as_mut() };
+
+                self.next_node = node.next;
+
+                let occupied_entry = OccupiedEntry {
+                    node,
+                    iohm: self.iohm,
+                };
+                let key_value = occupied_entry.remove_entry();
+                Some(key_value)
+            }
+            None => None,
+        }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = self.len();
+        (len, Some(len))
+    }
+}
+impl<K, V> Drop for Drain<'_, K, V> {
+    fn drop(&mut self) {
+        self.iohm.clear();
+    }
+}
+impl<K: Hash + Eq, V> ExactSizeIterator for Drain<'_, K, V> {
+    fn len(&self) -> usize {
+        self.iohm.nodes.len()
+    }
+}
+impl<K: Hash + Eq, V> FusedIterator for Drain<'_, K, V> {}
 
 pub enum Entry<'a, K, V> {
     Occupied(OccupiedEntry<'a, K, V>),

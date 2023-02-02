@@ -545,6 +545,52 @@ fn test_iter_mut_iteration() {
     assert_eq!(iter.next(), None);
 }
 
+#[test]
+fn test_drain_iteration() {
+    let mut iohm = InsertionOrderHashMap::new();
+    iohm.insert("A", 1);
+    iohm.insert("B", 2);
+    iohm.insert("C", 3);
+
+    let mut drain = iohm.drain();
+
+    //println!("{}", iohm.len()); // should not compile!
+    consistency::assert(&drain.iohm);
+    assert_eq!(drain.len(), 3);
+    assert_eq!(drain.next(), Some(("A", 1)));
+    consistency::assert(&drain.iohm);
+    assert_eq!(drain.len(), 2);
+    assert_eq!(drain.next(), Some(("B", 2)));
+    consistency::assert(&drain.iohm);
+    assert_eq!(drain.len(), 1);
+    assert_eq!(drain.next(), Some(("C", 3)));
+    consistency::assert(&drain.iohm);
+    assert_eq!(drain.len(), 0);
+    assert_eq!(drain.next(), None);
+    consistency::assert(&drain.iohm);
+    mem::drop(drain);
+    assert!(iohm.is_empty());
+}
+
+#[test]
+fn test_drain_drop() {
+    let mut iohm = InsertionOrderHashMap::new();
+    iohm.insert("A", 1);
+    iohm.insert("B", 2);
+    iohm.insert("C", 3);
+
+    let mut drain = iohm.drain();
+
+    consistency::assert(&drain.iohm);
+    assert_eq!(drain.len(), 3);
+    assert_eq!(drain.next(), Some(("A", 1)));
+    consistency::assert(&drain.iohm);
+    assert_eq!(drain.len(), 2);
+    mem::drop(drain);
+    assert!(iohm.is_empty());
+    consistency::assert(&iohm);
+}
+
 fn assert_first_node<K, V>(iohm: &InsertionOrderHashMap<K, V>, node: &Node<K, V>) {
     let order = iohm.order.as_ref().expect("order should not be None");
     assert!(ptr::eq(order.first.as_ptr(), node));
