@@ -498,6 +498,53 @@ fn test_iter_iteration() {
     assert_eq!(iter.next(), None);
 }
 
+#[test]
+fn test_iter_mut_on_empty() {
+    let mut iohm: InsertionOrderHashMap<String, i32> = InsertionOrderHashMap::new();
+
+    let iter = iohm.iter_mut();
+
+    let iter_vec: Vec<_> = iter.collect();
+    assert!(iter_vec.is_empty());
+    consistency::assert(&iohm);
+}
+
+#[test]
+fn test_iter_mut_on_non_empty() {
+    let mut iohm = InsertionOrderHashMap::new();
+    iohm.insert("A", 1i32);
+    iohm.insert("B", 2i32);
+    iohm.insert("C", 3i32);
+
+    for (k, v) in iohm.iter_mut() {
+        *v *= 100;
+        *v += k.chars().next().unwrap() as i32;
+    }
+
+    let iter_vec: Vec<_> = iohm.values().collect();
+    assert_eq!(iter_vec, vec![&165, &266, &367]);
+    consistency::assert(&iohm);
+}
+
+#[test]
+fn test_iter_mut_iteration() {
+    let mut iohm = InsertionOrderHashMap::new();
+    iohm.insert("A", 1);
+    iohm.insert("B", 2);
+    iohm.insert("C", 3);
+
+    let mut iter = iohm.iter_mut();
+
+    assert_eq!(iter.len(), 3);
+    assert_eq!(iter.next(), Some((&"A", &mut 1)));
+    assert_eq!(iter.len(), 2);
+    assert_eq!(iter.next(), Some((&"B", &mut 2)));
+    assert_eq!(iter.len(), 1);
+    assert_eq!(iter.next(), Some((&"C", &mut 3)));
+    assert_eq!(iter.len(), 0);
+    assert_eq!(iter.next(), None);
+}
+
 fn assert_first_node<K, V>(iohm: &InsertionOrderHashMap<K, V>, node: &Node<K, V>) {
     let order = iohm.order.as_ref().expect("order should not be None");
     assert!(ptr::eq(order.first.as_ptr(), node));

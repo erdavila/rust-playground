@@ -56,6 +56,10 @@ impl<K, V> InsertionOrderHashMap<K, V> {
         self.visiting_iterator(|node| (&node.key, &node.value))
     }
 
+    pub fn iter_mut(&mut self) -> IterMut<K, V> {
+        self.visiting_iterator_mut(|node| (&node.key, &mut node.value))
+    }
+
     fn visiting_iterator<'a, O>(
         &'a self,
         visit: VisitingFunction<'a, K, V, O>,
@@ -365,6 +369,7 @@ impl<'a, K, V, O: 'a> ExactSizeIterator for VisitingIteratorMut<'a, K, V, O> {
 impl<'a, K, V, O: 'a> FusedIterator for VisitingIteratorMut<'a, K, V, O> {}
 
 pub type ValuesMut<'a, K, V> = VisitingIteratorMut<'a, K, V, &'a mut V>;
+pub type IterMut<'a, K, V> = VisitingIteratorMut<'a, K, V, (&'a K, &'a mut V)>;
 
 type ConsumingFunction<K, V, O> = fn(Node<K, V>) -> O;
 pub struct ConsumingIterator<K, V, O> {
