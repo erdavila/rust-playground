@@ -17,24 +17,28 @@ fn test_empty() {
 #[test]
 fn test_get_existing_key() {
     let mut iohm = InsertionOrderHashMap::new();
-    iohm.insert("A", 1);
+    iohm.insert("A".to_string(), 1);
     let iohm = as_immutable(iohm);
 
-    let result = iohm.get(&"A");
+    let result1 = iohm.get(&"A".to_string());
+    let result2 = iohm.get("A");
 
-    assert_eq!(result, Some(&1));
+    assert_eq!(result1, Some(&1));
+    assert_eq!(result2, result1);
     assert_consistency(&iohm);
 }
 
 #[test]
 fn test_get_non_existing_key() {
     let mut iohm = InsertionOrderHashMap::new();
-    iohm.insert("A", 1);
+    iohm.insert("A".to_string(), 1);
     let iohm = as_immutable(iohm);
 
-    let result = iohm.get(&"B");
+    let result1 = iohm.get(&"B".to_string());
+    let result2 = iohm.get("B");
 
-    assert!(result.is_none());
+    assert!(result1.is_none());
+    assert_eq!(result2, result1);
     assert_consistency(&iohm);
 }
 
@@ -94,81 +98,121 @@ fn test_insert_existing_key() {
 
 #[test]
 fn test_remove_first() {
-    let mut iohm = InsertionOrderHashMap::new();
-    iohm.insert("A", 1);
-    iohm.insert("B", 2);
-    iohm.insert("C", 3);
+    fn do_test<F>(f: F)
+    where
+        F: FnOnce(&mut InsertionOrderHashMap<String, i32>) -> Option<i32>,
+    {
+        let mut iohm = InsertionOrderHashMap::new();
+        iohm.insert("A".to_string(), 1);
+        iohm.insert("B".to_string(), 2);
+        iohm.insert("C".to_string(), 3);
 
-    let result = iohm.remove(&"A");
+        let result = f(&mut iohm);
 
-    let iohm = as_immutable(iohm);
-    assert_eq!(result, Some(1));
-    assert_eq!(iohm.nodes.len(), 2);
-    let node: &Node<_, _> = &iohm.nodes[&KeyWrapper(&"B")];
-    assert_first_node(&iohm, node);
-    assert_consistency(&iohm);
+        let iohm = as_immutable(iohm);
+        assert_eq!(result, Some(1));
+        assert_eq!(iohm.nodes.len(), 2);
+        let node: &Node<_, _> = &iohm.nodes[&KeyWrapper(&"B".to_string())];
+        assert_first_node(&iohm, node);
+        assert_consistency(&iohm);
+    }
+
+    do_test(|iohm| iohm.remove(&"A".to_string()));
+    do_test(|iohm| iohm.remove("A"));
 }
 
 #[test]
 fn test_remove_last() {
-    let mut iohm = InsertionOrderHashMap::new();
-    iohm.insert("A", 1);
-    iohm.insert("B", 2);
-    iohm.insert("C", 3);
+    fn do_test<F>(f: F)
+    where
+        F: FnOnce(&mut InsertionOrderHashMap<String, i32>) -> Option<i32>,
+    {
+        let mut iohm = InsertionOrderHashMap::new();
+        iohm.insert("A".to_string(), 1);
+        iohm.insert("B".to_string(), 2);
+        iohm.insert("C".to_string(), 3);
 
-    let result = iohm.remove(&"C");
+        let result = f(&mut iohm);
 
-    let iohm = as_immutable(iohm);
-    assert_eq!(result, Some(3));
-    assert_eq!(iohm.nodes.len(), 2);
-    let node: &Node<_, _> = &iohm.nodes[&KeyWrapper(&"B")];
-    assert_last_node(&iohm, node);
-    assert_consistency(&iohm);
+        let iohm = as_immutable(iohm);
+        assert_eq!(result, Some(3));
+        assert_eq!(iohm.nodes.len(), 2);
+        let node: &Node<_, _> = &iohm.nodes[&KeyWrapper(&"B".to_string())];
+        assert_last_node(&iohm, node);
+        assert_consistency(&iohm);
+    }
+
+    do_test(|iohm| iohm.remove(&"C".to_string()));
+    do_test(|iohm| iohm.remove("C"));
 }
 
 #[test]
 fn test_remove_in_the_middle() {
-    let mut iohm = InsertionOrderHashMap::new();
-    iohm.insert("A", 1);
-    iohm.insert("B", 2);
-    iohm.insert("C", 3);
+    fn do_test<F>(f: F)
+    where
+        F: FnOnce(&mut InsertionOrderHashMap<String, i32>) -> Option<i32>,
+    {
+        let mut iohm = InsertionOrderHashMap::new();
+        iohm.insert("A".to_string(), 1);
+        iohm.insert("B".to_string(), 2);
+        iohm.insert("C".to_string(), 3);
 
-    let result = iohm.remove(&"B");
+        let result = f(&mut iohm);
 
-    let iohm = as_immutable(iohm);
-    assert_eq!(result, Some(2));
-    assert_eq!(iohm.nodes.len(), 2);
-    let node_a: &Node<_, _> = &iohm.nodes[&KeyWrapper(&"A")];
-    let node_c: &Node<_, _> = &iohm.nodes[&KeyWrapper(&"C")];
-    assert_linked_nodes(node_a, node_c);
-    assert_consistency(&iohm);
+        let iohm = as_immutable(iohm);
+        assert_eq!(result, Some(2));
+        assert_eq!(iohm.nodes.len(), 2);
+        let node_a: &Node<_, _> = &iohm.nodes[&KeyWrapper(&"A".to_string())];
+        let node_c: &Node<_, _> = &iohm.nodes[&KeyWrapper(&"C".to_string())];
+        assert_linked_nodes(node_a, node_c);
+        assert_consistency(&iohm);
+    }
+
+    do_test(|iohm| iohm.remove(&"B".to_string()));
+    do_test(|iohm| iohm.remove("B"));
 }
 
 #[test]
 fn test_remove_single_item() {
-    let mut iohm = InsertionOrderHashMap::new();
-    iohm.insert("A", 1);
+    fn do_test<F>(f: F)
+    where
+        F: FnOnce(&mut InsertionOrderHashMap<String, i32>) -> Option<i32>,
+    {
+        let mut iohm = InsertionOrderHashMap::new();
+        iohm.insert("A".to_string(), 1);
 
-    let result = iohm.remove(&"A");
+        let result = f(&mut iohm);
 
-    let iohm = as_immutable(iohm);
-    assert_eq!(result, Some(1));
-    assert!(iohm.nodes.is_empty());
-    assert!(iohm.order.is_none());
-    assert_consistency(&iohm);
+        let iohm = as_immutable(iohm);
+        assert_eq!(result, Some(1));
+        assert!(iohm.nodes.is_empty());
+        assert!(iohm.order.is_none());
+        assert_consistency(&iohm);
+    }
+
+    do_test(|iohm| iohm.remove(&"A".to_string()));
+    do_test(|iohm| iohm.remove("A"));
 }
 
 #[test]
 fn test_remove_non_existing_key() {
-    let mut iohm = InsertionOrderHashMap::new();
-    iohm.insert("A", 1);
+    fn do_test<F>(f: F)
+    where
+        F: FnOnce(&mut InsertionOrderHashMap<String, i32>) -> Option<i32>,
+    {
+        let mut iohm = InsertionOrderHashMap::new();
+        iohm.insert("A".to_string(), 1);
 
-    let result = iohm.remove(&"B");
+        let result = f(&mut iohm);
 
-    let iohm = as_immutable(iohm);
-    assert!(result.is_none());
-    assert_eq!(iohm.nodes.len(), 1);
-    assert_consistency(&iohm);
+        let iohm = as_immutable(iohm);
+        assert!(result.is_none());
+        assert_eq!(iohm.nodes.len(), 1);
+        assert_consistency(&iohm);
+    }
+
+    do_test(|iohm| iohm.remove(&"B".to_string()));
+    do_test(|iohm| iohm.remove("B"));
 }
 
 #[test]

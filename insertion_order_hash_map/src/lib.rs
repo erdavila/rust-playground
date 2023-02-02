@@ -1,3 +1,4 @@
+use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::collections::TryReserveError;
 use std::hash::Hash;
@@ -86,24 +87,40 @@ where
         }
     }
 
-    pub fn get(&self, key: &K) -> Option<&V> {
-        self.nodes.get(&KeyWrapper(key)).map(|node| &node.value)
+    pub fn get<Q>(&self, k: &Q) -> Option<&V>
+    where
+        K: Borrow<Q>,
+        Q: Hash + Eq + ?Sized,
+    {
+        let q = BorrowWrapper::from_ref(k);
+        self.nodes.get(q).map(|node| &node.value)
     }
 
-    pub fn get_key_value(&self, key: &K) -> Option<(&K, &V)> {
-        self.nodes
-            .get(&KeyWrapper(key))
-            .map(|node| (&node.key, &node.value))
+    pub fn get_key_value<Q>(&self, k: &Q) -> Option<(&K, &V)>
+    where
+        K: Borrow<Q>,
+        Q: Hash + Eq + ?Sized,
+    {
+        let q = BorrowWrapper::from_ref(k);
+        self.nodes.get(q).map(|node| (&node.key, &node.value))
     }
 
-    pub fn contains_key(&self, key: &K) -> bool {
-        self.nodes.contains_key(&KeyWrapper(key))
+    pub fn contains_key<Q>(&self, k: &Q) -> bool
+    where
+        K: Borrow<Q>,
+        Q: Hash + Eq + ?Sized,
+    {
+        let q = BorrowWrapper::from_ref(k);
+        self.nodes.contains_key(q)
     }
 
-    pub fn get_mut(&mut self, key: &K) -> Option<&mut V> {
-        self.nodes
-            .get_mut(&KeyWrapper(key))
-            .map(|node| &mut node.value)
+    pub fn get_mut<Q>(&mut self, k: &Q) -> Option<&mut V>
+    where
+        K: Borrow<Q>,
+        Q: Hash + Eq + ?Sized,
+    {
+        let q = BorrowWrapper::from_ref(k);
+        self.nodes.get_mut(q).map(|node| &mut node.value)
     }
 
     pub fn insert(&mut self, key: K, value: V) -> Option<V> {
@@ -121,13 +138,22 @@ where
         }
     }
 
-    pub fn remove(&mut self, key: &K) -> Option<V> {
-        self.remove_entry(key).map(|(_, value)| value)
+    pub fn remove<Q>(&mut self, k: &Q) -> Option<V>
+    where
+        K: Borrow<Q>,
+        Q: Hash + Eq + ?Sized,
+    {
+        self.remove_entry(k).map(|(_, value)| value)
     }
 
-    pub fn remove_entry(&mut self, key: &K) -> Option<(K, V)> {
+    pub fn remove_entry<Q>(&mut self, k: &Q) -> Option<(K, V)>
+    where
+        K: Borrow<Q>,
+        Q: Hash + Eq + ?Sized,
+    {
+        let q = BorrowWrapper::from_ref(k);
         let self_ref = unsafe { &mut *(self as *mut Self) };
-        match self.nodes.get_mut(&KeyWrapper(key)) {
+        match self.nodes.get_mut(q) {
             Some(node) => {
                 let occupied_entry = OccupiedEntry {
                     node: node.as_mut(),
@@ -367,5 +393,24 @@ impl<'a, K, V> VacantEntry<'a, K, V> {
         node.link(&mut self.iohm.order);
 
         &mut node.value
+    }
+}
+
+#[derive(Hash, PartialEq, Eq)]
+#[repr(transparent)]
+struct BorrowWrapper<T: ?Sized>(T);
+impl<T: ?Sized> BorrowWrapper<T> {
+    fn from_ref(r: &T) -> &Self {
+        unsafe { &*(r as *const T as *const BorrowWrapper<T>) }
+    }
+}
+
+impl<T, Q> Borrow<BorrowWrapper<Q>> for KeyWrapper<T>
+where
+    T: Borrow<Q>,
+    Q: ?Sized,
+{
+    fn borrow(&self) -> &BorrowWrapper<Q> {
+        BorrowWrapper::from_ref(self.get_ref().borrow())
     }
 }
