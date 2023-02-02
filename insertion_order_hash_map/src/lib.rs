@@ -47,11 +47,26 @@ impl<K, V> InsertionOrderHashMap<K, V> {
         self.visiting_iterator(|node| &node.value)
     }
 
+    pub fn values_mut(&mut self) -> ValuesMut<K, V> {
+        self.visiting_iterator_mut(|node| &mut node.value)
+    }
+
     fn visiting_iterator<'a, O>(
         &'a self,
         visit: VisitingFunction<'a, K, V, O>,
     ) -> VisitingIterator<K, V, O> {
         VisitingIterator {
+            next_node: self.order.as_ref().map(|order| order.first),
+            visit,
+            len: self.nodes.len(),
+        }
+    }
+
+    fn visiting_iterator_mut<'a, O>(
+        &'a self,
+        visit: VisitingFunctionMut<'a, K, V, O>,
+    ) -> VisitingIteratorMut<K, V, O> {
+        VisitingIteratorMut {
             next_node: self.order.as_ref().map(|order| order.first),
             visit,
             len: self.nodes.len(),
@@ -296,6 +311,43 @@ impl<'a, K, V, O: 'a> FusedIterator for VisitingIterator<'a, K, V, O> {}
 
 pub type Keys<'a, K, V> = VisitingIterator<'a, K, V, &'a K>;
 pub type Values<'a, K, V> = VisitingIterator<'a, K, V, &'a V>;
+
+type VisitingFunctionMut<'a, K, V, O> = fn(&'a mut Node<K, V>) -> O;
+pub struct VisitingIteratorMut<'a, K, V, O> {
+    next_node: Option<NonNull<Node<K, V>>>,
+    visit: VisitingFunctionMut<'a, K, V, O>,
+    len: usize,
+}
+impl<'a, K, V, O: 'a> Iterator for VisitingIteratorMut<'a, K, V, O> {
+    type Item = O;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match &self.next_node {
+            Some(mut node) => {
+                let node = unsafe { node.as_mut() };
+                self.next_node = node.next;
+                self.len -= 1;
+
+                let output = (self.visit)(node);
+                Some(output)
+            }
+            None => None,
+        }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = self.len();
+        (len, Some(len))
+    }
+}
+impl<'a, K, V, O: 'a> ExactSizeIterator for VisitingIteratorMut<'a, K, V, O> {
+    fn len(&self) -> usize {
+        self.len
+    }
+}
+impl<'a, K, V, O: 'a> FusedIterator for VisitingIteratorMut<'a, K, V, O> {}
+
+pub type ValuesMut<'a, K, V> = VisitingIteratorMut<'a, K, V, &'a mut V>;
 
 pub struct IntoKeys<K, V> {
     next_node: Option<NonNull<Node<K, V>>>,
