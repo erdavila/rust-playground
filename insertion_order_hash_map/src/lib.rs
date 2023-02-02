@@ -3,7 +3,6 @@ use std::collections::HashMap;
 use std::collections::TryReserveError;
 use std::hash::Hash;
 use std::iter::FusedIterator;
-use std::marker::PhantomData;
 use std::mem;
 use std::ptr::NonNull;
 
@@ -34,17 +33,28 @@ impl<K, V> InsertionOrderHashMap<K, V> {
     }
 
     pub fn keys(&self) -> Keys<K, V> {
-        Keys {
-            next_node: self.order.as_ref().map(|order| order.first),
-            len: self.nodes.len(),
-            phantom: PhantomData,
-        }
+        self.visiting_iterator(|node| &node.key)
     }
 
     pub fn into_keys(self) -> IntoKeys<K, V> {
         IntoKeys {
             next_node: self.order.map(|order| order.first),
             nodes: self.nodes,
+        }
+    }
+
+    pub fn values(&self) -> Values<K, V> {
+        self.visiting_iterator(|node| &node.value)
+    }
+
+    fn visiting_iterator<'a, O>(
+        &'a self,
+        visit: VisitingFunction<'a, K, V, O>,
+    ) -> VisitingIterator<K, V, O> {
+        VisitingIterator {
+            next_node: self.order.as_ref().map(|order| order.first),
+            visit,
+            len: self.nodes.len(),
         }
     }
 
@@ -249,21 +259,24 @@ struct InsertionOrder<K, V> {
     last: NonNull<Node<K, V>>,
 }
 
-pub struct Keys<'a, K: 'a, V> {
+type VisitingFunction<'a, K, V, O> = fn(&'a Node<K, V>) -> O;
+pub struct VisitingIterator<'a, K, V, O> {
     next_node: Option<NonNull<Node<K, V>>>,
+    visit: VisitingFunction<'a, K, V, O>,
     len: usize,
-    phantom: PhantomData<&'a K>,
 }
-impl<'a, K, V: 'a> Iterator for Keys<'a, K, V> {
-    type Item = &'a K;
+impl<'a, K, V, O: 'a> Iterator for VisitingIterator<'a, K, V, O> {
+    type Item = O;
 
     fn next(&mut self) -> Option<Self::Item> {
         match &self.next_node {
             Some(node) => {
-                let key = unsafe { &node.as_ref().key };
-                self.next_node = unsafe { node.as_ref() }.next;
+                let node = unsafe { node.as_ref() };
+                self.next_node = node.next;
                 self.len -= 1;
-                Some(key)
+
+                let output = (self.visit)(node);
+                Some(output)
             }
             None => None,
         }
@@ -274,12 +287,15 @@ impl<'a, K, V: 'a> Iterator for Keys<'a, K, V> {
         (len, Some(len))
     }
 }
-impl<'a, K, V: 'a> ExactSizeIterator for Keys<'a, K, V> {
+impl<'a, K, V, O: 'a> ExactSizeIterator for VisitingIterator<'a, K, V, O> {
     fn len(&self) -> usize {
         self.len
     }
 }
-impl<'a, K, V: 'a> FusedIterator for Keys<'a, K, V> {}
+impl<'a, K, V, O: 'a> FusedIterator for VisitingIterator<'a, K, V, O> {}
+
+pub type Keys<'a, K, V> = VisitingIterator<'a, K, V, &'a K>;
+pub type Values<'a, K, V> = VisitingIterator<'a, K, V, &'a V>;
 
 pub struct IntoKeys<K, V> {
     next_node: Option<NonNull<Node<K, V>>>,
