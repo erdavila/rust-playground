@@ -44,8 +44,8 @@ fn test_insert_on_empty() {
     let iohm = as_immutable(iohm);
     assert!(result.is_none());
     assert_eq!(iohm.nodes.len(), 1);
-    let node: &Node<_, _> = &iohm.nodes[&"A"];
-    assert_eq!(unsafe { node.key.as_ref() }, &"A");
+    let node: &Node<_, _> = &iohm.nodes[&KeyWrapper(&"A")];
+    assert_eq!(node.key, "A");
     assert_eq!(node.value, 1);
     assert_first_node(&iohm, node);
     assert_last_node(&iohm, node);
@@ -61,9 +61,9 @@ fn test_insert_on_non_empty() {
     let iohm = as_immutable(iohm);
     assert!(result.is_none());
     assert_eq!(iohm.nodes.len(), 2);
-    let node_a: &Node<_, _> = &iohm.nodes[&"A"];
-    let node_b: &Node<_, _> = &iohm.nodes[&"B"];
-    assert_eq!(unsafe { node_b.key.as_ref() }, &"B");
+    let node_a: &Node<_, _> = &iohm.nodes[&KeyWrapper(&"A")];
+    let node_b: &Node<_, _> = &iohm.nodes[&KeyWrapper(&"B")];
+    assert_eq!(node_b.key, "B");
     assert_eq!(node_b.value, 2);
     assert_linked_nodes(node_a, node_b);
     assert_last_node(&iohm, node_b);
@@ -79,8 +79,8 @@ fn test_insert_existing_key() {
     let iohm = as_immutable(iohm);
     assert_eq!(result, Some(1));
     assert_eq!(iohm.nodes.len(), 1);
-    let node: &Node<_, _> = &iohm.nodes[&"A"];
-    assert_eq!(unsafe { node.key.as_ref() }, &"A");
+    let node: &Node<_, _> = &iohm.nodes[&KeyWrapper(&"A")];
+    assert_eq!(node.key, "A");
     assert_eq!(node.value, 2);
     assert_first_node(&iohm, node);
     assert_last_node(&iohm, node);
@@ -98,7 +98,7 @@ fn test_remove_first() {
     let iohm = as_immutable(iohm);
     assert_eq!(result, Some(1));
     assert_eq!(iohm.nodes.len(), 2);
-    let node: &Node<_, _> = &iohm.nodes[&"B"];
+    let node: &Node<_, _> = &iohm.nodes[&KeyWrapper(&"B")];
     assert_first_node(&iohm, node);
 }
 
@@ -114,7 +114,7 @@ fn test_remove_last() {
     let iohm = as_immutable(iohm);
     assert_eq!(result, Some(3));
     assert_eq!(iohm.nodes.len(), 2);
-    let node: &Node<_, _> = &iohm.nodes[&"B"];
+    let node: &Node<_, _> = &iohm.nodes[&KeyWrapper(&"B")];
     assert_last_node(&iohm, node);
 }
 
@@ -130,8 +130,8 @@ fn test_remove_in_the_middle() {
     let iohm = as_immutable(iohm);
     assert_eq!(result, Some(2));
     assert_eq!(iohm.nodes.len(), 2);
-    let node_a: &Node<_, _> = &iohm.nodes[&"A"];
-    let node_c: &Node<_, _> = &iohm.nodes[&"C"];
+    let node_a: &Node<_, _> = &iohm.nodes[&KeyWrapper(&"A")];
+    let node_c: &Node<_, _> = &iohm.nodes[&KeyWrapper(&"C")];
     assert_linked_nodes(node_a, node_c);
 }
 

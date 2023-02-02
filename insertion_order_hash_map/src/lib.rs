@@ -1,15 +1,14 @@
+use std::collections::HashMap;
 use std::collections::TryReserveError;
-use std::collections::{hash_map, HashMap};
 use std::hash::Hash;
 use std::marker::PhantomData;
 use std::mem;
-use std::ops::Deref;
 use std::ptr::NonNull;
 
 #[cfg(test)]
 mod tests;
 
-type UnderlyingMap<K, V> = HashMap<Box<K>, Box<Node<K, V>>>;
+type UnderlyingMap<K, V> = HashMap<KeyWrapper<K>, Box<Node<K, V>>>;
 
 pub struct InsertionOrderHashMap<K, V> {
     nodes: UnderlyingMap<K, V>,
@@ -73,54 +72,56 @@ where
     }
 
     pub fn entry(&mut self, key: K) -> Entry<K, V> {
-        match self.nodes.entry(Box::new(key)) {
-            hash_map::Entry::Occupied(underlying_occupied_entry) => {
-                Entry::Occupied(OccupiedEntry {
-                    underlying_occupied_entry,
-                    order: &mut self.order,
-                })
-            }
-            hash_map::Entry::Vacant(underlying_vacant_entry) => Entry::Vacant(VacantEntry {
-                underlying_vacant_entry,
-                order: &mut self.order,
+        let self_ref = unsafe { &mut *(self as *mut Self) };
+
+        match self.nodes.get_mut(&KeyWrapper(&key)) {
+            Some(node) => Entry::Occupied(OccupiedEntry {
+                node,
+                iohm: self_ref,
+            }),
+            None => Entry::Vacant(VacantEntry {
+                key,
+                iohm: self_ref,
             }),
         }
     }
 
     pub fn get(&self, key: &K) -> Option<&V> {
-        self.nodes.get(key).map(|node| &node.value)
+        self.nodes.get(&KeyWrapper(key)).map(|node| &node.value)
     }
 
     pub fn get_key_value(&self, key: &K) -> Option<(&K, &V)> {
         self.nodes
-            .get_key_value(key)
-            .map(|(key, node)| (key.deref(), &node.value))
+            .get(&KeyWrapper(key))
+            .map(|node| (&node.key, &node.value))
     }
 
     pub fn contains_key(&self, key: &K) -> bool {
-        self.nodes.contains_key(key)
+        self.nodes.contains_key(&KeyWrapper(key))
     }
 
     pub fn get_mut(&mut self, key: &K) -> Option<&mut V> {
-        self.nodes.get_mut(key).map(|node| &mut node.value)
+        self.nodes
+            .get_mut(&KeyWrapper(key))
+            .map(|node| &mut node.value)
     }
 
     pub fn insert(&mut self, key: K, value: V) -> Option<V> {
-        match self.nodes.entry(Box::new(key)) {
-            hash_map::Entry::Occupied(mut occupied) => {
-                let previous_value = mem::replace(&mut occupied.get_mut().value, value);
+        match self.nodes.get_mut(&KeyWrapper(&key)) {
+            Some(node) => {
+                let previous_value = mem::replace(&mut node.as_mut().value, value);
                 Some(previous_value)
             }
-            hash_map::Entry::Vacant(vacant) => {
-                let node = Box::new(Node {
-                    key: NonNull::from(vacant.key().as_ref()),
+            None => {
+                let mut node = Box::new(Node {
+                    key,
                     value,
                     prev: None,
                     next: None,
                 });
 
-                let node = vacant.insert(node);
                 node.link(&mut self.order);
+                self.nodes.insert(KeyWrapper(&node.key), node);
 
                 None
             }
@@ -132,10 +133,10 @@ where
     }
 
     pub fn remove_entry(&mut self, key: &K) -> Option<(K, V)> {
-        match self.nodes.remove_entry(key) {
-            Some((key, mut node)) => {
+        match self.nodes.remove(&KeyWrapper(key)) {
+            Some(mut node) => {
                 node.unlink(&mut self.order);
-                Some((*key, node.value))
+                Some((node.key, node.value))
             }
             None => None,
         }
@@ -147,8 +148,26 @@ impl<K, V> Default for InsertionOrderHashMap<K, V> {
     }
 }
 
+#[derive(Eq)]
+struct KeyWrapper<T>(*const T);
+impl<T> KeyWrapper<T> {
+    fn get_ref(&self) -> &T {
+        unsafe { &*self.0 }
+    }
+}
+impl<T: Hash> Hash for KeyWrapper<T> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.get_ref().hash(state);
+    }
+}
+impl<T: PartialEq> PartialEq for KeyWrapper<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.get_ref() == other.get_ref()
+    }
+}
+
 struct Node<K, V> {
-    key: NonNull<K>,
+    key: K,
     value: V,
     prev: Option<NonNull<Node<K, V>>>,
     next: Option<NonNull<Node<K, V>>>,
@@ -197,13 +216,13 @@ pub struct Keys<'a, K: 'a, V> {
     next_node: Option<NonNull<Node<K, V>>>,
     phantom: PhantomData<&'a K>,
 }
-impl<'a, K, V> Iterator for Keys<'a, K, V> {
+impl<'a, K, V: 'a> Iterator for Keys<'a, K, V> {
     type Item = &'a K;
 
     fn next(&mut self) -> Option<Self::Item> {
         match &self.next_node {
             Some(node) => {
-                let key = unsafe { node.as_ref().key.as_ref() };
+                let key = unsafe { &node.as_ref().key };
                 self.next_node = unsafe { node.as_ref() }.next;
                 Some(key)
             }
@@ -216,7 +235,10 @@ pub enum Entry<'a, K, V> {
     Occupied(OccupiedEntry<'a, K, V>),
     Vacant(VacantEntry<'a, K, V>),
 }
-impl<'a, K, V> Entry<'a, K, V> {
+impl<'a, K, V> Entry<'a, K, V>
+where
+    K: Hash + Eq,
+{
     pub fn or_insert(self, default: V) -> &'a mut V {
         self.or_insert_with(|| default)
     }
@@ -250,19 +272,16 @@ impl<'a, K, V> Entry<'a, K, V> {
             Self::Occupied(mut occupied_entry) => {
                 let value = occupied_entry.get_mut();
                 f(value);
-                Self::Occupied(OccupiedEntry {
-                    underlying_occupied_entry: occupied_entry.underlying_occupied_entry,
-                    order: occupied_entry.order,
-                })
+                Self::Occupied(OccupiedEntry { ..occupied_entry })
             }
-            Self::Vacant(vacant_entry) => Self::Vacant(VacantEntry {
-                underlying_vacant_entry: vacant_entry.underlying_vacant_entry,
-                order: vacant_entry.order,
-            }),
+            Self::Vacant(vacant_entry) => Self::Vacant(VacantEntry { ..vacant_entry }),
         }
     }
 }
-impl<'a, K, V: Default> Entry<'a, K, V> {
+impl<'a, K, V: Default> Entry<'a, K, V>
+where
+    K: Hash + Eq,
+{
     pub fn or_default(self) -> &'a mut V {
         match self {
             Self::Occupied(mut occupied_entry) => {
@@ -275,73 +294,75 @@ impl<'a, K, V: Default> Entry<'a, K, V> {
 }
 
 pub struct OccupiedEntry<'a, K, V> {
-    underlying_occupied_entry: hash_map::OccupiedEntry<'a, Box<K>, Box<Node<K, V>>>,
-    order: &'a mut Option<InsertionOrder<K, V>>,
+    node: &'a mut Node<K, V>,
+    iohm: &'a mut InsertionOrderHashMap<K, V>,
 }
 impl<'a, K, V> OccupiedEntry<'a, K, V> {
     pub fn key(&self) -> &K {
-        let node = self.underlying_occupied_entry.get();
-        let key_ptr = node.key;
-        unsafe { key_ptr.as_ref() }
+        &self.node.key
     }
 
-    pub fn remove_entry(self) -> (K, V) {
-        let (key, mut node) = self.underlying_occupied_entry.remove_entry();
-        node.unlink(self.order);
+    pub fn remove_entry(self) -> (K, V)
+    where
+        K: Hash + Eq,
+    {
+        let node = self.iohm.nodes.remove(&KeyWrapper(&self.node.key)).unwrap();
+        self.node.unlink(&mut self.iohm.order);
 
-        (*key, node.value)
+        (node.key, node.value)
     }
 
     pub fn get(&self) -> &V {
-        let node = self.underlying_occupied_entry.get();
-        &node.value
+        &self.node.value
     }
 
     pub fn get_mut(&mut self) -> &mut V {
-        let node = self.underlying_occupied_entry.get_mut();
-        &mut node.value
+        &mut self.node.value
     }
 
     pub fn into_mut(self) -> &'a mut V {
-        let node = self.underlying_occupied_entry.into_mut();
-        &mut node.value
+        &mut self.node.value
     }
 
     pub fn insert(&mut self, value: V) -> V {
-        let node = self.underlying_occupied_entry.get_mut();
-        mem::replace(&mut node.value, value)
+        mem::replace(&mut self.node.value, value)
     }
 
-    pub fn remove(self) -> V {
+    pub fn remove(self) -> V
+    where
+        K: Hash + Eq,
+    {
         self.remove_entry().1
     }
 }
 
 pub struct VacantEntry<'a, K, V> {
-    underlying_vacant_entry: hash_map::VacantEntry<'a, Box<K>, Box<Node<K, V>>>,
-    order: &'a mut Option<InsertionOrder<K, V>>,
+    key: K,
+    iohm: &'a mut InsertionOrderHashMap<K, V>,
 }
 impl<'a, K, V> VacantEntry<'a, K, V> {
     pub fn key(&self) -> &K {
-        self.underlying_vacant_entry.key()
+        &self.key
     }
 
     pub fn into_key(self) -> K {
-        *self.underlying_vacant_entry.into_key()
+        self.key
     }
 
-    pub fn insert(self, value: V) -> &'a mut V {
-        let key: &K = self.underlying_vacant_entry.key();
-
+    pub fn insert(self, value: V) -> &'a mut V
+    where
+        K: Eq + Hash,
+    {
         let node = Box::new(Node {
-            key: NonNull::from(key),
+            key: self.key,
             value,
             prev: None,
             next: None,
         });
 
-        let node = self.underlying_vacant_entry.insert(node);
-        node.link(self.order);
+        let entry = self.iohm.nodes.entry(KeyWrapper(&node.key));
+        let node = entry.or_insert(node);
+        node.link(&mut self.iohm.order);
 
         &mut node.value
     }
