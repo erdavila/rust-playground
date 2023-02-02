@@ -126,10 +126,15 @@ where
     }
 
     pub fn remove_entry(&mut self, key: &K) -> Option<(K, V)> {
-        match self.nodes.remove(&KeyWrapper(key)) {
-            Some(mut node) => {
-                node.unlink(&mut self.order);
-                Some((node.key, node.value))
+        let self_ref = unsafe { &mut *(self as *mut Self) };
+        match self.nodes.get_mut(&KeyWrapper(key)) {
+            Some(node) => {
+                let occupied_entry = OccupiedEntry {
+                    node: node.as_mut(),
+                    iohm: self_ref,
+                };
+                let key_value = occupied_entry.remove_entry();
+                Some(key_value)
             }
             None => None,
         }
