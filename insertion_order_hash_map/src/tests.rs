@@ -241,6 +241,26 @@ fn test_keys_on_non_empty() {
     assert_consistency(&iohm);
 }
 
+#[test]
+fn test_keys_iteration() {
+    let mut iohm = InsertionOrderHashMap::new();
+    iohm.insert("A", 1);
+    iohm.insert("B", 2);
+    iohm.insert("C", 3);
+    let iohm = as_immutable(iohm);
+
+    let mut keys = iohm.keys();
+
+    assert_eq!(keys.len(), 3);
+    assert_eq!(keys.next(), Some(&"A"));
+    assert_eq!(keys.len(), 2);
+    assert_eq!(keys.next(), Some(&"B"));
+    assert_eq!(keys.len(), 1);
+    assert_eq!(keys.next(), Some(&"C"));
+    assert_eq!(keys.len(), 0);
+    assert_eq!(keys.next(), None);
+}
+
 fn assert_first_node<K, V>(iohm: &InsertionOrderHashMap<K, V>, node: &Node<K, V>) {
     let order = iohm.order.as_ref().expect("order should not be None");
     assert!(ptr::eq(order.first.as_ptr(), node));

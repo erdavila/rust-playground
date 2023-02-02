@@ -2,6 +2,7 @@ use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::collections::TryReserveError;
 use std::hash::Hash;
+use std::iter::FusedIterator;
 use std::marker::PhantomData;
 use std::mem;
 use std::ptr::NonNull;
@@ -35,6 +36,7 @@ impl<K, V> InsertionOrderHashMap<K, V> {
     pub fn keys(&self) -> Keys<K, V> {
         Keys {
             next_node: self.order.as_ref().map(|order| order.first),
+            len: self.nodes.len(),
             phantom: PhantomData,
         }
     }
@@ -242,6 +244,7 @@ struct InsertionOrder<K, V> {
 
 pub struct Keys<'a, K: 'a, V> {
     next_node: Option<NonNull<Node<K, V>>>,
+    len: usize,
     phantom: PhantomData<&'a K>,
 }
 impl<'a, K, V: 'a> Iterator for Keys<'a, K, V> {
@@ -252,12 +255,24 @@ impl<'a, K, V: 'a> Iterator for Keys<'a, K, V> {
             Some(node) => {
                 let key = unsafe { &node.as_ref().key };
                 self.next_node = unsafe { node.as_ref() }.next;
+                self.len -= 1;
                 Some(key)
             }
             None => None,
         }
     }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = self.len();
+        (len, Some(len))
+    }
 }
+impl<'a, K, V: 'a> ExactSizeIterator for Keys<'a, K, V> {
+    fn len(&self) -> usize {
+        self.len
+    }
+}
+impl<'a, K, V: 'a> FusedIterator for Keys<'a, K, V> {}
 
 pub enum Entry<'a, K, V> {
     Occupied(OccupiedEntry<'a, K, V>),
