@@ -113,15 +113,8 @@ where
                 Some(previous_value)
             }
             None => {
-                let mut node = Box::new(Node {
-                    key,
-                    value,
-                    prev: None,
-                    next: None,
-                });
-
-                node.link(&mut self.order);
-                self.nodes.insert(KeyWrapper(&node.key), node);
+                let vacant_entry = VacantEntry { key, iohm: self };
+                vacant_entry.insert(value);
 
                 None
             }
