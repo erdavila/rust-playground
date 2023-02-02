@@ -37,10 +37,7 @@ impl<K, V> InsertionOrderHashMap<K, V> {
     }
 
     pub fn into_keys(self) -> IntoKeys<K, V> {
-        IntoKeys {
-            next_node: self.order.map(|order| order.first),
-            nodes: self.nodes,
-        }
+        self.consuming_iterator(|node| node.key)
     }
 
     pub fn values(&self) -> Values<K, V> {
@@ -49,6 +46,10 @@ impl<K, V> InsertionOrderHashMap<K, V> {
 
     pub fn values_mut(&mut self) -> ValuesMut<K, V> {
         self.visiting_iterator_mut(|node| &mut node.value)
+    }
+
+    pub fn into_values(self) -> IntoValues<K, V> {
+        self.consuming_iterator(|node| node.value)
     }
 
     fn visiting_iterator<'a, O>(
@@ -70,6 +71,17 @@ impl<K, V> InsertionOrderHashMap<K, V> {
             next_node: self.order.as_ref().map(|order| order.first),
             visit,
             len: self.nodes.len(),
+        }
+    }
+
+    fn consuming_iterator<O>(
+        self,
+        consume: ConsumingFunction<K, V, O>,
+    ) -> ConsumingIterator<K, V, O> {
+        ConsumingIterator {
+            next_node: self.order.as_ref().map(|order| order.first),
+            consume,
+            nodes: self.nodes,
         }
     }
 
@@ -349,12 +361,14 @@ impl<'a, K, V, O: 'a> FusedIterator for VisitingIteratorMut<'a, K, V, O> {}
 
 pub type ValuesMut<'a, K, V> = VisitingIteratorMut<'a, K, V, &'a mut V>;
 
-pub struct IntoKeys<K, V> {
+type ConsumingFunction<K, V, O> = fn(Node<K, V>) -> O;
+pub struct ConsumingIterator<K, V, O> {
     next_node: Option<NonNull<Node<K, V>>>,
+    consume: ConsumingFunction<K, V, O>,
     nodes: UnderlyingMap<K, V>,
 }
-impl<K: Hash + Eq, V> Iterator for IntoKeys<K, V> {
-    type Item = K;
+impl<K: Hash + Eq, V, O> Iterator for ConsumingIterator<K, V, O> {
+    type Item = O;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.next_node {
@@ -365,7 +379,7 @@ impl<K: Hash + Eq, V> Iterator for IntoKeys<K, V> {
                 if let Some(mut next) = self.next_node {
                     unsafe { next.as_mut() }.prev = None;
                 }
-                Some(node.key)
+                Some((self.consume)(*node))
             }
             None => None,
         }
@@ -376,12 +390,15 @@ impl<K: Hash + Eq, V> Iterator for IntoKeys<K, V> {
         (len, Some(len))
     }
 }
-impl<K: Hash + Eq, V> ExactSizeIterator for IntoKeys<K, V> {
+impl<K: Hash + Eq, V, O> ExactSizeIterator for ConsumingIterator<K, V, O> {
     fn len(&self) -> usize {
         self.nodes.len()
     }
 }
-impl<K: Hash + Eq, V> FusedIterator for IntoKeys<K, V> {}
+impl<K: Hash + Eq, V, O> FusedIterator for ConsumingIterator<K, V, O> {}
+
+pub type IntoKeys<K, V> = ConsumingIterator<K, V, K>;
+pub type IntoValues<K, V> = ConsumingIterator<K, V, V>;
 
 pub enum Entry<'a, K, V> {
     Occupied(OccupiedEntry<'a, K, V>),
