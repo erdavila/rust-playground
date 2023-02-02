@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use std::ops::Add;
 use std::time::{Duration, Instant};
 
+use crate::tests::assert_consistency;
 use crate::InsertionOrderHashMap;
 
 #[test]
@@ -91,5 +92,7 @@ impl StressTestData {
         for key in &self.order {
             assert_eq!(self.iohm.get(key), self.map.get(key));
         }
+
+        assert_consistency(&self.iohm);
     }
 }
