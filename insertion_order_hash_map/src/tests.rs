@@ -2,6 +2,7 @@ use std::ptr;
 
 use super::*;
 
+mod consistency;
 mod entry;
 mod stress_test;
 
@@ -11,7 +12,7 @@ fn test_empty() {
 
     assert!(iohm.nodes.is_empty());
     assert!(iohm.order.is_none());
-    assert_consistency(&iohm);
+    consistency::assert(&iohm);
 }
 
 #[test]
@@ -25,7 +26,7 @@ fn test_get_existing_key() {
 
     assert_eq!(result1, Some(&1));
     assert_eq!(result2, result1);
-    assert_consistency(&iohm);
+    consistency::assert(&iohm);
 }
 
 #[test]
@@ -39,7 +40,7 @@ fn test_get_non_existing_key() {
 
     assert!(result1.is_none());
     assert_eq!(result2, result1);
-    assert_consistency(&iohm);
+    consistency::assert(&iohm);
 }
 
 #[test]
@@ -56,7 +57,7 @@ fn test_insert_on_empty() {
     assert_eq!(node.value, 1);
     assert_first_node(&iohm, node);
     assert_last_node(&iohm, node);
-    assert_consistency(&iohm);
+    consistency::assert(&iohm);
 }
 
 #[test]
@@ -75,7 +76,7 @@ fn test_insert_on_non_empty() {
     assert_eq!(node_b.value, 2);
     assert_linked_nodes(node_a, node_b);
     assert_last_node(&iohm, node_b);
-    assert_consistency(&iohm);
+    consistency::assert(&iohm);
 }
 
 #[test]
@@ -93,7 +94,7 @@ fn test_insert_existing_key() {
     assert_eq!(node.value, 2);
     assert_first_node(&iohm, node);
     assert_last_node(&iohm, node);
-    assert_consistency(&iohm);
+    consistency::assert(&iohm);
 }
 
 #[test]
@@ -114,7 +115,7 @@ fn test_remove_first() {
         assert_eq!(iohm.nodes.len(), 2);
         let node: &Node<_, _> = &iohm.nodes[&KeyWrapper(&"B".to_string())];
         assert_first_node(&iohm, node);
-        assert_consistency(&iohm);
+        consistency::assert(&iohm);
     }
 
     do_test(|iohm| iohm.remove(&"A".to_string()));
@@ -139,7 +140,7 @@ fn test_remove_last() {
         assert_eq!(iohm.nodes.len(), 2);
         let node: &Node<_, _> = &iohm.nodes[&KeyWrapper(&"B".to_string())];
         assert_last_node(&iohm, node);
-        assert_consistency(&iohm);
+        consistency::assert(&iohm);
     }
 
     do_test(|iohm| iohm.remove(&"C".to_string()));
@@ -165,7 +166,7 @@ fn test_remove_in_the_middle() {
         let node_a: &Node<_, _> = &iohm.nodes[&KeyWrapper(&"A".to_string())];
         let node_c: &Node<_, _> = &iohm.nodes[&KeyWrapper(&"C".to_string())];
         assert_linked_nodes(node_a, node_c);
-        assert_consistency(&iohm);
+        consistency::assert(&iohm);
     }
 
     do_test(|iohm| iohm.remove(&"B".to_string()));
@@ -187,7 +188,7 @@ fn test_remove_single_item() {
         assert_eq!(result, Some(1));
         assert!(iohm.nodes.is_empty());
         assert!(iohm.order.is_none());
-        assert_consistency(&iohm);
+        consistency::assert(&iohm);
     }
 
     do_test(|iohm| iohm.remove(&"A".to_string()));
@@ -208,7 +209,7 @@ fn test_remove_non_existing_key() {
         let iohm = as_immutable(iohm);
         assert!(result.is_none());
         assert_eq!(iohm.nodes.len(), 1);
-        assert_consistency(&iohm);
+        consistency::assert(&iohm);
     }
 
     do_test(|iohm| iohm.remove(&"B".to_string()));
@@ -223,7 +224,7 @@ fn test_keys_on_empty() {
 
     let keys_vec: Vec<_> = keys.collect();
     assert!(keys_vec.is_empty());
-    assert_consistency(&iohm);
+    consistency::assert(&iohm);
 }
 
 #[test]
@@ -238,7 +239,7 @@ fn test_keys_on_non_empty() {
 
     let keys_vec: Vec<_> = keys.collect();
     assert_eq!(keys_vec, vec![&"A", &"B", &"C"]);
-    assert_consistency(&iohm);
+    consistency::assert(&iohm);
 }
 
 #[test]
@@ -259,6 +260,55 @@ fn test_keys_iteration() {
     assert_eq!(keys.next(), Some(&"C"));
     assert_eq!(keys.len(), 0);
     assert_eq!(keys.next(), None);
+}
+
+#[test]
+fn test_into_keys_on_empty() {
+    let iohm: InsertionOrderHashMap<String, i32> = InsertionOrderHashMap::new();
+
+    let keys = iohm.into_keys();
+
+    let keys_vec: Vec<_> = keys.collect();
+    assert!(keys_vec.is_empty());
+}
+
+#[test]
+fn test_into_keys_on_non_empty() {
+    let mut iohm = InsertionOrderHashMap::new();
+    iohm.insert("A", 1);
+    iohm.insert("B", 2);
+    iohm.insert("C", 3);
+    let iohm = as_immutable(iohm);
+
+    let keys = iohm.into_keys();
+
+    let keys_vec: Vec<_> = keys.collect();
+    assert_eq!(keys_vec, vec!["A", "B", "C"]);
+}
+
+#[test]
+fn test_into_keys_iteration() {
+    let mut iohm = InsertionOrderHashMap::new();
+    iohm.insert("A", 1);
+    iohm.insert("B", 2);
+    iohm.insert("C", 3);
+    let iohm = as_immutable(iohm);
+
+    let mut keys = iohm.into_keys();
+
+    consistency::assert_nodes_and_order_from_first_node_option(&keys.nodes, &keys.next_node);
+    assert_eq!(keys.len(), 3);
+    assert_eq!(keys.next(), Some("A"));
+    consistency::assert_nodes_and_order_from_first_node_option(&keys.nodes, &keys.next_node);
+    assert_eq!(keys.len(), 2);
+    assert_eq!(keys.next(), Some("B"));
+    consistency::assert_nodes_and_order_from_first_node_option(&keys.nodes, &keys.next_node);
+    assert_eq!(keys.len(), 1);
+    assert_eq!(keys.next(), Some("C"));
+    consistency::assert_nodes_and_order_from_first_node_option(&keys.nodes, &keys.next_node);
+    assert_eq!(keys.len(), 0);
+    assert_eq!(keys.next(), None);
+    consistency::assert_nodes_and_order_from_first_node_option(&keys.nodes, &keys.next_node);
 }
 
 fn assert_first_node<K, V>(iohm: &InsertionOrderHashMap<K, V>, node: &Node<K, V>) {
@@ -289,61 +339,4 @@ fn assert_linked_nodes<K, V>(node_before: &Node<K, V>, node_after: &Node<K, V>) 
 
 fn as_immutable<T>(value: T) -> T {
     value
-}
-
-fn assert_consistency<K: Hash + Eq, V>(iohm: &InsertionOrderHashMap<K, V>) {
-    match &iohm.order {
-        Some(order) => {
-            fn deref<'a, T>(non_null: NonNull<T>) -> &'a T {
-                unsafe { non_null.as_ref() }
-            }
-
-            let first = deref(order.first);
-            assert!(first.prev.is_none());
-
-            let last;
-
-            let mut count = 1usize;
-            if let Some(current) = first.next {
-                let mut previous = first;
-                let mut current = deref(current);
-
-                loop {
-                    count += 1;
-
-                    let prev_next = previous.next.unwrap();
-                    let prev_next = deref(prev_next);
-                    assert!(ptr::eq(prev_next, current));
-
-                    let curr_prev = current.prev.unwrap();
-                    let curr_prev = deref(curr_prev);
-                    assert!(ptr::eq(previous, curr_prev));
-
-                    let node: &Node<K, V> = iohm.nodes.get(&KeyWrapper(&current.key)).unwrap();
-                    assert!(ptr::eq(node, current));
-
-                    if let Some(next) = current.next {
-                        previous = current;
-                        current = deref(next);
-                    } else {
-                        break;
-                    }
-                }
-                last = current;
-            } else {
-                let node: &Node<K, V> = iohm.nodes.get(&KeyWrapper(&first.key)).unwrap();
-                assert!(ptr::eq(node, first));
-
-                last = first;
-            }
-            assert!(ptr::eq(last, deref(order.last)));
-
-            assert_eq!(iohm.nodes.len(), count);
-
-            for (key_wrapper, node) in &iohm.nodes {
-                assert!(ptr::eq(key_wrapper.0, &node.key));
-            }
-        }
-        None => assert!(iohm.nodes.is_empty()),
-    }
 }

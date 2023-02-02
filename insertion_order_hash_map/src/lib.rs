@@ -41,6 +41,13 @@ impl<K, V> InsertionOrderHashMap<K, V> {
         }
     }
 
+    pub fn into_keys(self) -> IntoKeys<K, V> {
+        IntoKeys {
+            next_node: self.order.map(|order| order.first),
+            nodes: self.nodes,
+        }
+    }
+
     pub fn len(&self) -> usize {
         self.nodes.len()
     }
@@ -273,6 +280,40 @@ impl<'a, K, V: 'a> ExactSizeIterator for Keys<'a, K, V> {
     }
 }
 impl<'a, K, V: 'a> FusedIterator for Keys<'a, K, V> {}
+
+pub struct IntoKeys<K, V> {
+    next_node: Option<NonNull<Node<K, V>>>,
+    nodes: UnderlyingMap<K, V>,
+}
+impl<K: Hash + Eq, V> Iterator for IntoKeys<K, V> {
+    type Item = K;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.next_node {
+            Some(node) => {
+                let node = unsafe { node.as_ref() };
+                let node = self.nodes.remove(&KeyWrapper(&node.key)).unwrap();
+                self.next_node = node.next;
+                if let Some(mut next) = self.next_node {
+                    unsafe { next.as_mut() }.prev = None;
+                }
+                Some(node.key)
+            }
+            None => None,
+        }
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let len = self.len();
+        (len, Some(len))
+    }
+}
+impl<K: Hash + Eq, V> ExactSizeIterator for IntoKeys<K, V> {
+    fn len(&self) -> usize {
+        self.nodes.len()
+    }
+}
+impl<K: Hash + Eq, V> FusedIterator for IntoKeys<K, V> {}
 
 pub enum Entry<'a, K, V> {
     Occupied(OccupiedEntry<'a, K, V>),
