@@ -109,7 +109,7 @@ where
     pub fn insert(&mut self, key: K, value: V) -> Option<V> {
         match self.nodes.get_mut(&KeyWrapper(&key)) {
             Some(node) => {
-                let previous_value = mem::replace(&mut node.as_mut().value, value);
+                let previous_value = node.replace_value(value);
                 Some(previous_value)
             }
             None => {
@@ -197,6 +197,10 @@ impl<K, V> Node<K, V> {
                 *order = None;
             }
         }
+    }
+
+    fn replace_value(&mut self, value: V) -> V {
+        mem::replace(&mut self.value, value)
     }
 }
 
@@ -318,7 +322,7 @@ impl<'a, K, V> OccupiedEntry<'a, K, V> {
     }
 
     pub fn insert(&mut self, value: V) -> V {
-        mem::replace(&mut self.node.value, value)
+        self.node.replace_value(value)
     }
 
     pub fn remove(self) -> V
