@@ -3,7 +3,9 @@ use std::collections::HashMap;
 use std::collections::TryReserveError;
 use std::hash::Hash;
 use std::iter::FusedIterator;
+use std::marker::PhantomData;
 use std::mem;
+use std::ops::DerefMut;
 use std::ptr::NonNull;
 
 #[cfg(test)]
@@ -86,10 +88,13 @@ impl<K, V> InsertionOrderHashMap<K, V> {
         self,
         consume: ConsumingFunction<K, V, O>,
     ) -> ConsumingIterator<K, V, O> {
+        let mut iohm = Box::new(self);
+        let iohm_ref: &mut InsertionOrderHashMap<_, _> =
+            unsafe { mem::transmute(iohm.deref_mut()) };
+
         ConsumingIterator {
-            next_node: self.order.as_ref().map(|order| order.first),
-            consume,
-            nodes: self.nodes,
+            iohm,
+            it: InternalConsumingIterator::new(iohm_ref, consume),
         }
     }
 
@@ -101,10 +106,10 @@ impl<K, V> InsertionOrderHashMap<K, V> {
         self.nodes.is_empty()
     }
 
-    pub fn drain(&mut self) -> Drain<'_, K, V> {
+    pub fn drain(&mut self) -> Drain<K, V> {
         Drain {
-            next_node: self.order.as_ref().map(|order| order.first),
-            iohm: self,
+            it: InternalConsumingIterator::new(self, |node| (node.key, node.value)),
+            phantom: PhantomData,
         }
     }
 
@@ -225,6 +230,12 @@ where
             }
             None => None,
         }
+    }
+
+    fn remove_node(&mut self, key: &K) -> Node<K, V> {
+        let mut node = self.nodes.remove(&KeyWrapper(key)).unwrap();
+        node.unlink(&mut self.order);
+        *node
     }
 }
 impl<K, V> Default for InsertionOrderHashMap<K, V> {
@@ -379,24 +390,40 @@ pub type ValuesMut<'a, K, V> = VisitingIteratorMut<'a, K, V, &'a mut V>;
 pub type IterMut<'a, K, V> = VisitingIteratorMut<'a, K, V, (&'a K, &'a mut V)>;
 
 type ConsumingFunction<K, V, O> = fn(Node<K, V>) -> O;
-pub struct ConsumingIterator<K, V, O> {
+struct InternalConsumingIterator<K, V, O> {
     next_node: Option<NonNull<Node<K, V>>>,
+    iohm: NonNull<InsertionOrderHashMap<K, V>>,
     consume: ConsumingFunction<K, V, O>,
-    nodes: UnderlyingMap<K, V>,
 }
-impl<K: Hash + Eq, V, O> Iterator for ConsumingIterator<K, V, O> {
+impl<K, V, O> InternalConsumingIterator<K, V, O> {
+    fn new(iohm: &mut InsertionOrderHashMap<K, V>, consume: ConsumingFunction<K, V, O>) -> Self {
+        InternalConsumingIterator {
+            next_node: iohm.order.as_ref().map(|order| order.first),
+            iohm: NonNull::from(iohm),
+            consume,
+        }
+    }
+
+    fn iohm(&self) -> &InsertionOrderHashMap<K, V> {
+        return unsafe { self.iohm.as_ref() };
+    }
+
+    fn iohm_mut(&mut self) -> &mut InsertionOrderHashMap<K, V> {
+        return unsafe { self.iohm.as_mut() };
+    }
+}
+impl<K: Hash + Eq, V, O> Iterator for InternalConsumingIterator<K, V, O> {
     type Item = O;
 
     fn next(&mut self) -> Option<Self::Item> {
         match self.next_node {
-            Some(node) => {
-                let node = unsafe { node.as_ref() };
-                let node = self.nodes.remove(&KeyWrapper(&node.key)).unwrap();
+            Some(mut node) => {
+                let node = unsafe { node.as_mut() };
+                let node = self.iohm_mut().remove_node(&node.key);
+
                 self.next_node = node.next;
-                if let Some(mut next) = self.next_node {
-                    unsafe { next.as_mut() }.prev = None;
-                }
-                Some((self.consume)(*node))
+
+                Some((self.consume)(node))
             }
             None => None,
         }
@@ -407,9 +434,32 @@ impl<K: Hash + Eq, V, O> Iterator for ConsumingIterator<K, V, O> {
         (len, Some(len))
     }
 }
+impl<K: Hash + Eq, V, O> ExactSizeIterator for InternalConsumingIterator<K, V, O> {
+    fn len(&self) -> usize {
+        self.iohm().len()
+    }
+}
+impl<K: Hash + Eq, V, O> FusedIterator for InternalConsumingIterator<K, V, O> {}
+
+pub struct ConsumingIterator<K, V, O> {
+    #[allow(dead_code)]
+    iohm: Box<InsertionOrderHashMap<K, V>>,
+    it: InternalConsumingIterator<K, V, O>,
+}
+impl<K: Hash + Eq, V, O> Iterator for ConsumingIterator<K, V, O> {
+    type Item = O;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.it.next()
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.it.size_hint()
+    }
+}
 impl<K: Hash + Eq, V, O> ExactSizeIterator for ConsumingIterator<K, V, O> {
     fn len(&self) -> usize {
-        self.nodes.len()
+        self.it.len()
     }
 }
 impl<K: Hash + Eq, V, O> FusedIterator for ConsumingIterator<K, V, O> {}
@@ -418,43 +468,28 @@ pub type IntoKeys<K, V> = ConsumingIterator<K, V, K>;
 pub type IntoValues<K, V> = ConsumingIterator<K, V, V>;
 
 pub struct Drain<'a, K, V> {
-    next_node: Option<NonNull<Node<K, V>>>,
-    iohm: &'a mut InsertionOrderHashMap<K, V>,
+    it: InternalConsumingIterator<K, V, (K, V)>,
+    phantom: PhantomData<&'a ()>,
 }
 impl<K: Hash + Eq, V> Iterator for Drain<'_, K, V> {
     type Item = (K, V);
 
     fn next(&mut self) -> Option<Self::Item> {
-        match self.next_node {
-            Some(mut node) => {
-                let node = unsafe { node.as_mut() };
-
-                self.next_node = node.next;
-
-                let occupied_entry = OccupiedEntry {
-                    node,
-                    iohm: self.iohm,
-                };
-                let key_value = occupied_entry.remove_entry();
-                Some(key_value)
-            }
-            None => None,
-        }
+        self.it.next()
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        let len = self.len();
-        (len, Some(len))
+        self.it.size_hint()
     }
 }
 impl<K, V> Drop for Drain<'_, K, V> {
     fn drop(&mut self) {
-        self.iohm.clear();
+        self.it.iohm_mut().clear();
     }
 }
 impl<K: Hash + Eq, V> ExactSizeIterator for Drain<'_, K, V> {
     fn len(&self) -> usize {
-        self.iohm.nodes.len()
+        self.it.len()
     }
 }
 impl<K: Hash + Eq, V> FusedIterator for Drain<'_, K, V> {}
@@ -534,9 +569,7 @@ impl<'a, K, V> OccupiedEntry<'a, K, V> {
     where
         K: Hash + Eq,
     {
-        let node = self.iohm.nodes.remove(&KeyWrapper(&self.node.key)).unwrap();
-        self.node.unlink(&mut self.iohm.order);
-
+        let node = self.iohm.remove_node(&self.node.key);
         (node.key, node.value)
     }
 

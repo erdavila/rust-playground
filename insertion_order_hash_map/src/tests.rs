@@ -296,19 +296,34 @@ fn test_into_keys_iteration() {
 
     let mut keys = iohm.into_keys();
 
-    consistency::assert_nodes_and_order_from_first_node_option(&keys.nodes, &keys.next_node);
+    consistency::assert_nodes_and_order_from_first_node_option(
+        &keys.it.iohm().nodes,
+        &keys.it.next_node,
+    );
     assert_eq!(keys.len(), 3);
     assert_eq!(keys.next(), Some("A"));
-    consistency::assert_nodes_and_order_from_first_node_option(&keys.nodes, &keys.next_node);
+    consistency::assert_nodes_and_order_from_first_node_option(
+        &keys.it.iohm().nodes,
+        &keys.it.next_node,
+    );
     assert_eq!(keys.len(), 2);
     assert_eq!(keys.next(), Some("B"));
-    consistency::assert_nodes_and_order_from_first_node_option(&keys.nodes, &keys.next_node);
+    consistency::assert_nodes_and_order_from_first_node_option(
+        &keys.it.iohm().nodes,
+        &keys.it.next_node,
+    );
     assert_eq!(keys.len(), 1);
     assert_eq!(keys.next(), Some("C"));
-    consistency::assert_nodes_and_order_from_first_node_option(&keys.nodes, &keys.next_node);
+    consistency::assert_nodes_and_order_from_first_node_option(
+        &keys.it.iohm().nodes,
+        &keys.it.next_node,
+    );
     assert_eq!(keys.len(), 0);
     assert_eq!(keys.next(), None);
-    consistency::assert_nodes_and_order_from_first_node_option(&keys.nodes, &keys.next_node);
+    consistency::assert_nodes_and_order_from_first_node_option(
+        &keys.it.iohm().nodes,
+        &keys.it.next_node,
+    );
 }
 
 #[test]
@@ -437,19 +452,34 @@ fn test_into_values_iteration() {
 
     let mut values = iohm.into_values();
 
-    consistency::assert_nodes_and_order_from_first_node_option(&values.nodes, &values.next_node);
+    consistency::assert_nodes_and_order_from_first_node_option(
+        &values.it.iohm().nodes,
+        &values.it.next_node,
+    );
     assert_eq!(values.len(), 3);
     assert_eq!(values.next(), Some(1));
-    consistency::assert_nodes_and_order_from_first_node_option(&values.nodes, &values.next_node);
+    consistency::assert_nodes_and_order_from_first_node_option(
+        &values.it.iohm().nodes,
+        &values.it.next_node,
+    );
     assert_eq!(values.len(), 2);
     assert_eq!(values.next(), Some(2));
-    consistency::assert_nodes_and_order_from_first_node_option(&values.nodes, &values.next_node);
+    consistency::assert_nodes_and_order_from_first_node_option(
+        &values.it.iohm().nodes,
+        &values.it.next_node,
+    );
     assert_eq!(values.len(), 1);
     assert_eq!(values.next(), Some(3));
-    consistency::assert_nodes_and_order_from_first_node_option(&values.nodes, &values.next_node);
+    consistency::assert_nodes_and_order_from_first_node_option(
+        &values.it.iohm().nodes,
+        &values.it.next_node,
+    );
     assert_eq!(values.len(), 0);
     assert_eq!(values.next(), None);
-    consistency::assert_nodes_and_order_from_first_node_option(&values.nodes, &values.next_node);
+    consistency::assert_nodes_and_order_from_first_node_option(
+        &values.it.iohm().nodes,
+        &values.it.next_node,
+    );
 }
 
 #[test]
@@ -555,19 +585,19 @@ fn test_drain_iteration() {
     let mut drain = iohm.drain();
 
     //println!("{}", iohm.len()); // should not compile!
-    consistency::assert(&drain.iohm);
+    consistency::assert(&drain.it.iohm());
     assert_eq!(drain.len(), 3);
     assert_eq!(drain.next(), Some(("A", 1)));
-    consistency::assert(&drain.iohm);
+    consistency::assert(&drain.it.iohm());
     assert_eq!(drain.len(), 2);
     assert_eq!(drain.next(), Some(("B", 2)));
-    consistency::assert(&drain.iohm);
+    consistency::assert(&drain.it.iohm());
     assert_eq!(drain.len(), 1);
     assert_eq!(drain.next(), Some(("C", 3)));
-    consistency::assert(&drain.iohm);
+    consistency::assert(&drain.it.iohm());
     assert_eq!(drain.len(), 0);
     assert_eq!(drain.next(), None);
-    consistency::assert(&drain.iohm);
+    consistency::assert(&drain.it.iohm());
     mem::drop(drain);
     assert!(iohm.is_empty());
 }
@@ -581,10 +611,10 @@ fn test_drain_drop() {
 
     let mut drain = iohm.drain();
 
-    consistency::assert(&drain.iohm);
+    consistency::assert(&drain.it.iohm());
     assert_eq!(drain.len(), 3);
     assert_eq!(drain.next(), Some(("A", 1)));
-    consistency::assert(&drain.iohm);
+    consistency::assert(&drain.it.iohm());
     assert_eq!(drain.len(), 2);
     mem::drop(drain);
     assert!(iohm.is_empty());
