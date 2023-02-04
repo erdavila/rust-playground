@@ -243,6 +243,15 @@ impl<K, V> Default for InsertionOrderHashMap<K, V> {
         Self::new()
     }
 }
+impl<'a, K, V> IntoIterator for &'a InsertionOrderHashMap<K, V> {
+    type Item = (&'a K, &'a V);
+
+    type IntoIter = Iter<'a, K, V>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.visiting_iterator(|node| (&node.key, &node.value))
+    }
+}
 
 #[derive(Eq)]
 struct KeyWrapper<T>(*const T);

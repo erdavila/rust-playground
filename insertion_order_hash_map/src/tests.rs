@@ -621,6 +621,21 @@ fn test_drain_drop() {
     consistency::assert(&iohm);
 }
 
+#[test]
+fn test_into_iterator_ref() {
+    let mut iohm = InsertionOrderHashMap::new();
+    iohm.insert("A", 1);
+    iohm.insert("B", 2);
+    iohm.insert("C", 3);
+    let iohm = as_immutable(iohm);
+
+    let result = (&iohm).into_iter();
+
+    let vec: Vec<_> = result.collect();
+    assert_eq!(vec, vec![(&"A", &1), (&"B", &2), (&"C", &3)]);
+    assert_eq!(iohm.len(), 3);
+}
+
 fn assert_first_node<K, V>(iohm: &InsertionOrderHashMap<K, V>, node: &Node<K, V>) {
     let order = iohm.order.as_ref().expect("order should not be None");
     assert!(ptr::eq(order.first.as_ptr(), node));
