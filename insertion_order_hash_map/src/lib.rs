@@ -283,6 +283,14 @@ where
         }
     }
 }
+impl<K, V, const N: usize> From<[(K, V); N]> for InsertionOrderHashMap<K, V>
+where
+    K: Eq + Hash,
+{
+    fn from(arr: [(K, V); N]) -> Self {
+        Self::from_iter(arr)
+    }
+}
 impl<K, V> FromIterator<(K, V)> for InsertionOrderHashMap<K, V>
 where
     K: Eq + Hash,
