@@ -113,6 +113,25 @@ impl<K, V> InsertionOrderHashMap<K, V> {
         }
     }
 
+    pub fn retain<F>(&mut self, mut f: F)
+    where
+        F: FnMut(&K, &mut V) -> bool,
+        K: Hash + Eq,
+    {
+        let mut node_option = self.order.as_ref().map(|order| order.first);
+        while let Some(mut node) = node_option {
+            let node = unsafe { node.as_mut() };
+
+            let keep = f(&node.key, &mut node.value);
+
+            node_option = node.next;
+
+            if !keep {
+                self.remove_node(&node.key);
+            }
+        }
+    }
+
     pub fn clear(&mut self) {
         self.nodes.clear();
         self.order = None;

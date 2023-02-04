@@ -664,6 +664,28 @@ fn test_into_iterator_consuming() {
     assert_eq!(vec, vec![("A", 1), ("B", 2), ("C", 3)]);
 }
 
+#[test]
+fn test_retain() {
+    let mut iohm = InsertionOrderHashMap::new();
+    iohm.insert("A", 1);
+    iohm.insert("B", 2);
+    iohm.insert("C", 3);
+    iohm.insert("D", 4);
+    iohm.insert("E", 5);
+
+    iohm.retain(|key, value| {
+        if *key == "B" {
+            *value += 10;
+        }
+
+        *key != "C" && *key != "D"
+    });
+
+    consistency::assert(&iohm);
+    let vec: Vec<_> = iohm.iter().collect();
+    assert_eq!(vec, vec![(&"A", &1), (&"B", &12), (&"E", &5),]);
+}
+
 fn assert_first_node<K, V>(iohm: &InsertionOrderHashMap<K, V>, node: &Node<K, V>) {
     let order = iohm.order.as_ref().expect("order should not be None");
     assert!(ptr::eq(order.first.as_ptr(), node));
