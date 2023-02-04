@@ -636,6 +636,20 @@ fn test_into_iterator_ref() {
     assert_eq!(iohm.len(), 3);
 }
 
+#[test]
+fn test_into_iterator_mut() {
+    let mut iohm = InsertionOrderHashMap::new();
+    iohm.insert("A", 1);
+    iohm.insert("B", 2);
+    iohm.insert("C", 3);
+
+    let result = (&mut iohm).into_iter();
+
+    let vec: Vec<_> = result.collect();
+    assert_eq!(vec, vec![(&"A", &mut 1), (&"B", &mut 2), (&"C", &mut 3)]);
+    assert_eq!(iohm.len(), 3);
+}
+
 fn assert_first_node<K, V>(iohm: &InsertionOrderHashMap<K, V>, node: &Node<K, V>) {
     let order = iohm.order.as_ref().expect("order should not be None");
     assert!(ptr::eq(order.first.as_ptr(), node));

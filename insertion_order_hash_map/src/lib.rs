@@ -252,6 +252,15 @@ impl<'a, K, V> IntoIterator for &'a InsertionOrderHashMap<K, V> {
         self.visiting_iterator(|node| (&node.key, &node.value))
     }
 }
+impl<'a, K, V> IntoIterator for &'a mut InsertionOrderHashMap<K, V> {
+    type Item = (&'a K, &'a mut V);
+
+    type IntoIter = IterMut<'a, K, V>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.visiting_iterator_mut(|node| (&node.key, &mut node.value))
+    }
+}
 
 #[derive(Eq)]
 struct KeyWrapper<T>(*const T);
