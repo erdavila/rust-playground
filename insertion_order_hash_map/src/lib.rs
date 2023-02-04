@@ -261,6 +261,15 @@ impl<'a, K, V> IntoIterator for &'a mut InsertionOrderHashMap<K, V> {
         self.visiting_iterator_mut(|node| (&node.key, &mut node.value))
     }
 }
+impl<K: Hash + Eq, V> IntoIterator for InsertionOrderHashMap<K, V> {
+    type Item = (K, V);
+
+    type IntoIter = IntoIter<K, V>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.consuming_iterator(|node| (node.key, node.value))
+    }
+}
 
 #[derive(Eq)]
 struct KeyWrapper<T>(*const T);
@@ -484,6 +493,7 @@ impl<K: Hash + Eq, V, O> FusedIterator for ConsumingIterator<K, V, O> {}
 
 pub type IntoKeys<K, V> = ConsumingIterator<K, V, K>;
 pub type IntoValues<K, V> = ConsumingIterator<K, V, V>;
+pub type IntoIter<K, V> = ConsumingIterator<K, V, (K, V)>;
 
 pub struct Drain<'a, K, V> {
     it: InternalConsumingIterator<K, V, (K, V)>,
