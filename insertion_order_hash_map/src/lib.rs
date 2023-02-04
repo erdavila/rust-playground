@@ -273,6 +273,16 @@ where
         }
     }
 }
+impl<K, V> Extend<(K, V)> for InsertionOrderHashMap<K, V>
+where
+    K: Eq + Hash,
+{
+    fn extend<T: IntoIterator<Item = (K, V)>>(&mut self, iter: T) {
+        for (k, v) in iter {
+            self.insert(k, v);
+        }
+    }
+}
 impl<'a, K, V> IntoIterator for &'a InsertionOrderHashMap<K, V> {
     type Item = (&'a K, &'a V);
 

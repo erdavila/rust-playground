@@ -637,6 +637,21 @@ fn test_extend_copying() {
 }
 
 #[test]
+fn test_extend_moving() {
+    let mut iohm = InsertionOrderHashMap::new();
+    iohm.insert("A", 1);
+    iohm.insert("B", -2);
+    let extension = [("C", -3), ("B", 2), ("C", 3)].into_iter();
+
+    iohm.extend(extension);
+
+    consistency::assert(&iohm);
+    assert_eq!(iohm.len(), 3);
+    let vec: Vec<_> = iohm.iter().collect();
+    assert_eq!(vec, vec![(&"A", &1), (&"B", &2), (&"C", &3)]);
+}
+
+#[test]
 fn test_into_iterator_ref() {
     let mut iohm = InsertionOrderHashMap::new();
     iohm.insert("A", 1);
