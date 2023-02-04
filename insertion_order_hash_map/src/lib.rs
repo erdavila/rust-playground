@@ -262,6 +262,17 @@ impl<K, V> Default for InsertionOrderHashMap<K, V> {
         Self::new()
     }
 }
+impl<'a, K, V> Extend<(&'a K, &'a V)> for InsertionOrderHashMap<K, V>
+where
+    K: Eq + Hash + Copy,
+    V: Copy,
+{
+    fn extend<T: IntoIterator<Item = (&'a K, &'a V)>>(&mut self, iter: T) {
+        for (k, v) in iter {
+            self.insert(*k, *v);
+        }
+    }
+}
 impl<'a, K, V> IntoIterator for &'a InsertionOrderHashMap<K, V> {
     type Item = (&'a K, &'a V);
 
