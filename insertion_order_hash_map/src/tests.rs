@@ -652,6 +652,16 @@ fn test_extend_moving() {
 }
 
 #[test]
+fn test_from_iter() {
+    let iohm = InsertionOrderHashMap::from_iter([("A", 1), ("B", -2), ("C", 3), ("B", 2)]);
+
+    consistency::assert(&iohm);
+    assert_eq!(iohm.len(), 3);
+    let vec: Vec<_> = iohm.iter().collect();
+    assert_eq!(vec, vec![(&"A", &1), (&"B", &2), (&"C", &3),]);
+}
+
+#[test]
 fn test_into_iterator_ref() {
     let mut iohm = InsertionOrderHashMap::new();
     iohm.insert("A", 1);
