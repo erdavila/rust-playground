@@ -196,8 +196,16 @@ where
         self.end_node_key_value(|order| order.first)
     }
 
+    pub fn first_entry(&mut self) -> Option<OccupiedEntry<'_, K, V>> {
+        self.end_node_entry(|order| order.first)
+    }
+
     pub fn last_key_value(&self) -> Option<(&K, &V)> {
         self.end_node_key_value(|order| order.last)
+    }
+
+    pub fn last_entry(&mut self) -> Option<OccupiedEntry<'_, K, V>> {
+        self.end_node_entry(|order| order.last)
     }
 
     fn end_node_key_value(&self, get_end_node: GetEndNode<K, V>) -> Option<(&K, &V)> {
@@ -205,6 +213,21 @@ where
             let node = get_end_node(order);
             let node = unsafe { node.as_ref() };
             (&node.key, &node.value)
+        })
+    }
+
+    fn end_node_entry(
+        &mut self,
+        get_end_node: GetEndNode<K, V>,
+    ) -> Option<OccupiedEntry<'_, K, V>> {
+        let self_ref = unsafe { &mut *(self as *mut Self) };
+        self.order.as_mut().map(|order| {
+            let mut node = get_end_node(order);
+            let node = unsafe { node.as_mut() };
+            OccupiedEntry {
+                node,
+                iohm: self_ref,
+            }
         })
     }
 
