@@ -44,6 +44,50 @@ fn test_get_non_existing_key() {
 }
 
 #[test]
+fn test_first_key_value_on_empty() {
+    let iohm: InsertionOrderHashMap<&str, i32> = InsertionOrderHashMap::new();
+
+    let result = iohm.first_key_value();
+
+    assert!(result.is_none());
+}
+
+#[test]
+fn test_first_key_value_on_non_empty() {
+    let mut iohm = InsertionOrderHashMap::new();
+    iohm.insert("A", 1);
+    iohm.insert("B", 2);
+    iohm.insert("C", 3);
+    let iohm = as_immutable(iohm);
+
+    let result = iohm.first_key_value();
+
+    assert_eq!(result, Some((&"A", &1)));
+}
+
+#[test]
+fn test_last_key_value_on_empty() {
+    let iohm: InsertionOrderHashMap<&str, i32> = InsertionOrderHashMap::new();
+
+    let result = iohm.last_key_value();
+
+    assert!(result.is_none());
+}
+
+#[test]
+fn test_last_key_value_on_non_empty() {
+    let mut iohm = InsertionOrderHashMap::new();
+    iohm.insert("A", 1);
+    iohm.insert("B", 2);
+    iohm.insert("C", 3);
+    let iohm = as_immutable(iohm);
+
+    let result = iohm.last_key_value();
+
+    assert_eq!(result, Some((&"C", &3)));
+}
+
+#[test]
 fn test_insert_on_empty() {
     let mut iohm = InsertionOrderHashMap::new();
 

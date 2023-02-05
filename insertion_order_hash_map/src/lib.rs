@@ -192,6 +192,22 @@ where
         self.nodes.get(q).map(|node| (&node.key, &node.value))
     }
 
+    pub fn first_key_value(&self) -> Option<(&K, &V)> {
+        self.end_node_key_value(|order| order.first)
+    }
+
+    pub fn last_key_value(&self) -> Option<(&K, &V)> {
+        self.end_node_key_value(|order| order.last)
+    }
+
+    fn end_node_key_value(&self, get_end_node: GetEndNode<K, V>) -> Option<(&K, &V)> {
+        self.order.as_ref().map(|order| {
+            let node = get_end_node(order);
+            let node = unsafe { node.as_ref() };
+            (&node.key, &node.value)
+        })
+    }
+
     pub fn contains_key<Q>(&self, k: &Q) -> bool
     where
         K: Borrow<Q>,
@@ -425,6 +441,8 @@ impl<K, V> Node<K, V> {
         mem::replace(&mut self.value, value)
     }
 }
+
+type GetEndNode<K, V> = fn(&InsertionOrder<K, V>) -> NonNull<Node<K, V>>;
 
 struct InsertionOrder<K, V> {
     first: NonNull<Node<K, V>>,
