@@ -638,6 +638,26 @@ fn test_clone() {
 }
 
 #[test]
+fn test_debug() {
+    let mut iohm = InsertionOrderHashMap::new();
+    iohm.insert("A".to_string(), 1);
+    iohm.insert("B".to_string(), 2);
+    iohm.insert("C".to_string(), 3);
+    let iohm = as_immutable(iohm);
+
+    let result = format!("{:#?}", iohm);
+
+    assert_eq!(
+        result,
+        "InsertionOrderHashMap {
+    \"A\": 1,
+    \"B\": 2,
+    \"C\": 3,
+}"
+    );
+}
+
+#[test]
 fn test_extend_copying() {
     let mut iohm = InsertionOrderHashMap::new();
     iohm.insert("A", 1);

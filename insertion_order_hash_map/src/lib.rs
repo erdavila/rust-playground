@@ -1,6 +1,7 @@
 use std::borrow::Borrow;
 use std::collections::HashMap;
 use std::collections::TryReserveError;
+use std::fmt::Debug;
 use std::hash::Hash;
 use std::iter::FusedIterator;
 use std::marker::PhantomData;
@@ -265,6 +266,17 @@ where
     fn clone(&self) -> Self {
         let cloned = self.iter().map(|(k, v)| (k.clone(), v.clone()));
         Self::from_iter(cloned)
+    }
+}
+
+impl<K, V> Debug for InsertionOrderHashMap<K, V>
+where
+    K: Debug,
+    V: Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("InsertionOrderHashMap ")?;
+        f.debug_map().entries(self).finish()
     }
 }
 impl<K, V> Default for InsertionOrderHashMap<K, V> {
