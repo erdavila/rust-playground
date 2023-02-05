@@ -7,6 +7,7 @@ use std::iter::FusedIterator;
 use std::marker::PhantomData;
 use std::mem;
 use std::ops::DerefMut;
+use std::ops::Index;
 use std::ptr::NonNull;
 
 #[cfg(test)]
@@ -321,6 +322,17 @@ where
         let mut iohm = InsertionOrderHashMap::new();
         iohm.extend(iter);
         iohm
+    }
+}
+impl<K, Q, V> Index<&Q> for InsertionOrderHashMap<K, V>
+where
+    K: Eq + Hash + Borrow<Q>,
+    Q: Eq + Hash + ?Sized,
+{
+    type Output = V;
+
+    fn index(&self, key: &Q) -> &Self::Output {
+        self.get(key).expect("no entry found for key")
     }
 }
 impl<'a, K, V> IntoIterator for &'a InsertionOrderHashMap<K, V> {

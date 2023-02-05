@@ -708,6 +708,39 @@ fn test_from_iter() {
 }
 
 #[test]
+fn test_index_existing_key() {
+    let mut iohm = InsertionOrderHashMap::new();
+    iohm.insert("A".to_string(), 1);
+    let iohm = as_immutable(iohm);
+
+    let result1 = iohm["A"];
+    let result2 = iohm[&"A".to_string()];
+
+    assert_eq!(result1, 1);
+    assert_eq!(result2, 1);
+}
+
+#[test]
+#[should_panic]
+fn test_index_non_existing_key_1() {
+    let mut iohm = InsertionOrderHashMap::new();
+    iohm.insert("A".to_string(), 1);
+    let iohm = as_immutable(iohm);
+
+    iohm["B"];
+}
+
+#[test]
+#[should_panic]
+fn test_index_non_existing_key_2() {
+    let mut iohm = InsertionOrderHashMap::new();
+    iohm.insert("A".to_string(), 1);
+    let iohm = as_immutable(iohm);
+
+    iohm[&"B".to_string()];
+}
+
+#[test]
 fn test_into_iterator_ref() {
     let mut iohm = InsertionOrderHashMap::new();
     iohm.insert("A", 1);
