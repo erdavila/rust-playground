@@ -257,6 +257,16 @@ where
         *node
     }
 }
+impl<K, V> Clone for InsertionOrderHashMap<K, V>
+where
+    K: Hash + Eq + Clone,
+    V: Clone,
+{
+    fn clone(&self) -> Self {
+        let cloned = self.iter().map(|(k, v)| (k.clone(), v.clone()));
+        Self::from_iter(cloned)
+    }
+}
 impl<K, V> Default for InsertionOrderHashMap<K, V> {
     fn default() -> Self {
         Self::new()

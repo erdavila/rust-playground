@@ -622,6 +622,22 @@ fn test_drain_drop() {
 }
 
 #[test]
+fn test_clone() {
+    let mut iohm = InsertionOrderHashMap::new();
+    iohm.insert("A", 1);
+    iohm.insert("B", 2);
+    iohm.insert("C", 3);
+    let iohm = as_immutable(iohm);
+
+    let result = iohm.clone();
+
+    consistency::assert(&result);
+    assert_eq!(result.len(), 3);
+    let vec: Vec<_> = result.iter().collect();
+    assert_eq!(vec, vec![(&"A", &1), (&"B", &2), (&"C", &3)]);
+}
+
+#[test]
 fn test_extend_copying() {
     let mut iohm = InsertionOrderHashMap::new();
     iohm.insert("A", 1);
