@@ -91,6 +91,33 @@ fn test_first_entry_on_non_empty() {
 }
 
 #[test]
+fn test_pop_first_on_empty() {
+    let mut iohm: InsertionOrderHashMap<&str, i32> = InsertionOrderHashMap::new();
+
+    let result = iohm.pop_first();
+
+    consistency::assert(&iohm);
+    assert!(result.is_none());
+}
+
+#[test]
+fn test_pop_first_on_non_empty() {
+    let mut iohm = InsertionOrderHashMap::new();
+    iohm.insert("A", 1);
+    iohm.insert("B", 2);
+    iohm.insert("C", 3);
+
+    let result = iohm.pop_first();
+
+    consistency::assert(&iohm);
+    assert_eq!(iohm.len(), 2);
+    assert!(result.is_some());
+    let (k, v) = result.unwrap();
+    assert_eq!(k, "A");
+    assert_eq!(v, 1);
+}
+
+#[test]
 fn test_last_key_value_on_empty() {
     let iohm: InsertionOrderHashMap<&str, i32> = InsertionOrderHashMap::new();
 
@@ -135,6 +162,33 @@ fn test_last_entry_on_non_empty() {
     //println!("{}", iohm.len()); // should not compile!
     assert_eq!(occupied_entry.key(), &"C");
     assert_eq!(occupied_entry.get(), &3);
+}
+
+#[test]
+fn test_pop_last_on_empty() {
+    let mut iohm: InsertionOrderHashMap<&str, i32> = InsertionOrderHashMap::new();
+
+    let result = iohm.pop_last();
+
+    consistency::assert(&iohm);
+    assert!(result.is_none());
+}
+
+#[test]
+fn test_pop_last_on_non_empty() {
+    let mut iohm = InsertionOrderHashMap::new();
+    iohm.insert("A", 1);
+    iohm.insert("B", 2);
+    iohm.insert("C", 3);
+
+    let result = iohm.pop_last();
+
+    consistency::assert(&iohm);
+    assert_eq!(iohm.len(), 2);
+    assert!(result.is_some());
+    let (k, v) = result.unwrap();
+    assert_eq!(k, "C");
+    assert_eq!(v, 3);
 }
 
 #[test]

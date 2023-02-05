@@ -200,12 +200,20 @@ where
         self.end_node_entry(|order| order.first)
     }
 
+    pub fn pop_first(&mut self) -> Option<(K, V)> {
+        self.pop_end_node(|order| order.first)
+    }
+
     pub fn last_key_value(&self) -> Option<(&K, &V)> {
         self.end_node_key_value(|order| order.last)
     }
 
     pub fn last_entry(&mut self) -> Option<OccupiedEntry<'_, K, V>> {
         self.end_node_entry(|order| order.last)
+    }
+
+    pub fn pop_last(&mut self) -> Option<(K, V)> {
+        self.pop_end_node(|order| order.last)
     }
 
     fn end_node_key_value(&self, get_end_node: GetEndNode<K, V>) -> Option<(&K, &V)> {
@@ -229,6 +237,18 @@ where
                 iohm: self_ref,
             }
         })
+    }
+
+    fn pop_end_node(&mut self, get_end_node: GetEndNode<K, V>) -> Option<(K, V)> {
+        match &self.order {
+            Some(order) => {
+                let node = get_end_node(order);
+                let node = unsafe { node.as_ref() };
+                let node = self.remove_node(&node.key);
+                Some((node.key, node.value))
+            }
+            None => None,
+        }
     }
 
     pub fn contains_key<Q>(&self, k: &Q) -> bool
