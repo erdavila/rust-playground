@@ -81,6 +81,23 @@ where
         CloneOnMut::Borrowed(borrowed)
     }
 }
+impl<T> Borrow<T> for CloneOnMut<'_, T>
+where
+    T: ToOwned + ?Sized,
+{
+    fn borrow(&self) -> &T {
+        self.deref()
+    }
+}
+impl<T> BorrowMut<T> for CloneOnMut<'_, T>
+where
+    T: ToOwned + ?Sized,
+    <T as ToOwned>::Owned: BorrowMut<T>,
+{
+    fn borrow_mut(&mut self) -> &mut T {
+        self.deref_mut()
+    }
+}
 
 #[cfg(test)]
 mod tests {
