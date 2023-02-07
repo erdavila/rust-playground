@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 pub enum CloneOnMut<'a, T> {
     Borrowed(&'a T),
     Owned(T),
@@ -22,6 +24,16 @@ impl<T> CloneOnMut<'_, T> {
         !self.is_borrowed()
     }
 }
+impl<T> Deref for CloneOnMut<'_, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        match self {
+            CloneOnMut::Borrowed(borrowed) => borrowed,
+            CloneOnMut::Owned(owned) => owned,
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -34,6 +46,8 @@ mod tests {
         fn new(id: &str) -> Self {
             Value { id: id.to_string() }
         }
+
+        fn access(&self) {}
     }
 
     #[test]
@@ -78,5 +92,31 @@ mod tests {
 
         assert!(com.is_owned());
         assert!(!com.is_borrowed());
+    }
+
+    #[test]
+    fn test_deref_on_borrowed() {
+        let value = Value::new("original");
+        let com = CloneOnMut::borrow(&value);
+
+        com.access();
+
+        match com {
+            CloneOnMut::Borrowed(borrowed) => assert_eq!(borrowed.id, value.id),
+            _ => panic!("should be Borrowed(_)"),
+        }
+    }
+
+    #[test]
+    fn test_deref_on_owned() {
+        let value = Value::new("original");
+        let com = CloneOnMut::own(value);
+
+        com.access();
+
+        match com {
+            CloneOnMut::Owned(owned) => assert_eq!(owned.id, "original"),
+            _ => panic!("should be Owned(_)"),
+        }
     }
 }
