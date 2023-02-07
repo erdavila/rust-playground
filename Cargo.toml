@@ -1,4 +1,5 @@
 [workspace]
 members = [
+    "clone_on_mut",
     "insertion_order_hash_map",
 ]
