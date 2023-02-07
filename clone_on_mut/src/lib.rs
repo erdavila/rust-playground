@@ -1,15 +1,22 @@
-use std::ops::Deref;
+use std::borrow::{Borrow, BorrowMut};
+use std::ops::{Deref, DerefMut};
 
-pub enum CloneOnMut<'a, T> {
+pub enum CloneOnMut<'a, T>
+where
+    T: ToOwned + ?Sized,
+{
     Borrowed(&'a T),
-    Owned(T),
+    Owned(<T as ToOwned>::Owned),
 }
-impl<T> CloneOnMut<'_, T> {
+impl<T> CloneOnMut<'_, T>
+where
+    T: ToOwned + ?Sized,
+{
     pub fn borrow(borrowed: &T) -> CloneOnMut<T> {
         CloneOnMut::Borrowed(borrowed)
     }
 
-    pub fn own(owned: T) -> CloneOnMut<'static, T> {
+    pub fn own(owned: <T as ToOwned>::Owned) -> CloneOnMut<'static, T> {
         CloneOnMut::Owned(owned)
     }
 
@@ -24,30 +31,75 @@ impl<T> CloneOnMut<'_, T> {
         !self.is_borrowed()
     }
 }
-impl<T> Deref for CloneOnMut<'_, T> {
+impl<T> Deref for CloneOnMut<'_, T>
+where
+    T: ToOwned + ?Sized,
+{
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
         match self {
             CloneOnMut::Borrowed(borrowed) => borrowed,
-            CloneOnMut::Owned(owned) => owned,
+            CloneOnMut::Owned(owned) => owned.borrow(),
+        }
+    }
+}
+impl<T> DerefMut for CloneOnMut<'_, T>
+where
+    T: ToOwned + ?Sized,
+    <T as ToOwned>::Owned: BorrowMut<T>,
+{
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        if let CloneOnMut::Borrowed(borrowed) = self {
+            let owned = borrowed.to_owned();
+            *self = CloneOnMut::Owned(owned);
+        };
+
+        match self {
+            CloneOnMut::Owned(owned) => owned.borrow_mut(),
+            _ => unreachable!(),
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::cell::RefCell;
+
     use super::*;
 
     struct Value {
         id: String,
+        clone_count: RefCell<u32>,
+        cloned_from_id: Option<String>,
     }
     impl Value {
         fn new(id: &str) -> Self {
-            Value { id: id.to_string() }
+            Value {
+                id: id.to_string(),
+                clone_count: RefCell::new(0),
+                cloned_from_id: None,
+            }
         }
 
         fn access(&self) {}
+
+        fn access_mut(&mut self) {}
+    }
+    impl Clone for Value {
+        fn clone(&self) -> Self {
+            let sub_id = {
+                let mut count = self.clone_count.borrow_mut();
+                *count += 1;
+                *count
+            };
+
+            Value {
+                id: format!("{}.{}", self.id, sub_id),
+                clone_count: RefCell::new(0),
+                cloned_from_id: Some(self.id.clone()),
+            }
+        }
     }
 
     #[test]
@@ -66,7 +118,7 @@ mod tests {
     fn test_own() {
         let value = Value::new("original");
 
-        let com = CloneOnMut::own(value);
+        let com: CloneOnMut<Value> = CloneOnMut::own(value);
 
         match com {
             CloneOnMut::Owned(owned) => assert_eq!(owned.id, "original"),
@@ -88,7 +140,7 @@ mod tests {
     fn test_is_owned() {
         let value = Value::new("original");
 
-        let com = CloneOnMut::own(value);
+        let com: CloneOnMut<Value> = CloneOnMut::own(value);
 
         assert!(com.is_owned());
         assert!(!com.is_borrowed());
@@ -110,11 +162,37 @@ mod tests {
     #[test]
     fn test_deref_on_owned() {
         let value = Value::new("original");
-        let com = CloneOnMut::own(value);
+        let com: CloneOnMut<Value> = CloneOnMut::own(value);
 
         com.access();
 
         match com {
+            CloneOnMut::Owned(owned) => assert_eq!(owned.id, "original"),
+            _ => panic!("should be Owned(_)"),
+        }
+    }
+
+    #[test]
+    fn test_deref_mut_on_borrowed() {
+        let value = Value::new("original");
+        let mut com = CloneOnMut::borrow(&value);
+
+        com.access_mut();
+
+        match &com {
+            CloneOnMut::Owned(owned) => assert_eq!(owned.cloned_from_id, Some(value.id)),
+            _ => panic!("should be Owned(_)"),
+        }
+    }
+
+    #[test]
+    fn test_deref_mut_on_owned() {
+        let value = Value::new("original");
+        let mut com: CloneOnMut<Value> = CloneOnMut::own(value);
+
+        com.access_mut();
+
+        match &com {
             CloneOnMut::Owned(owned) => assert_eq!(owned.id, "original"),
             _ => panic!("should be Owned(_)"),
         }
