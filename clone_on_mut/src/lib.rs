@@ -30,6 +30,21 @@ where
     pub fn is_owned(&self) -> bool {
         !self.is_borrowed()
     }
+
+    pub fn into_owned(mut self) -> <T as ToOwned>::Owned {
+        self.ensure_owned();
+        match self {
+            CloneOnMut::Owned(owned) => owned,
+            _ => unreachable!(),
+        }
+    }
+
+    fn ensure_owned(&mut self) {
+        if let CloneOnMut::Borrowed(borrowed) = self {
+            let owned = borrowed.to_owned();
+            *self = CloneOnMut::Owned(owned);
+        };
+    }
 }
 impl<T> Deref for CloneOnMut<'_, T>
 where
@@ -50,11 +65,7 @@ where
     <T as ToOwned>::Owned: BorrowMut<T>,
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        if let CloneOnMut::Borrowed(borrowed) = self {
-            let owned = borrowed.to_owned();
-            *self = CloneOnMut::Owned(owned);
-        };
-
+        self.ensure_owned();
         match self {
             CloneOnMut::Owned(owned) => owned.borrow_mut(),
             _ => unreachable!(),
@@ -231,5 +242,25 @@ mod tests {
             CloneOnMut::Borrowed(borrowed) => assert_eq!(borrowed.id, "original"),
             _ => panic!("should be Borrowed(_)"),
         }
+    }
+
+    #[test]
+    fn test_into_owned_on_borrowed() {
+        let value = Value::new("original");
+        let com: CloneOnMut<Value> = CloneOnMut::borrow(&value);
+
+        let owned = com.into_owned();
+
+        assert_eq!(owned.cloned_from_id, Some(value.id));
+    }
+
+    #[test]
+    fn test_into_owned_on_owned() {
+        let value = Value::new("original");
+        let com: CloneOnMut<Value> = CloneOnMut::own(value);
+
+        let owned = com.into_owned();
+
+        assert_eq!(owned.id, "original");
     }
 }
