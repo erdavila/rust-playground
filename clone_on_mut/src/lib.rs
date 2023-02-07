@@ -98,6 +98,23 @@ where
         self.deref_mut()
     }
 }
+impl<T> AsRef<T> for CloneOnMut<'_, T>
+where
+    T: ToOwned + ?Sized,
+{
+    fn as_ref(&self) -> &T {
+        self.deref()
+    }
+}
+impl<T> AsMut<T> for CloneOnMut<'_, T>
+where
+    T: ToOwned + ?Sized,
+    <T as ToOwned>::Owned: BorrowMut<T>,
+{
+    fn as_mut(&mut self) -> &mut T {
+        self.deref_mut()
+    }
+}
 
 #[cfg(test)]
 mod tests {
