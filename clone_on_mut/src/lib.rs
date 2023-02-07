@@ -61,6 +61,15 @@ where
         }
     }
 }
+impl<T> Clone for CloneOnMut<'_, T>
+where
+    T: ToOwned + ?Sized,
+{
+    fn clone(&self) -> Self {
+        let borrowed = unsafe { &*(self.deref() as *const T) };
+        CloneOnMut::Borrowed(borrowed)
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -195,6 +204,32 @@ mod tests {
         match &com {
             CloneOnMut::Owned(owned) => assert_eq!(owned.id, "original"),
             _ => panic!("should be Owned(_)"),
+        }
+    }
+
+    #[test]
+    fn test_clone_on_borrowed() {
+        let value = Value::new("original");
+        let com: CloneOnMut<Value> = CloneOnMut::borrow(&value);
+
+        let clone = CloneOnMut::clone(&com);
+
+        match clone {
+            CloneOnMut::Borrowed(borrowed) => assert_eq!(borrowed.id, value.id),
+            _ => panic!("should be Borrowed(_)"),
+        }
+    }
+
+    #[test]
+    fn test_clone_on_owned() {
+        let value = Value::new("original");
+        let com: CloneOnMut<Value> = CloneOnMut::own(value);
+
+        let clone = CloneOnMut::clone(&com);
+
+        match clone {
+            CloneOnMut::Borrowed(borrowed) => assert_eq!(borrowed.id, "original"),
+            _ => panic!("should be Borrowed(_)"),
         }
     }
 }
