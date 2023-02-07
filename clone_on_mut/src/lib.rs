@@ -1,4 +1,5 @@
 use std::borrow::{Borrow, BorrowMut};
+use std::hash::Hash;
 use std::ops::{Deref, DerefMut};
 
 pub enum CloneOnMut<'a, T>
@@ -113,6 +114,39 @@ where
 {
     fn as_mut(&mut self) -> &mut T {
         self.deref_mut()
+    }
+}
+impl<T> PartialEq for CloneOnMut<'_, T>
+where
+    T: ToOwned + ?Sized + PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.deref() == other.deref()
+    }
+}
+impl<T> Eq for CloneOnMut<'_, T> where T: ToOwned + ?Sized + Eq {}
+impl<T> PartialOrd for CloneOnMut<'_, T>
+where
+    T: ToOwned + ?Sized + PartialOrd,
+{
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.deref().partial_cmp(other.deref())
+    }
+}
+impl<T> Ord for CloneOnMut<'_, T>
+where
+    T: ToOwned + ?Sized + Ord,
+{
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.deref().cmp(other.deref())
+    }
+}
+impl<T> Hash for CloneOnMut<'_, T>
+where
+    T: ToOwned + ?Sized + Hash,
+{
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.deref().hash(state)
     }
 }
 
