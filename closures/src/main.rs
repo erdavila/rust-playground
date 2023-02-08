@@ -6,9 +6,11 @@ impl Type {
 }
 
 mod captures;
+mod emulation;
 mod returning;
 
 fn main() {
     captures::captures();
     returning::returning();
+    emulation::emulation();
 }
