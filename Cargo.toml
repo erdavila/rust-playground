@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "avl_tree",
     "clone_on_mut",
     "closures",
     "insertion_order_hash_map",
