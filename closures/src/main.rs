@@ -6,7 +6,9 @@ impl Type {
 }
 
 mod captures;
+mod returning;
 
 fn main() {
     captures::captures();
+    returning::returning();
 }
