@@ -83,14 +83,22 @@ impl<K, V> Iterator for IntoIter<K, V> {
 
 mod algo {
     use std::cmp::Ordering;
+    use std::mem;
 
     use crate::Node;
 
     type NodeBoxOption<K, V> = Option<Box<Node<K, V>>>;
 
-    pub(crate) fn set<K, V>(node: &mut NodeBoxOption<K, V>, key: K, value: V) -> Option<V> {
+    pub(crate) fn set<K: Ord, V>(node: &mut NodeBoxOption<K, V>, key: K, value: V) -> Option<V> {
         match node {
-            Some(node) => todo!(),
+            Some(node) => match key.cmp(&node.key) {
+                Ordering::Equal => {
+                    let previous_value = mem::replace(&mut node.value, value);
+                    Some(previous_value)
+                }
+                Ordering::Less => todo!(),
+                Ordering::Greater => todo!(),
+            },
             None => {
                 *node = Some(Box::new(Node {
                     key,
