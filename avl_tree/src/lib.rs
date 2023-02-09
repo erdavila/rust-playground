@@ -186,7 +186,19 @@ mod algo {
                     let left_height = height(&node.left);
 
                     if right_height - left_height > 1 {
-                        todo!()
+                        let mut right = node.right.take().unwrap();
+                        let pivot_height = height(&right.left);
+                        if pivot_height > height(&right.right) {
+                            todo!("double rotation")
+                        } else {
+                            // Perform left rotation
+                            node.right = right.left.take();
+                            node.height = 1 + pivot_height.max(left_height);
+                            let left = mem::replace(node, right);
+                            node.left = Some(left);
+
+                            result
+                        }
                     } else {
                         node.height = 1 + left_height.max(right_height);
 

@@ -79,3 +79,19 @@ fn test_set_with_right_rotation() {
     let evaluation = balancing::assert_on_tree(&tree);
     assert_eq!(evaluation.node_count, 3);
 }
+
+#[test]
+fn test_set_with_left_rotation() {
+    let mut tree = AVLTree::new();
+    tree.set("A", 1);
+    tree.set("B", 2);
+
+    let previous_value = tree.set("C", 3);
+
+    assert!(previous_value.is_none());
+    assert_eq!(tree.get(&"A"), Some(&1));
+    assert_eq!(tree.get(&"B"), Some(&2));
+    assert_eq!(tree.get(&"C"), Some(&3));
+    let evaluation = balancing::assert_on_tree(&tree);
+    assert_eq!(evaluation.node_count, 3);
+}
