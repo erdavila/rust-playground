@@ -85,7 +85,7 @@ mod algo {
     use std::cmp::Ordering;
     use std::mem;
 
-    use crate::Node;
+    use crate::{Height, Node};
 
     type NodeBoxOption<K, V> = Option<Box<Node<K, V>>>;
 
@@ -96,7 +96,20 @@ mod algo {
                     let previous_value = mem::replace(&mut node.value, value);
                     Some(previous_value)
                 }
-                Ordering::Less => todo!(),
+                Ordering::Less => {
+                    let result = set(&mut node.left, key, value);
+
+                    let left_height = height(&node.left);
+                    let right_height = height(&node.right);
+
+                    if left_height - right_height > 1 {
+                        todo!()
+                    } else {
+                        node.height = 1 + right_height.max(left_height);
+
+                        result
+                    }
+                }
                 Ordering::Greater => todo!(),
             },
             None => {
@@ -117,10 +130,17 @@ mod algo {
         match node {
             Some(node) => match key.cmp(&node.key) {
                 Ordering::Equal => Some(&node.value),
-                Ordering::Less => todo!(),
+                Ordering::Less => get(&node.left, key),
                 Ordering::Greater => todo!(),
             },
             None => None,
+        }
+    }
+
+    pub(crate) fn height<K, V>(node: &NodeBoxOption<K, V>) -> Height {
+        match node {
+            Some(node) => node.height,
+            None => 0,
         }
     }
 }
