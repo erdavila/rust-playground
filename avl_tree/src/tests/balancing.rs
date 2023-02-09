@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+
 use crate::{AVLTree, Height, Node};
 
 pub struct TreeEvaluation {
@@ -14,7 +16,7 @@ impl TreeEvaluation {
     }
 }
 
-pub fn assert_on_tree<K: Ord, V>(avl_tree: &AVLTree<K, V>) -> TreeEvaluation {
+pub fn assert_on_tree<K: Ord + Debug, V>(avl_tree: &AVLTree<K, V>) -> TreeEvaluation {
     if let Some(ref root) = avl_tree.root {
         assert_on_node(root, None, None)
     } else {
@@ -22,7 +24,7 @@ pub fn assert_on_tree<K: Ord, V>(avl_tree: &AVLTree<K, V>) -> TreeEvaluation {
     }
 }
 
-fn assert_on_node<K: Ord, V>(
+fn assert_on_node<K: Ord + Debug, V>(
     node: &Node<K, V>,
     min_key: Option<&K>,
     max_key: Option<&K>,
@@ -50,7 +52,7 @@ fn assert_on_node<K: Ord, V>(
     let node_height = 1 + left_node_evaluation
         .height
         .max(right_node_evaluation.height);
-    assert_eq!(node.height, node_height);
+    assert_eq!(node.height, node_height, "node with key {:?}", node.key);
 
     TreeEvaluation {
         height: node_height,

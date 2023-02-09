@@ -103,7 +103,76 @@ mod algo {
                     let right_height = height(&node.right);
 
                     if left_height - right_height > 1 {
-                        todo!()
+                        /*
+                         *        self-> O:N
+                         *                |
+                         *        node-> B:N
+                         *                |
+                         *                N
+                         *              /   \
+                         *          O:L       O:R
+                         *           |
+                         *          B:L
+                         *           |
+                         *           L
+                         *         /  \
+                         *     O:LL    O:P
+                         */
+                        let mut left = node.left.take().unwrap();
+                        /*
+                         *                        self-> O:N
+                         *                                |
+                         *    left= B:L           node-> B:N
+                         *           |                    |
+                         *           L                    N
+                         *         /   \                /   \
+                         *     O:LL     O:P      O:None       O:R
+                         */
+                        let pivot_height = height(&left.right);
+                        if pivot_height > height(&left.left) {
+                            todo!("double rotation")
+                        } else {
+                            // Perform right rotation
+                            node.left = left.right.take();
+                            node.height = 1 + pivot_height.max(right_height);
+                            /*
+                             *                        self-> O:N
+                             *                                |
+                             *    left= B:L           node-> B:N
+                             *           |                    |
+                             *           L                    N
+                             *         /   \                /   \
+                             *     O:LL     O:None      O:P       O:R
+                             */
+                            let right = mem::replace(node, left);
+                            /*
+                             *   self-> O:N
+                             *           |
+                             *   node-> B:L           right= B:N
+                             *           |                    |
+                             *           L                    N
+                             *         /   \                /   \
+                             *     O:LL     O:None      O:P       O:R
+                             */
+                            node.right = Some(right);
+                            /*
+                             *   self-> O:N
+                             *           |
+                             *   node-> B:L
+                             *           |
+                             *           L
+                             *         /   \
+                             *     O:LL      O:N
+                             *                |
+                             *               B:N
+                             *                |
+                             *                N
+                             *              /   \
+                             *          O:P       O:R
+                             */
+
+                            result
+                        }
                     } else {
                         node.height = 1 + right_height.max(left_height);
 
