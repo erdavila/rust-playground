@@ -49,3 +49,17 @@ fn test_set_adding_left_child() {
     let evaluation = balancing::assert_on_tree(&tree);
     assert_eq!(evaluation.node_count, 2);
 }
+
+#[test]
+fn test_set_adding_right_child() {
+    let mut tree = AVLTree::new();
+    tree.set("A", 1);
+
+    let previous_value = tree.set("B", 2);
+
+    assert!(previous_value.is_none());
+    assert_eq!(tree.get(&"A"), Some(&1));
+    assert_eq!(tree.get(&"B"), Some(&2));
+    let evaluation = balancing::assert_on_tree(&tree);
+    assert_eq!(evaluation.node_count, 2);
+}

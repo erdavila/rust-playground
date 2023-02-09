@@ -110,7 +110,20 @@ mod algo {
                         result
                     }
                 }
-                Ordering::Greater => todo!(),
+                Ordering::Greater => {
+                    let result = set(&mut node.right, key, value);
+
+                    let right_height = height(&node.right);
+                    let left_height = height(&node.left);
+
+                    if right_height - left_height > 1 {
+                        todo!()
+                    } else {
+                        node.height = 1 + left_height.max(right_height);
+
+                        result
+                    }
+                }
             },
             None => {
                 *node = Some(Box::new(Node {
@@ -131,7 +144,7 @@ mod algo {
             Some(node) => match key.cmp(&node.key) {
                 Ordering::Equal => Some(&node.value),
                 Ordering::Less => get(&node.left, key),
-                Ordering::Greater => todo!(),
+                Ordering::Greater => get(&node.right, key),
             },
             None => None,
         }
