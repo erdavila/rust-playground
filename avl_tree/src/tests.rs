@@ -1,1 +1,24 @@
+use crate::AVLTree;
+
 mod balancing;
+
+#[test]
+fn test_set_on_empty_tree() {
+    let mut tree = AVLTree::new();
+
+    let previous_value = tree.set("A", 1);
+
+    assert!(previous_value.is_none());
+    assert_eq!(tree.get(&"A"), Some(&1));
+    let evaluation = balancing::assert_on_tree(&tree);
+    assert_eq!(evaluation.node_count, 1);
+}
+
+#[test]
+fn test_get_non_existing_key() {
+    let tree = AVLTree::<&str, i32>::new();
+
+    let value = tree.get(&"X");
+
+    assert!(value.is_none());
+}

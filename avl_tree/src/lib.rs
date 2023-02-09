@@ -8,6 +8,10 @@ pub struct AVLTree<K, V> {
 }
 
 impl<K, V> AVLTree<K, V> {
+    pub fn new() -> Self {
+        AVLTree { root: None }
+    }
+
     pub fn iter(&self) -> Iter<K, V> {
         todo!()
     }
@@ -15,11 +19,11 @@ impl<K, V> AVLTree<K, V> {
 
 impl<K: Ord, V> AVLTree<K, V> {
     pub fn set(&mut self, key: K, value: V) -> Option<V> {
-        todo!()
+        algo::set(&mut self.root, key, value)
     }
 
     pub fn get(&self, key: &K) -> Option<&V> {
-        todo!()
+        algo::get(&self.root, key)
     }
 
     pub fn unset(&self, key: &K) -> Option<(K, V)> {
@@ -34,6 +38,12 @@ impl<K, V> IntoIterator for AVLTree<K, V> {
 
     fn into_iter(self) -> Self::IntoIter {
         todo!()
+    }
+}
+
+impl<K, V> Default for AVLTree<K, V> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -68,5 +78,41 @@ impl<K, V> Iterator for IntoIter<K, V> {
 
     fn next(&mut self) -> Option<Self::Item> {
         todo!()
+    }
+}
+
+mod algo {
+    use std::cmp::Ordering;
+
+    use crate::Node;
+
+    type NodeBoxOption<K, V> = Option<Box<Node<K, V>>>;
+
+    pub(crate) fn set<K, V>(node: &mut NodeBoxOption<K, V>, key: K, value: V) -> Option<V> {
+        match node {
+            Some(node) => todo!(),
+            None => {
+                *node = Some(Box::new(Node {
+                    key,
+                    value,
+                    left: None,
+                    right: None,
+                    height: 1,
+                }));
+
+                None
+            }
+        }
+    }
+
+    pub(crate) fn get<'a, K: Ord, V>(node: &'a NodeBoxOption<K, V>, key: &K) -> Option<&'a V> {
+        match node {
+            Some(node) => match key.cmp(&node.key) {
+                Ordering::Equal => Some(&node.value),
+                Ordering::Less => todo!(),
+                Ordering::Greater => todo!(),
+            },
+            None => None,
+        }
     }
 }
