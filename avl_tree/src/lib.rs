@@ -124,13 +124,14 @@ mod algo {
                     let result = set(&mut node.right, key, value);
 
                     if height(&node.right) - height(&node.left) > 1 {
-                        let right = node.right.take().unwrap();
+                        let mut right = node.right.take().unwrap();
 
                         if height(&right.left) > height(&right.right) {
-                            todo!("double rotation")
-                        } else {
-                            rotate_left(node, right);
+                            let pivot = right.left.take();
+                            rotate_right(&mut right, pivot.unwrap());
                         }
+
+                        rotate_left(node, right);
                     } else {
                         node.update_height();
                     }
