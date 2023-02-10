@@ -55,6 +55,12 @@ struct Node<K, V> {
     height: Height,
 }
 
+impl<K, V> Node<K, V> {
+    fn update_height(&mut self) {
+        self.height = 1 + algo::height(&self.left).max(algo::height(&self.right));
+    }
+}
+
 type Height = u8;
 
 pub struct Iter<'a, K, V> {
@@ -99,224 +105,37 @@ mod algo {
                 Ordering::Less => {
                     let result = set(&mut node.left, key, value);
 
-                    let left_height = height(&node.left);
-                    let right_height = height(&node.right);
-
-                    if left_height - right_height > 1 {
-                        /*
-                         *        self-> O:N
-                         *                |
-                         *        node-> B:N
-                         *                |
-                         *                N
-                         *              /   \
-                         *          O:L       O:R
-                         *           |
-                         *          B:L
-                         *           |
-                         *           L
-                         *         /  \
-                         *     O:LL    O:P
-                         */
+                    if height(&node.left) - height(&node.right) > 1 {
                         let mut left = node.left.take().unwrap();
-                        /*
-                         *                        self-> O:N
-                         *                                |
-                         *    left= B:L           node-> B:N
-                         *           |                    |
-                         *           L                    N
-                         *         /   \                /   \
-                         *     O:LL     O:P      O:None       O:R
-                         */
-                        let pivot = left.right.take();
-                        /*
-                         *                                         self-> O:N
-                         *                                                 |
-                         *    left= B:L                            node-> B:N
-                         *           |                                     |
-                         *           L             pivot= O:P              N
-                         *         /   \                                 /   \
-                         *     O:LL     O:None                    O:None       O:R
-                         */
-                        let pivot_height = height(&pivot);
-                        if pivot_height > height(&left.left) {
-                            // Perform left right double rotation
-                            /*
-                             *              N                         N
-                             *           /     \                    /   \                   P
-                             *       L           R                P       R               /   \
-                             *     /   \              =>         / \           =>      L         N
-                             *   LL      P                    L     PR               /  \       /  \
-                             *          / \                 /  \                   LL    PL   PR     R
-                             *        PL   PR             LL    PL
-                             */
-                            /*
-                             *                         pivot= O:P           self-> O:N
-                             *                                 |                    |
-                             *    left= B:L                   B:P           node-> B:N
-                             *           |                     |                    |
-                             *           L                     P                    N
-                             *         /   \                 /   \                /   \
-                             *     O:LL     O:None        O:PL   O:PR      O:None       O:R
-                             */
-                            let mut pivot = pivot.unwrap();
-                            /*
-                             *                                              self-> O:N
-                             *                                                      |
-                             *    left= B:L            pivot= B:P           node-> B:N
-                             *           |                     |                    |
-                             *           L                     P                    N
-                             *         /   \                 /   \                /   \
-                             *     O:LL     O:None        O:PL   O:PR      O:None       O:R
-                             */
-                            left.right = pivot.left.take();
-                            left.height = 1 + height(&left.left).max(height(&left.right));
-                            /*
-                             *                                              self-> O:N
-                             *                                                      |
-                             *    left= B:L            pivot= B:P           node-> B:N
-                             *           |                     |                    |
-                             *           L                     P                    N
-                             *         /   \                 /   \                /   \
-                             *     O:LL     O:PL        O:None   O:PR      O:None       O:R
-                             */
-                            pivot.left = Some(left);
-                            /*
-                             *      pivot= B:P           self-> O:N
-                             *              |                    |
-                             *              P            node-> B:N
-                             *            /   \                  |
-                             *          O:L   O:PR               N
-                             *           |                     /   \
-                             *          B:L             O:None       O:R
-                             *           |
-                             *           L
-                             *         /   \
-                             *     O:LL     O:PL
-                             */
-                            node.left = pivot.right.take();
-                            node.height = 1 + height(&node.left).max(height(&node.right));
-                            /*
-                             *      pivot= B:P           self-> O:N
-                             *              |                    |
-                             *              P            node-> B:N
-                             *            /   \                  |
-                             *          O:L    O:None            N
-                             *           |                     /   \
-                             *          B:L               O:PR       O:R
-                             *           |
-                             *           L
-                             *         /   \
-                             *     O:LL     O:PL
-                             */
-                            let right = mem::replace(node, pivot);
-                            /*
-                             *      self-> O:P
-                             *              |
-                             *      node-> B:P
-                             *              |
-                             *              P            right= B:N
-                             *            /   \                  |
-                             *          O:L    O:None            N
-                             *           |                     /   \
-                             *          B:L               O:PR       O:R
-                             *           |
-                             *           L
-                             *         /   \
-                             *     O:LL     O:PL
-                             */
-                            node.right = Some(right);
-                            node.height = 1 + height(&node.left).max(height(&node.right));
-                            /*
-                             *          self-> O:P
-                             *                  |
-                             *          node-> B:P
-                             *                  |
-                             *                  P
-                             *               /     \
-                             *          O:L           O:N
-                             *           |             |
-                             *          B:L           B:N
-                             *           |             |
-                             *           L             N
-                             *         /   \         /   \
-                             *     O:LL    O:PL   O:PR     O:R
-                             */
 
-                            result
-                        } else {
-                            // Perform right rotation
-                            node.left = pivot;
-                            node.height = 1 + pivot_height.max(right_height);
-                            /*
-                             *                        self-> O:N
-                             *                                |
-                             *    left= B:L           node-> B:N
-                             *           |                    |
-                             *           L                    N
-                             *         /   \                /   \
-                             *     O:LL     O:None      O:P       O:R
-                             */
-                            let right = mem::replace(node, left);
-                            /*
-                             *   self-> O:N
-                             *           |
-                             *   node-> B:L           right= B:N
-                             *           |                    |
-                             *           L                    N
-                             *         /   \                /   \
-                             *     O:LL     O:None      O:P       O:R
-                             */
-                            node.right = Some(right);
-                            /*
-                             *   self-> O:N
-                             *           |
-                             *   node-> B:L
-                             *           |
-                             *           L
-                             *         /   \
-                             *     O:LL      O:N
-                             *                |
-                             *               B:N
-                             *                |
-                             *                N
-                             *              /   \
-                             *          O:P       O:R
-                             */
-
-                            result
+                        if height(&left.right) > height(&left.left) {
+                            let pivot = left.right.take();
+                            rotate_left(&mut left, pivot.unwrap());
                         }
-                    } else {
-                        node.height = 1 + right_height.max(left_height);
 
-                        result
+                        rotate_right(node, left);
+                    } else {
+                        node.update_height();
                     }
+
+                    result
                 }
                 Ordering::Greater => {
                     let result = set(&mut node.right, key, value);
 
-                    let right_height = height(&node.right);
-                    let left_height = height(&node.left);
+                    if height(&node.right) - height(&node.left) > 1 {
+                        let right = node.right.take().unwrap();
 
-                    if right_height - left_height > 1 {
-                        let mut right = node.right.take().unwrap();
-                        let pivot_height = height(&right.left);
-                        if pivot_height > height(&right.right) {
+                        if height(&right.left) > height(&right.right) {
                             todo!("double rotation")
                         } else {
-                            // Perform left rotation
-                            node.right = right.left.take();
-                            node.height = 1 + pivot_height.max(left_height);
-                            let left = mem::replace(node, right);
-                            node.left = Some(left);
-
-                            result
+                            rotate_left(node, right);
                         }
                     } else {
-                        node.height = 1 + left_height.max(right_height);
-
-                        result
+                        node.update_height();
                     }
+
+                    result
                 }
             },
             None => {
@@ -348,6 +167,102 @@ mod algo {
         match node {
             Some(node) => node.height,
             None => 0,
+        }
+    }
+
+    fn rotate_right<K, V>(node: &mut Box<Node<K, V>>, left: Box<Node<K, V>>) {
+        rotate(node, left, RotationDirection::Right);
+    }
+
+    fn rotate_left<K, V>(node: &mut Box<Node<K, V>>, right: Box<Node<K, V>>) {
+        rotate(node, right, RotationDirection::Left);
+    }
+
+    fn rotate<K, V>(
+        node: &mut Box<Node<K, V>>,
+        mut opposite_direction_child: Box<Node<K, V>>,
+        direction: RotationDirection,
+    ) {
+        /*
+         * These diagrams show what happens on a LEFT rotation (direction = RotationDirection::Left)
+         *
+         *
+         *       N                      R
+         *     /   \                  /   \
+         *   L       R      =>      N      RR
+         *          /  \          /  \
+         *         P    RR       L    P
+         */
+        debug_assert!(node.child(direction.opposite()).is_none());
+        /*
+         * node-> B:N
+         *       /   \
+         *     O:L    O:None
+         *                  `-X-\
+         *                        right= B:R
+         *                              /   \
+         *                            O:P   O:RR
+         */
+        let pivot = opposite_direction_child.child_mut(direction).take();
+        /*
+         * node-> B:N                            right= B:R
+         *       /   \          pivot= O:P             /   \
+         *     O:L    O:None                     O:None    O:RR
+         */
+        *node.child_mut(direction.opposite()) = pivot;
+        node.update_height();
+        /*
+         * node-> B:N           right= B:R
+         *       /   \                /   \
+         *     O:L   O:P        O:None    O:RR
+         */
+        let direction_child = mem::replace(node, opposite_direction_child);
+        /*
+         * right= B:N           node-> B:R
+         *       /   \                /   \
+         *     O:L   O:P        O:None    O:RR
+         */
+        *node.child_mut(direction) = Some(direction_child);
+        node.update_height();
+        /*
+         *         node-> B:R
+         *              /     \
+         *          O:N         O:RR
+         *           |
+         *    left= B:N
+         *         /   \
+         *      O:L     O:P
+         */
+    }
+
+    #[derive(Clone, Copy)]
+    enum RotationDirection {
+        Left,
+        Right,
+    }
+
+    impl RotationDirection {
+        fn opposite(&self) -> RotationDirection {
+            match self {
+                Self::Left => Self::Right,
+                Self::Right => Self::Left,
+            }
+        }
+    }
+
+    impl<K, V> Node<K, V> {
+        fn child(&self, rotation_direction: RotationDirection) -> &NodeBoxOption<K, V> {
+            match rotation_direction {
+                RotationDirection::Left => &self.left,
+                RotationDirection::Right => &self.right,
+            }
+        }
+
+        fn child_mut(&mut self, rotation_direction: RotationDirection) -> &mut NodeBoxOption<K, V> {
+            match rotation_direction {
+                RotationDirection::Left => &mut self.left,
+                RotationDirection::Right => &mut self.right,
+            }
         }
     }
 }
