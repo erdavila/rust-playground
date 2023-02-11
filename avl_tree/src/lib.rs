@@ -252,8 +252,32 @@ mod algo {
                         Some((node.key, node.value))
                     }
                 },
-                Ordering::Less => todo!(),
-                Ordering::Greater => todo!(),
+                Ordering::Less => {
+                    let removed_key_value = unset(&mut node.left, key);
+
+                    if removed_key_value.is_some() {
+                        if height(&node.right) - height(&node.left) > 1 {
+                            todo!()
+                        } else {
+                            node.update_height();
+                        }
+                    }
+
+                    removed_key_value
+                }
+                Ordering::Greater => {
+                    let removed_key_value = unset(&mut node.right, key);
+
+                    if removed_key_value.is_some() {
+                        if height(&node.left) - height(&node.right) > 1 {
+                            todo!()
+                        } else {
+                            node.update_height();
+                        }
+                    }
+
+                    removed_key_value
+                }
             },
             None => None,
         }
