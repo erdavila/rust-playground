@@ -37,8 +37,8 @@ impl<K: Ord, V> AVLTree<K, V> {
         algo::get(&self.root, key)
     }
 
-    pub fn unset(&self, key: &K) -> Option<(K, V)> {
-        todo!()
+    pub fn unset(&mut self, key: &K) -> Option<(K, V)> {
+        algo::unset(&mut self.root, key)
     }
 
     pub fn contains(&self, key: &K) -> bool {
@@ -202,6 +202,32 @@ mod algo {
                 Ordering::Equal => Some(&node.value),
                 Ordering::Less => get(&node.left, key),
                 Ordering::Greater => get(&node.right, key),
+            },
+            None => None,
+        }
+    }
+
+    pub(crate) fn unset<K: Ord, V>(
+        node_option: &mut NodeBoxOption<K, V>,
+        key: &K,
+    ) -> Option<(K, V)> {
+        match node_option {
+            Some(node) => match key.cmp(&node.key) {
+                Ordering::Equal => match (&node.left, &node.right) {
+                    (Some(left), Some(right)) => todo!(),
+                    (None, _) => {
+                        let right = node.right.take();
+                        let node = mem::replace(node_option, right).unwrap();
+                        Some((node.key, node.value))
+                    }
+                    (_, None) => {
+                        let left = node.left.take();
+                        let node = mem::replace(node_option, left).unwrap();
+                        Some((node.key, node.value))
+                    }
+                },
+                Ordering::Less => todo!(),
+                Ordering::Greater => todo!(),
             },
             None => None,
         }

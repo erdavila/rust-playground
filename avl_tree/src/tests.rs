@@ -127,3 +127,54 @@ fn test_set_with_right_left_double_rotation() {
     let evaluation = balancing::assert_on_tree(&tree);
     assert_eq!(evaluation.node_count, 3);
 }
+
+#[test]
+fn test_unset_non_existing_element() {
+    let mut tree = AVLTree::<&str, i32>::new();
+
+    let value = tree.unset(&"A");
+
+    assert!(value.is_none());
+    let evaluation = balancing::assert_on_tree(&tree);
+    assert_eq!(evaluation.node_count, 0);
+}
+
+#[test]
+fn test_unset_single_node() {
+    let mut tree = AVLTree::new();
+    tree.set("A", 1);
+
+    let value = tree.unset(&"A");
+
+    assert_eq!(value, Some(("A", 1)));
+    let evaluation = balancing::assert_on_tree(&tree);
+    assert_eq!(evaluation.node_count, 0);
+}
+
+#[test]
+fn test_unset_promoting_left_child() {
+    let mut tree = AVLTree::new();
+    tree.set("B", 2);
+    tree.set("A", 1);
+
+    let value = tree.unset(&"B");
+
+    assert_eq!(value, Some(("B", 2)));
+    assert_eq!(tree.get(&"A"), Some(&1));
+    let evaluation = balancing::assert_on_tree(&tree);
+    assert_eq!(evaluation.node_count, 1);
+}
+
+#[test]
+fn test_unset_promoting_right_child() {
+    let mut tree = AVLTree::new();
+    tree.set("A", 1);
+    tree.set("B", 2);
+
+    let value = tree.unset(&"A");
+
+    assert_eq!(value, Some(("A", 1)));
+    assert_eq!(tree.get(&"B"), Some(&2));
+    let evaluation = balancing::assert_on_tree(&tree);
+    assert_eq!(evaluation.node_count, 1);
+}
