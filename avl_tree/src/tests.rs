@@ -178,3 +178,75 @@ fn test_unset_promoting_right_child() {
     let evaluation = balancing::assert_on_tree(&tree);
     assert_eq!(evaluation.node_count, 1);
 }
+
+#[test]
+fn test_unset_root_no_rebalancing_1() {
+    let mut tree = AVLTree::new();
+    tree.set("C", 3);
+    tree.set("B", 2);
+    tree.set("D", 4);
+    tree.set("A", 1);
+
+    let value = tree.unset(&"C");
+
+    assert_eq!(value, Some(("C", 3)));
+    assert_eq!(tree.get(&"A"), Some(&1));
+    assert_eq!(tree.get(&"B"), Some(&2));
+    assert_eq!(tree.get(&"D"), Some(&4));
+    let evaluation = balancing::assert_on_tree(&tree);
+    assert_eq!(evaluation.node_count, 3);
+}
+
+#[test]
+fn test_unset_root_no_rebalancing_2() {
+    let mut tree = AVLTree::new();
+    tree.set("C", 3);
+    tree.set("A", 1);
+    tree.set("D", 4);
+    tree.set("B", 2);
+
+    let value = tree.unset(&"C");
+
+    assert_eq!(value, Some(("C", 3)));
+    assert_eq!(tree.get(&"A"), Some(&1));
+    assert_eq!(tree.get(&"B"), Some(&2));
+    assert_eq!(tree.get(&"D"), Some(&4));
+    let evaluation = balancing::assert_on_tree(&tree);
+    assert_eq!(evaluation.node_count, 3);
+}
+
+#[test]
+fn test_unset_root_no_rebalancing_3() {
+    let mut tree = AVLTree::new();
+    tree.set("B", 2);
+    tree.set("A", 1);
+    tree.set("D", 4);
+    tree.set("C", 3);
+
+    let value = tree.unset(&"B");
+
+    assert_eq!(value, Some(("B", 2)));
+    assert_eq!(tree.get(&"A"), Some(&1));
+    assert_eq!(tree.get(&"C"), Some(&3));
+    assert_eq!(tree.get(&"D"), Some(&4));
+    let evaluation = balancing::assert_on_tree(&tree);
+    assert_eq!(evaluation.node_count, 3);
+}
+
+#[test]
+fn test_unset_root_no_rebalancing_4() {
+    let mut tree = AVLTree::new();
+    tree.set("B", 2);
+    tree.set("A", 1);
+    tree.set("C", 3);
+    tree.set("D", 4);
+
+    let value = tree.unset(&"B");
+
+    assert_eq!(value, Some(("B", 2)));
+    assert_eq!(tree.get(&"A"), Some(&1));
+    assert_eq!(tree.get(&"C"), Some(&3));
+    assert_eq!(tree.get(&"D"), Some(&4));
+    let evaluation = balancing::assert_on_tree(&tree);
+    assert_eq!(evaluation.node_count, 3);
+}

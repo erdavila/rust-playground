@@ -214,7 +214,33 @@ mod algo {
         match node_option {
             Some(node) => match key.cmp(&node.key) {
                 Ordering::Equal => match (&node.left, &node.right) {
-                    (Some(left), Some(right)) => todo!(),
+                    (Some(left), Some(right)) => {
+                        if left.height > right.height {
+                            let (replacing_key, replacing_value) = unset_max(&mut node.left);
+                            node.update_height();
+
+                            let removed_key = mem::replace(&mut node.key, replacing_key);
+                            let removed_value = mem::replace(&mut node.value, replacing_value);
+
+                            if height(&node.right) - height(&node.left) > 1 {
+                                todo!()
+                            }
+
+                            Some((removed_key, removed_value))
+                        } else {
+                            let (replacing_key, replacing_value) = unset_min(&mut node.right);
+                            node.update_height();
+
+                            let removed_key = mem::replace(&mut node.key, replacing_key);
+                            let removed_value = mem::replace(&mut node.value, replacing_value);
+
+                            if height(&node.left) - height(&node.right) > 1 {
+                                todo!()
+                            }
+
+                            Some((removed_key, removed_value))
+                        }
+                    }
                     (None, _) => {
                         let right = node.right.take();
                         let node = mem::replace(node_option, right).unwrap();
@@ -230,6 +256,50 @@ mod algo {
                 Ordering::Greater => todo!(),
             },
             None => None,
+        }
+    }
+
+    fn unset_max<K, V>(node_option: &mut NodeBoxOption<K, V>) -> (K, V) {
+        let node = node_option.as_deref_mut().unwrap();
+        match node.right {
+            Some(_) => {
+                let key_value = unset_max(&mut node.right);
+
+                if height(&node.left) - height(&node.right) > 1 {
+                    todo!()
+                } else {
+                    node.update_height();
+                }
+
+                key_value
+            }
+            None => {
+                let left_option = node.left.take();
+                let node = mem::replace(node_option, left_option).unwrap();
+                (node.key, node.value)
+            }
+        }
+    }
+
+    fn unset_min<K, V>(node_option: &mut NodeBoxOption<K, V>) -> (K, V) {
+        let node = node_option.as_deref_mut().unwrap();
+        match node.left {
+            Some(_) => {
+                let key_value = unset_max(&mut node.left);
+
+                if height(&node.right) - height(&node.left) > 1 {
+                    todo!()
+                } else {
+                    node.update_height();
+                }
+
+                key_value
+            }
+            None => {
+                let right_option = node.right.take();
+                let node = mem::replace(node_option, right_option).unwrap();
+                (node.key, node.value)
+            }
         }
     }
 
