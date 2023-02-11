@@ -147,42 +147,12 @@ mod algo {
                 }
                 Ordering::Less => {
                     let result = set(&mut node.left, key, value);
-
-                    let left_height = height(&node.left);
-                    let right_height = height(&node.right);
-                    if left_height > right_height && left_height - right_height > 1 {
-                        let mut left = node.left.take().unwrap();
-
-                        if height(&left.right) > height(&left.left) {
-                            let pivot = left.right.take();
-                            rotate_left(&mut left, pivot.unwrap());
-                        }
-
-                        rotate_right(node, left);
-                    } else {
-                        node.update_height();
-                    }
-
+                    left_heavy_rebalance(node);
                     result
                 }
                 Ordering::Greater => {
                     let result = set(&mut node.right, key, value);
-
-                    let right_height = height(&node.right);
-                    let left_height = height(&node.left);
-                    if right_height > left_height && right_height - left_height > 1 {
-                        let mut right = node.right.take().unwrap();
-
-                        if height(&right.left) > height(&right.right) {
-                            let pivot = right.left.take();
-                            rotate_right(&mut right, pivot.unwrap());
-                        }
-
-                        rotate_left(node, right);
-                    } else {
-                        node.update_height();
-                    }
-
+                    right_heavy_rebalance(node);
                     result
                 }
             },
@@ -248,46 +218,16 @@ mod algo {
                 },
                 Ordering::Less => {
                     let removed_key_value = unset(&mut node.left, key);
-
                     if removed_key_value.is_some() {
-                        let right_height = height(&node.right);
-                        let left_height = height(&node.left);
-                        if right_height > left_height && right_height - left_height > 1 {
-                            let mut right = node.right.take().unwrap();
-
-                            if height(&right.left) > height(&right.right) {
-                                let pivot = right.left.take();
-                                rotate_right(&mut right, pivot.unwrap());
-                            }
-
-                            rotate_left(node, right);
-                        } else {
-                            node.update_height();
-                        }
+                        right_heavy_rebalance(node);
                     }
-
                     removed_key_value
                 }
                 Ordering::Greater => {
                     let removed_key_value = unset(&mut node.right, key);
-
                     if removed_key_value.is_some() {
-                        let left_height = height(&node.left);
-                        let right_height = height(&node.right);
-                        if left_height > right_height && left_height - right_height > 1 {
-                            let mut left = node.left.take().unwrap();
-
-                            if height(&left.right) > height(&left.left) {
-                                let pivot = left.right.take();
-                                rotate_left(&mut left, pivot.unwrap());
-                            }
-
-                            rotate_right(node, left);
-                        } else {
-                            node.update_height();
-                        }
+                        left_heavy_rebalance(node);
                     }
-
                     removed_key_value
                 }
             },
@@ -300,22 +240,7 @@ mod algo {
         match node.right {
             Some(_) => {
                 let key_value = unset_max(&mut node.right);
-
-                let left_height = height(&node.left);
-                let right_height = height(&node.right);
-                if left_height > right_height && left_height - right_height > 1 {
-                    let mut left = node.left.take().unwrap();
-
-                    if height(&left.right) > height(&left.left) {
-                        let pivot = left.right.take();
-                        rotate_left(&mut left, pivot.unwrap());
-                    }
-
-                    rotate_right(node, left);
-                } else {
-                    node.update_height();
-                }
-
+                left_heavy_rebalance(node);
                 key_value
             }
             None => {
@@ -331,22 +256,7 @@ mod algo {
         match node.left {
             Some(_) => {
                 let key_value = unset_max(&mut node.left);
-
-                let right_height = height(&node.right);
-                let left_height = height(&node.left);
-                if right_height > left_height && right_height - left_height > 1 {
-                    let mut right = node.right.take().unwrap();
-
-                    if height(&right.left) > height(&right.right) {
-                        let pivot = right.left.take();
-                        rotate_right(&mut right, pivot.unwrap());
-                    }
-
-                    rotate_left(node, right);
-                } else {
-                    node.update_height();
-                }
-
+                right_heavy_rebalance(node);
                 key_value
             }
             None => {
@@ -354,6 +264,40 @@ mod algo {
                 let node = mem::replace(node_option, right_option).unwrap();
                 (node.key, node.value)
             }
+        }
+    }
+
+    fn left_heavy_rebalance<K, V>(node: &mut Box<Node<K, V>>) {
+        let left_height = height(&node.left);
+        let right_height = height(&node.right);
+        if left_height > right_height && left_height - right_height > 1 {
+            let mut left = node.left.take().unwrap();
+
+            if height(&left.right) > height(&left.left) {
+                let pivot = left.right.take();
+                rotate_left(&mut left, pivot.unwrap());
+            }
+
+            rotate_right(node, left);
+        } else {
+            node.update_height();
+        }
+    }
+
+    fn right_heavy_rebalance<K, V>(node: &mut Box<Node<K, V>>) {
+        let right_height = height(&node.right);
+        let left_height = height(&node.left);
+        if right_height > left_height && right_height - left_height > 1 {
+            let mut right = node.right.take().unwrap();
+
+            if height(&right.left) > height(&right.right) {
+                let pivot = right.left.take();
+                rotate_right(&mut right, pivot.unwrap());
+            }
+
+            rotate_left(node, right);
+        } else {
+            node.update_height();
         }
     }
 
