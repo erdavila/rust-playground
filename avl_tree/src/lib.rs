@@ -3,6 +3,9 @@ use std::marker::PhantomData;
 #[cfg(test)]
 mod tests;
 
+pub type AVLTreeMap<K, V> = AVLTree<K, V>;
+pub type AVLTreeSet<E> = AVLTree<E, PhantomData<()>>;
+
 pub struct AVLTree<K, V> {
     root: Option<Box<Node<K, V>>>,
 }
@@ -12,7 +15,15 @@ impl<K, V> AVLTree<K, V> {
         AVLTree { root: None }
     }
 
+    pub fn new_map() -> Self {
+        Self::new()
+    }
+
     pub fn iter(&self) -> Iter<K, V> {
+        todo!()
+    }
+
+    pub fn breadth_iter(&self) -> BreadthIter<K, V> {
         todo!()
     }
 }
@@ -27,6 +38,26 @@ impl<K: Ord, V> AVLTree<K, V> {
     }
 
     pub fn unset(&self, key: &K) -> Option<(K, V)> {
+        todo!()
+    }
+
+    pub fn contains(&self, key: &K) -> bool {
+        todo!()
+    }
+}
+
+impl<E> AVLTreeSet<E> {
+    pub fn new_set() -> Self {
+        Self::new()
+    }
+}
+
+impl<E: Ord> AVLTreeSet<E> {
+    pub fn add(&mut self, element: E) -> bool {
+        todo!()
+    }
+
+    pub fn remove(&mut self, element: &E) -> bool {
         todo!()
     }
 }
@@ -68,6 +99,18 @@ pub struct Iter<'a, K, V> {
 }
 
 impl<'a, K: 'a, V: 'a> Iterator for Iter<'a, K, V> {
+    type Item = (&'a K, &'a V);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        todo!()
+    }
+}
+
+pub struct BreadthIter<'a, K, V> {
+    phantom: PhantomData<(K, V, &'a ())>,
+}
+
+impl<'a, K: 'a, V: 'a> Iterator for BreadthIter<'a, K, V> {
     type Item = (&'a K, &'a V);
 
     fn next(&mut self) -> Option<Self::Item> {
