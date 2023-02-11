@@ -20,7 +20,7 @@ impl<K, V> AVLTree<K, V> {
     }
 
     pub fn iter(&self) -> Iter<K, V> {
-        todo!()
+        Iter::new(&self.root)
     }
 
     pub fn breadth_iter(&self) -> BreadthIter<K, V> {
@@ -95,14 +95,35 @@ impl<K, V> Node<K, V> {
 type Height = u8;
 
 pub struct Iter<'a, K, V> {
-    phantom: PhantomData<(K, V, &'a ())>,
+    stack: Vec<&'a Node<K, V>>,
+}
+
+impl<'a, K, V> Iter<'a, K, V> {
+    fn new(root: &'a Option<Box<Node<K, V>>>) -> Self {
+        let mut iter = Iter { stack: Vec::new() };
+        iter.expand_to_stack(root);
+        iter
+    }
+
+    fn expand_to_stack(&mut self, mut node_option: &'a Option<Box<Node<K, V>>>) {
+        while let Some(node) = node_option {
+            self.stack.push(node);
+            node_option = &node.left;
+        }
+    }
 }
 
 impl<'a, K: 'a, V: 'a> Iterator for Iter<'a, K, V> {
     type Item = (&'a K, &'a V);
 
     fn next(&mut self) -> Option<Self::Item> {
-        todo!()
+        match self.stack.pop() {
+            Some(node) => {
+                self.expand_to_stack(&node.right);
+                Some((&node.key, &node.value))
+            }
+            None => None,
+        }
     }
 }
 

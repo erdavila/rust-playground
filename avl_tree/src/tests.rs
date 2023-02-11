@@ -359,3 +359,32 @@ fn test_unset_with_rebalancing_4() {
     let evaluation = balancing::assert_on_tree(&tree);
     assert_eq!(evaluation.node_count, 6);
 }
+
+#[test]
+fn test_iter() {
+    let mut tree = AVLTree::new();
+    tree.set("E", 5);
+    tree.set("B", 2);
+    tree.set("F", 6);
+    tree.set("A", 1);
+    tree.set("C", 3);
+    tree.set("G", 7);
+    tree.set("D", 4);
+    let tree = tree;
+
+    let iter = tree.iter();
+
+    let vec: Vec<_> = iter.collect();
+    assert_eq!(
+        vec,
+        vec![
+            (&"A", &1),
+            (&"B", &2),
+            (&"C", &3),
+            (&"D", &4),
+            (&"E", &5),
+            (&"F", &6),
+            (&"G", &7),
+        ]
+    )
+}
