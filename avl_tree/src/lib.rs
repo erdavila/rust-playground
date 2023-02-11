@@ -148,7 +148,9 @@ mod algo {
                 Ordering::Less => {
                     let result = set(&mut node.left, key, value);
 
-                    if height(&node.left) - height(&node.right) > 1 {
+                    let left_height = height(&node.left);
+                    let right_height = height(&node.right);
+                    if left_height > right_height && left_height - right_height > 1 {
                         let mut left = node.left.take().unwrap();
 
                         if height(&left.right) > height(&left.left) {
@@ -166,7 +168,9 @@ mod algo {
                 Ordering::Greater => {
                     let result = set(&mut node.right, key, value);
 
-                    if height(&node.right) - height(&node.left) > 1 {
+                    let right_height = height(&node.right);
+                    let left_height = height(&node.left);
+                    if right_height > left_height && right_height - left_height > 1 {
                         let mut right = node.right.take().unwrap();
 
                         if height(&right.left) > height(&right.right) {
@@ -221,11 +225,6 @@ mod algo {
 
                             let removed_key = mem::replace(&mut node.key, replacing_key);
                             let removed_value = mem::replace(&mut node.value, replacing_value);
-
-                            if height(&node.right) - height(&node.left) > 1 {
-                                todo!()
-                            }
-
                             Some((removed_key, removed_value))
                         } else {
                             let (replacing_key, replacing_value) = unset_min(&mut node.right);
@@ -233,11 +232,6 @@ mod algo {
 
                             let removed_key = mem::replace(&mut node.key, replacing_key);
                             let removed_value = mem::replace(&mut node.value, replacing_value);
-
-                            if height(&node.left) - height(&node.right) > 1 {
-                                todo!()
-                            }
-
                             Some((removed_key, removed_value))
                         }
                     }
@@ -256,8 +250,17 @@ mod algo {
                     let removed_key_value = unset(&mut node.left, key);
 
                     if removed_key_value.is_some() {
-                        if height(&node.right) - height(&node.left) > 1 {
-                            todo!()
+                        let right_height = height(&node.right);
+                        let left_height = height(&node.left);
+                        if right_height > left_height && right_height - left_height > 1 {
+                            let mut right = node.right.take().unwrap();
+
+                            if height(&right.left) > height(&right.right) {
+                                let pivot = right.left.take();
+                                rotate_right(&mut right, pivot.unwrap());
+                            }
+
+                            rotate_left(node, right);
                         } else {
                             node.update_height();
                         }
@@ -269,8 +272,17 @@ mod algo {
                     let removed_key_value = unset(&mut node.right, key);
 
                     if removed_key_value.is_some() {
-                        if height(&node.left) - height(&node.right) > 1 {
-                            todo!()
+                        let left_height = height(&node.left);
+                        let right_height = height(&node.right);
+                        if left_height > right_height && left_height - right_height > 1 {
+                            let mut left = node.left.take().unwrap();
+
+                            if height(&left.right) > height(&left.left) {
+                                let pivot = left.right.take();
+                                rotate_left(&mut left, pivot.unwrap());
+                            }
+
+                            rotate_right(node, left);
                         } else {
                             node.update_height();
                         }
@@ -284,13 +296,22 @@ mod algo {
     }
 
     fn unset_max<K, V>(node_option: &mut NodeBoxOption<K, V>) -> (K, V) {
-        let node = node_option.as_deref_mut().unwrap();
+        let node = node_option.as_mut().unwrap();
         match node.right {
             Some(_) => {
                 let key_value = unset_max(&mut node.right);
 
-                if height(&node.left) - height(&node.right) > 1 {
-                    todo!()
+                let left_height = height(&node.left);
+                let right_height = height(&node.right);
+                if left_height > right_height && left_height - right_height > 1 {
+                    let mut left = node.left.take().unwrap();
+
+                    if height(&left.right) > height(&left.left) {
+                        let pivot = left.right.take();
+                        rotate_left(&mut left, pivot.unwrap());
+                    }
+
+                    rotate_right(node, left);
                 } else {
                     node.update_height();
                 }
@@ -306,13 +327,22 @@ mod algo {
     }
 
     fn unset_min<K, V>(node_option: &mut NodeBoxOption<K, V>) -> (K, V) {
-        let node = node_option.as_deref_mut().unwrap();
+        let node = node_option.as_mut().unwrap();
         match node.left {
             Some(_) => {
                 let key_value = unset_max(&mut node.left);
 
-                if height(&node.right) - height(&node.left) > 1 {
-                    todo!()
+                let right_height = height(&node.right);
+                let left_height = height(&node.left);
+                if right_height > left_height && right_height - left_height > 1 {
+                    let mut right = node.right.take().unwrap();
+
+                    if height(&right.left) > height(&right.right) {
+                        let pivot = right.left.take();
+                        rotate_right(&mut right, pivot.unwrap());
+                    }
+
+                    rotate_left(node, right);
                 } else {
                     node.update_height();
                 }

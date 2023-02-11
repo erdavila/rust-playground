@@ -275,3 +275,87 @@ fn test_unset_right_child_no_rebalancing() {
     let evaluation = balancing::assert_on_tree(&tree);
     assert_eq!(evaluation.node_count, 1);
 }
+
+#[test]
+fn test_unset_with_rebalancing_1() {
+    let mut tree = AVLTree::new();
+    tree.set("B", 2);
+    tree.set("A", 1);
+    tree.set("D", 4);
+    tree.set("C", 3);
+
+    let value = tree.unset(&"A");
+
+    assert_eq!(value, Some(("A", 1)));
+    assert_eq!(tree.get(&"B"), Some(&2));
+    assert_eq!(tree.get(&"C"), Some(&3));
+    assert_eq!(tree.get(&"D"), Some(&4));
+    let evaluation = balancing::assert_on_tree(&tree);
+    assert_eq!(evaluation.node_count, 3);
+}
+
+#[test]
+fn test_unset_with_rebalancing_2() {
+    let mut tree = AVLTree::new();
+    tree.set("C", 3);
+    tree.set("A", 1);
+    tree.set("D", 4);
+    tree.set("B", 2);
+
+    let value = tree.unset(&"D");
+
+    assert_eq!(value, Some(("D", 4)));
+    assert_eq!(tree.get(&"A"), Some(&1));
+    assert_eq!(tree.get(&"B"), Some(&2));
+    assert_eq!(tree.get(&"C"), Some(&3));
+    let evaluation = balancing::assert_on_tree(&tree);
+    assert_eq!(evaluation.node_count, 3);
+}
+
+#[test]
+fn test_unset_with_rebalancing_3() {
+    let mut tree = AVLTree::new();
+    tree.set("C", 3);
+    tree.set("B", 2);
+    tree.set("E", 5);
+    tree.set("A", 1);
+    tree.set("D", 4);
+    tree.set("F", 6);
+    tree.set("G", 7);
+
+    let value = tree.unset(&"C");
+
+    assert_eq!(value, Some(("C", 3)));
+    assert_eq!(tree.get(&"A"), Some(&1));
+    assert_eq!(tree.get(&"B"), Some(&2));
+    assert_eq!(tree.get(&"D"), Some(&4));
+    assert_eq!(tree.get(&"E"), Some(&5));
+    assert_eq!(tree.get(&"F"), Some(&6));
+    assert_eq!(tree.get(&"G"), Some(&7));
+    let evaluation = balancing::assert_on_tree(&tree);
+    assert_eq!(evaluation.node_count, 6);
+}
+
+#[test]
+fn test_unset_with_rebalancing_4() {
+    let mut tree = AVLTree::new();
+    tree.set("E", 5);
+    tree.set("B", 2);
+    tree.set("F", 6);
+    tree.set("A", 1);
+    tree.set("C", 3);
+    tree.set("G", 7);
+    tree.set("D", 4);
+
+    let value = tree.unset(&"E");
+
+    assert_eq!(value, Some(("E", 5)));
+    assert_eq!(tree.get(&"A"), Some(&1));
+    assert_eq!(tree.get(&"B"), Some(&2));
+    assert_eq!(tree.get(&"C"), Some(&3));
+    assert_eq!(tree.get(&"D"), Some(&4));
+    assert_eq!(tree.get(&"F"), Some(&6));
+    assert_eq!(tree.get(&"G"), Some(&7));
+    let evaluation = balancing::assert_on_tree(&tree);
+    assert_eq!(evaluation.node_count, 6);
+}
