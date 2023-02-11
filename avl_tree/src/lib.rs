@@ -1,11 +1,10 @@
 use std::collections::VecDeque;
-use std::marker::PhantomData;
 
 #[cfg(test)]
 mod tests;
 
 pub type AVLTreeMap<K, V> = AVLTree<K, V>;
-pub type AVLTreeSet<E> = AVLTree<E, PhantomData<()>>;
+pub type AVLTreeSet<E> = AVLTree<E, ()>;
 
 pub struct AVLTree<K, V> {
     root: Option<Box<Node<K, V>>>,
@@ -43,7 +42,7 @@ impl<K: Ord, V> AVLTree<K, V> {
     }
 
     pub fn contains(&self, key: &K) -> bool {
-        todo!()
+        self.get(key).is_some()
     }
 }
 
@@ -55,11 +54,11 @@ impl<E> AVLTreeSet<E> {
 
 impl<E: Ord> AVLTreeSet<E> {
     pub fn add(&mut self, element: E) -> bool {
-        todo!()
+        self.set(element, ()).is_none()
     }
 
     pub fn remove(&mut self, element: &E) -> bool {
-        todo!()
+        self.unset(element).is_some()
     }
 }
 

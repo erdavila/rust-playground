@@ -1,4 +1,4 @@
-use crate::AVLTree;
+use crate::{AVLTree, AVLTreeSet};
 
 mod balancing;
 
@@ -454,4 +454,26 @@ fn test_into_iter() {
             ("G", 7),
         ]
     )
+}
+
+#[test]
+fn test_set_operations() {
+    let mut set = AVLTreeSet::new_set();
+
+    assert!(set.add("A"));
+    assert!(set.add("B"));
+    assert!(set.add("C"));
+    assert!(set.add("D"));
+    assert!(!set.add("B"));
+
+    assert!(set.remove(&"C"));
+    assert!(!set.remove(&"E"));
+
+    assert!(set.contains(&"A"));
+    assert!(set.contains(&"B"));
+    assert!(!set.contains(&"C"));
+    assert!(set.contains(&"D"));
+
+    let evaluation = balancing::assert_on_tree(&set);
+    assert_eq!(evaluation.node_count, 3);
 }
