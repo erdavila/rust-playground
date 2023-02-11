@@ -388,3 +388,41 @@ fn test_iter() {
         ]
     )
 }
+
+#[test]
+fn test_breadth_iter() {
+    let mut tree = AVLTree::new();
+    tree.set("E", 5);
+    tree.set("F", 6);
+    tree.set("B", 2);
+    tree.set("C", 3);
+    tree.set("A", 1);
+    tree.set("G", 7);
+    tree.set("D", 4);
+    let tree = tree;
+    /*
+     *             E
+     *          /    \
+     *       B         F
+     *     /  \          \
+     *   A     C           G
+     *          \
+     *           D
+     */
+
+    let iter = tree.breadth_iter();
+
+    let vec: Vec<_> = iter.collect();
+    assert_eq!(
+        vec,
+        vec![
+            (&"E", &5),
+            (&"B", &2),
+            (&"F", &6),
+            (&"A", &1),
+            (&"C", &3),
+            (&"G", &7),
+            (&"D", &4),
+        ]
+    )
+}

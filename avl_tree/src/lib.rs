@@ -1,3 +1,4 @@
+use std::collections::VecDeque;
 use std::marker::PhantomData;
 
 #[cfg(test)]
@@ -24,7 +25,7 @@ impl<K, V> AVLTree<K, V> {
     }
 
     pub fn breadth_iter(&self) -> BreadthIter<K, V> {
-        todo!()
+        BreadthIter::new(&self.root)
     }
 }
 
@@ -128,14 +129,36 @@ impl<'a, K: 'a, V: 'a> Iterator for Iter<'a, K, V> {
 }
 
 pub struct BreadthIter<'a, K, V> {
-    phantom: PhantomData<(K, V, &'a ())>,
+    queue: VecDeque<&'a Node<K, V>>,
+}
+
+impl<'a, K, V> BreadthIter<'a, K, V> {
+    fn new(root: &'a Option<Box<Node<K, V>>>) -> Self {
+        let mut iter = BreadthIter {
+            queue: VecDeque::new(),
+        };
+        iter.push_to_queue(root);
+        iter
+    }
+
+    fn push_to_queue(&mut self, option: &'a Option<Box<Node<K, V>>>) {
+        if let Some(node) = option {
+            self.queue.push_back(node);
+        }
+    }
 }
 
 impl<'a, K: 'a, V: 'a> Iterator for BreadthIter<'a, K, V> {
     type Item = (&'a K, &'a V);
 
     fn next(&mut self) -> Option<Self::Item> {
-        todo!()
+        if let Some(node) = self.queue.pop_front() {
+            self.push_to_queue(&node.left);
+            self.push_to_queue(&node.right);
+            Some((&node.key, &node.value))
+        } else {
+            None
+        }
     }
 }
 
