@@ -69,7 +69,7 @@ impl<K, V> IntoIterator for AVLTree<K, V> {
     type IntoIter = IntoIter<K, V>;
 
     fn into_iter(self) -> Self::IntoIter {
-        todo!()
+        IntoIter::new(self.root)
     }
 }
 
@@ -163,14 +163,35 @@ impl<'a, K: 'a, V: 'a> Iterator for BreadthIter<'a, K, V> {
 }
 
 pub struct IntoIter<K, V> {
-    phantom: PhantomData<(K, V)>,
+    stack: Vec<Node<K, V>>,
+}
+
+impl<K, V> IntoIter<K, V> {
+    fn new(root: Option<Box<Node<K, V>>>) -> IntoIter<K, V> {
+        let mut iter = IntoIter { stack: Vec::new() };
+        iter.expand_to_stack(root);
+        iter
+    }
+
+    fn expand_to_stack(&mut self, mut node_option: Option<Box<Node<K, V>>>) {
+        while let Some(mut node) = node_option {
+            node_option = node.left.take();
+            self.stack.push(*node);
+        }
+    }
 }
 
 impl<K, V> Iterator for IntoIter<K, V> {
     type Item = (K, V);
 
     fn next(&mut self) -> Option<Self::Item> {
-        todo!()
+        match self.stack.pop() {
+            Some(node) => {
+                self.expand_to_stack(node.right);
+                Some((node.key, node.value))
+            }
+            None => None,
+        }
     }
 }
 
