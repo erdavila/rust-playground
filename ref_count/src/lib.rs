@@ -1,15 +1,21 @@
 use std::borrow::Borrow;
+use std::cell::Cell;
 use std::hash::Hash;
 use std::marker::PhantomData;
 use std::ops::Deref;
+use std::ptr::NonNull;
 
 pub struct RefCount<T> {
-    phantom: PhantomData<T>,
+    control: NonNull<Control<T>>,
 }
 
 impl<T> RefCount<T> {
     pub fn new(value: T) -> Self {
-        todo!()
+        let control = move_to_heap(Control {
+            value,
+            count: Cell::new(1),
+        });
+        RefCount { control }
     }
 
     pub fn try_unwrap(this: Self) -> Result<T, Self> {
@@ -38,7 +44,7 @@ impl<T> RefCount<T> {
     }
 
     pub fn strong_count(this: &Self) -> usize {
-        todo!()
+        this.control().count.get()
     }
 
     pub fn get_mut(this: &mut Self) -> Option<&mut T> {
@@ -47,6 +53,10 @@ impl<T> RefCount<T> {
 
     pub fn ptr_eq(this: &Self, other: &Self) -> bool {
         todo!()
+    }
+
+    fn control(&self) -> &Control<T> {
+        unsafe { self.control.as_ref() }
     }
 }
 
@@ -64,7 +74,10 @@ impl<T> Borrow<T> for RefCount<T> {
 
 impl<T> Clone for RefCount<T> {
     fn clone(&self) -> Self {
-        todo!()
+        self.control().update_count(|count| count + 1);
+        RefCount {
+            control: self.control,
+        }
     }
 }
 
@@ -81,13 +94,16 @@ impl<T> Deref for RefCount<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        todo!()
+        &self.control().value
     }
 }
 
 impl<T> Drop for RefCount<T> {
     fn drop(&mut self) {
-        todo!()
+        let count = self.control().update_count(|count| count - 1);
+        if count == 0 {
+            drop_from_heap(self.control);
+        }
     }
 }
 
@@ -134,6 +150,23 @@ where
 }
 
 impl<T> Eq for RefCount<T> where T: Eq {}
+
+struct Control<T> {
+    count: Cell<usize>,
+    value: T,
+}
+
+impl<T> Control<T> {
+    fn update_count<F>(&self, f: F) -> usize
+    where
+        F: FnOnce(usize) -> usize,
+    {
+        let count = self.count.get();
+        let count = f(count);
+        self.count.set(count);
+        count
+    }
+}
 
 pub struct WeakRef<T> {
     phantom: PhantomData<T>,
@@ -192,10 +225,68 @@ impl<T> Drop for WeakRef<T> {
     }
 }
 
+fn move_to_heap<T>(value: T) -> NonNull<T> {
+    let b = Box::new(value);
+    let ptr = Box::into_raw(b);
+    NonNull::new(ptr).unwrap()
+}
+
+fn drop_from_heap<T>(ptr: NonNull<T>) {
+    let ptr = ptr.as_ptr();
+    let b = unsafe { Box::from_raw(ptr) };
+    drop(b);
+}
+
 #[cfg(test)]
 mod tests {
+    use std::cell::RefCell;
+
     use super::*;
 
+    struct Inner<T, F>
+    where
+        F: FnMut(),
+    {
+        value: T,
+        on_drop: F,
+    }
+
+    impl<T, F> Drop for Inner<T, F>
+    where
+        F: FnMut(),
+    {
+        fn drop(&mut self) {
+            (self.on_drop)();
+        }
+    }
+
     #[test]
-    fn test_() {}
+    fn test_basic() {
+        let dropped = RefCell::new(false);
+
+        let inner = Inner {
+            value: 7,
+            on_drop: || {
+                *dropped.borrow_mut() = true;
+            },
+        };
+
+        let rc1 = RefCount::new(inner);
+        assert_eq!(RefCount::strong_count(&rc1), 1);
+        assert_eq!(rc1.value, 7);
+
+        let rc2 = RefCount::clone(&rc1);
+        assert_eq!(RefCount::strong_count(&rc1), 2);
+        assert_eq!(RefCount::strong_count(&rc2), 2);
+        assert_eq!(rc1.value, 7);
+        assert_eq!(rc2.value, 7);
+
+        drop(rc1);
+        assert_eq!(RefCount::strong_count(&rc2), 1);
+        assert_eq!(rc2.value, 7);
+        assert!(!*dropped.borrow());
+
+        drop(rc2);
+        assert!(*dropped.borrow());
+    }
 }
