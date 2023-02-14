@@ -3,7 +3,7 @@ use std::cell::Cell;
 use std::hash::Hash;
 use std::mem::{forget, MaybeUninit};
 use std::ops::Deref;
-use std::ptr::NonNull;
+use std::ptr::{self, NonNull};
 
 pub struct RefCount<T> {
     control: NonNull<Control<T>>,
@@ -35,7 +35,9 @@ impl<T> RefCount<T> {
     }
 
     pub fn into_raw(this: Self) -> *const T {
-        todo!()
+        let ptr = this.control().value.get_ptr();
+        forget(this);
+        ptr
     }
 
     pub fn as_ptr(this: &Self) -> *const T {
@@ -44,7 +46,18 @@ impl<T> RefCount<T> {
 
     /// # Safety
     pub unsafe fn from_raw(ptr: *const T) -> Self {
-        todo!()
+        let offset = Self::value_offset();
+        let control_ptr = (ptr as *const u8).sub(offset) as *mut Control<T>;
+        RefCount {
+            control: NonNull::new(control_ptr).unwrap(),
+        }
+    }
+
+    unsafe fn value_offset() -> usize {
+        let base_ptr: *const Control<T> = ptr::null();
+        let base_ref = &*base_ptr;
+        let member_ptr = ptr::addr_of!(base_ref.value.value);
+        member_ptr as usize
     }
 
     pub fn downgrade(this: &Self) -> WeakRef<T> {
@@ -233,6 +246,10 @@ impl<T> ValueHolder<T> {
     fn get_ref(&self) -> &T {
         self.assert_initialized();
         unsafe { self.value.assume_init_ref() }
+    }
+
+    fn get_ptr(&self) -> *const T {
+        self.value.as_ptr()
     }
 
     fn drop_in_place(&mut self) {
@@ -500,6 +517,35 @@ mod tests {
         assert_eq!(w.strong_count(), 0);
         assert_eq!(w.weak_count(), 1);
         assert_eq!(inner.value, 7);
+        assert!(!*dropped.borrow());
+    }
+
+    #[test]
+    fn test_ref_count_raw() {
+        let dropped = RefCell::new(false);
+
+        let inner = Inner {
+            value: 7,
+            on_drop: || {
+                *dropped.borrow_mut() = true;
+            },
+        };
+
+        let rc1 = RefCount::new(inner);
+        let rc2 = RefCount::clone(&rc1);
+
+        let ptr = RefCount::into_raw(rc1);
+        assert_eq!(RefCount::strong_count(&rc2), 2);
+        assert_eq!(RefCount::weak_count(&rc2), 0);
+        assert_eq!(unsafe { ptr.as_ref() }.unwrap().value, 7);
+        assert!(!*dropped.borrow());
+
+        let rc1 = unsafe { RefCount::from_raw(ptr) };
+        assert_eq!(RefCount::strong_count(&rc1), 2);
+        assert_eq!(RefCount::strong_count(&rc2), 2);
+        assert_eq!(RefCount::weak_count(&rc1), 0);
+        assert_eq!(RefCount::weak_count(&rc2), 0);
+        assert_eq!(rc1.value, 7);
         assert!(!*dropped.borrow());
     }
 }
