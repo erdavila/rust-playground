@@ -75,7 +75,7 @@ impl<T> RefCount<T> {
     }
 
     pub fn ptr_eq(this: &Self, other: &Self) -> bool {
-        todo!()
+        this.control().value.get_ptr() == other.control().value.get_ptr()
     }
 
     fn control(&self) -> &Control<T> {
@@ -89,13 +89,13 @@ impl<T> RefCount<T> {
 
 impl<T> AsRef<T> for RefCount<T> {
     fn as_ref(&self) -> &T {
-        todo!()
+        self.control().value.get_ref()
     }
 }
 
 impl<T> Borrow<T> for RefCount<T> {
     fn borrow(&self) -> &T {
-        todo!()
+        self.control().value.get_ref()
     }
 }
 
@@ -113,7 +113,7 @@ where
     T: Default,
 {
     fn default() -> Self {
-        todo!()
+        Self::new(Default::default())
     }
 }
 
@@ -141,7 +141,7 @@ impl<T> Drop for RefCount<T> {
 
 impl<T> From<T> for RefCount<T> {
     fn from(value: T) -> Self {
-        todo!()
+        Self::new(value)
     }
 }
 
@@ -150,7 +150,7 @@ where
     T: Hash,
 {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        todo!()
+        self.as_ref().hash(state);
     }
 }
 
@@ -159,7 +159,7 @@ where
     T: Ord,
 {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        todo!()
+        self.as_ref().cmp(other.as_ref())
     }
 }
 
@@ -168,7 +168,7 @@ where
     T: PartialEq,
 {
     fn eq(&self, other: &Self) -> bool {
-        todo!()
+        self.as_ref() == other.as_ref()
     }
 }
 
@@ -177,7 +177,7 @@ where
     T: PartialOrd,
 {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        todo!()
+        self.as_ref().partial_cmp(other.as_ref())
     }
 }
 
@@ -253,6 +253,14 @@ impl<T> ValueHolder<T> {
         }
     }
 
+    fn empty() -> ValueHolder<T> {
+        ValueHolder {
+            value: MaybeUninit::uninit(),
+            #[cfg(test)]
+            initialized: false,
+        }
+    }
+
     fn get_ref(&self) -> &T {
         self.assert_initialized();
         unsafe { self.value.assume_init_ref() }
@@ -299,7 +307,12 @@ pub struct WeakRef<T> {
 
 impl<T> WeakRef<T> {
     pub fn new() -> Self {
-        todo!()
+        let control = move_to_heap(Control {
+            value: ValueHolder::empty(),
+            strong_count: Count::new(0),
+            weak_count: Count::new(1),
+        });
+        WeakRef { control }
     }
 
     fn control(&self) -> &Control<T> {
@@ -343,7 +356,7 @@ impl<T> WeakRef<T> {
     }
 
     pub fn ptr_eq(&self, other: &Self) -> bool {
-        todo!()
+        self.control().value.get_ptr() == other.control().value.get_ptr()
     }
 }
 
@@ -358,7 +371,7 @@ impl<T> Clone for WeakRef<T> {
 
 impl<T> Default for WeakRef<T> {
     fn default() -> Self {
-        todo!()
+        Self::new()
     }
 }
 
