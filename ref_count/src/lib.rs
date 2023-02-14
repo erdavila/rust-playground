@@ -41,7 +41,7 @@ impl<T> RefCount<T> {
     }
 
     pub fn as_ptr(this: &Self) -> *const T {
-        todo!()
+        this.control().value.get_ptr()
     }
 
     /// # Safety
@@ -298,7 +298,7 @@ impl<T> WeakRef<T> {
     }
 
     pub fn as_ptr(&self) -> *const T {
-        todo!()
+        self.control().value.get_ptr()
     }
 
     pub fn into_raw(self) -> *const T {
@@ -595,5 +595,27 @@ mod tests {
         assert_eq!(w.weak_count(), 1);
         assert_eq!(rc2.value, 7);
         assert!(!*dropped.borrow());
+    }
+
+    #[test]
+    fn test_as_ptr() {
+        let dropped = RefCell::new(false);
+
+        let inner = Inner {
+            value: 7,
+            on_drop: || {
+                *dropped.borrow_mut() = true;
+            },
+        };
+
+        let rc = RefCount::new(inner);
+        let w = RefCount::downgrade(&rc);
+
+        let rc_as_ptr = RefCount::as_ptr(&rc);
+        let w_as_ptr = w.as_ptr();
+
+        assert!(ptr::eq(rc_as_ptr, &*rc));
+        assert!(ptr::eq(w_as_ptr, &*rc));
+        assert_eq!(unsafe { &*rc_as_ptr }.value, 7);
     }
 }
