@@ -67,7 +67,11 @@ impl<T> RefCount<T> {
     }
 
     pub fn get_mut(this: &mut Self) -> Option<&mut T> {
-        todo!()
+        if Self::strong_count(this) == 1 && Self::weak_count(this) == 0 {
+            Some(this.control_mut().value.get_mut())
+        } else {
+            None
+        }
     }
 
     pub fn ptr_eq(this: &Self, other: &Self) -> bool {
@@ -252,6 +256,11 @@ impl<T> ValueHolder<T> {
     fn get_ref(&self) -> &T {
         self.assert_initialized();
         unsafe { self.value.assume_init_ref() }
+    }
+
+    fn get_mut(&mut self) -> &mut T {
+        self.assert_initialized();
+        unsafe { self.value.assume_init_mut() }
     }
 
     fn get_ptr(&self) -> *const T {
@@ -617,5 +626,41 @@ mod tests {
         assert!(ptr::eq(rc_as_ptr, &*rc));
         assert!(ptr::eq(w_as_ptr, &*rc));
         assert_eq!(unsafe { &*rc_as_ptr }.value, 7);
+    }
+
+    #[test]
+    fn test_get_mut() {
+        let dropped = RefCell::new(false);
+
+        let inner = Inner {
+            value: 7,
+            on_drop: || {
+                *dropped.borrow_mut() = true;
+            },
+        };
+
+        let mut rc1 = RefCount::new(inner);
+
+        let result = RefCount::get_mut(&mut rc1);
+        let r = match result {
+            Some(r) => r,
+            None => panic!("result should be Some(_)"),
+        };
+        r.value += 1;
+
+        let rc2 = RefCount::clone(&rc1);
+        assert!(RefCount::get_mut(&mut rc1).is_none());
+        drop(rc2);
+
+        let w = RefCount::downgrade(&rc1);
+        assert!(RefCount::get_mut(&mut rc1).is_none());
+        drop(w);
+
+        let result = RefCount::get_mut(&mut rc1);
+        let r = match result {
+            Some(r) => r,
+            None => panic!("result should be Some(_)"),
+        };
+        assert_eq!(r.value, 8);
     }
 }
