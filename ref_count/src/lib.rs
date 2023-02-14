@@ -1,7 +1,7 @@
 use std::borrow::Borrow;
 use std::cell::Cell;
 use std::hash::Hash;
-use std::mem::MaybeUninit;
+use std::mem::{forget, MaybeUninit};
 use std::ops::Deref;
 use std::ptr::NonNull;
 
@@ -19,8 +19,19 @@ impl<T> RefCount<T> {
         RefCount { control }
     }
 
-    pub fn try_unwrap(this: Self) -> Result<T, Self> {
-        todo!()
+    pub fn try_unwrap(mut this: Self) -> Result<T, Self> {
+        if Self::strong_count(&this) == 1 {
+            let control = this.control_mut();
+            control.strong_count.dec();
+            let value = control.value.move_out();
+            if control.weak_count.get() == 0 {
+                drop_from_heap(this.control);
+            }
+            forget(this);
+            Ok(value)
+        } else {
+            Err(this)
+        }
     }
 
     pub fn into_raw(this: Self) -> *const T {
@@ -228,6 +239,11 @@ impl<T> ValueHolder<T> {
         self.assert_initialized();
         unsafe { self.value.assume_init_drop() };
         self.set_initialized(false);
+    }
+
+    fn move_out(&mut self) -> T {
+        self.set_initialized(false);
+        unsafe { self.value.assume_init_read() }
     }
 
     #[cfg(test)]
@@ -450,5 +466,40 @@ mod tests {
         assert_eq!(w2.weak_count(), 1);
         assert!(*dropped.borrow());
         assert!(w2.upgrade().is_none());
+    }
+
+    #[test]
+    fn test_try_unwrap() {
+        let dropped = RefCell::new(false);
+
+        let inner = Inner {
+            value: 7,
+            on_drop: || {
+                *dropped.borrow_mut() = true;
+            },
+        };
+
+        let rc1 = RefCount::new(inner);
+        let rc2 = RefCount::clone(&rc1);
+        let w = RefCount::downgrade(&rc1);
+
+        let result = RefCount::try_unwrap(rc2);
+        let rc2 = match result {
+            Ok(_) => panic!("result should be Err(_)"),
+            Err(rc) => rc,
+        };
+        assert!(w.upgrade().is_some());
+
+        drop(rc1);
+        let result = RefCount::try_unwrap(rc2);
+        let inner = match result {
+            Ok(inner) => inner,
+            Err(_) => panic!("result should be Ok(_)"),
+        };
+        assert!(w.upgrade().is_none());
+        assert_eq!(w.strong_count(), 0);
+        assert_eq!(w.weak_count(), 1);
+        assert_eq!(inner.value, 7);
+        assert!(!*dropped.borrow());
     }
 }
