@@ -46,18 +46,9 @@ impl<T> RefCount<T> {
 
     /// # Safety
     pub unsafe fn from_raw(ptr: *const T) -> Self {
-        let offset = Self::value_offset();
-        let control_ptr = (ptr as *const u8).sub(offset) as *mut Control<T>;
         RefCount {
-            control: NonNull::new(control_ptr).unwrap(),
+            control: Control::ptr_from_raw(ptr),
         }
-    }
-
-    unsafe fn value_offset() -> usize {
-        let base_ptr: *const Control<T> = ptr::null();
-        let base_ref = &*base_ptr;
-        let member_ptr = ptr::addr_of!(base_ref.value.value);
-        member_ptr as usize
     }
 
     pub fn downgrade(this: &Self) -> WeakRef<T> {
@@ -194,6 +185,21 @@ struct Control<T> {
     value: ValueHolder<T>,
 }
 
+impl<T> Control<T> {
+    unsafe fn ptr_from_raw(ptr: *const T) -> NonNull<Self> {
+        let offset = Self::value_offset();
+        let control_ptr = (ptr as *const u8).sub(offset) as *mut Self;
+        NonNull::new(control_ptr).unwrap()
+    }
+
+    unsafe fn value_offset() -> usize {
+        let base_ptr: *const Self = ptr::null();
+        let base_ref = &*base_ptr;
+        let member_ptr = ptr::addr_of!(base_ref.value.value);
+        member_ptr as usize
+    }
+}
+
 struct Count {
     cell: Cell<usize>,
 }
@@ -296,12 +302,16 @@ impl<T> WeakRef<T> {
     }
 
     pub fn into_raw(self) -> *const T {
-        todo!()
+        let ptr = self.control().value.get_ptr();
+        forget(self);
+        ptr
     }
 
     /// # Safety
     pub unsafe fn from_raw(ptr: *const T) -> Self {
-        todo!()
+        WeakRef {
+            control: Control::ptr_from_raw(ptr),
+        }
     }
 
     pub fn upgrade(&self) -> Option<RefCount<T>> {
@@ -546,6 +556,44 @@ mod tests {
         assert_eq!(RefCount::weak_count(&rc1), 0);
         assert_eq!(RefCount::weak_count(&rc2), 0);
         assert_eq!(rc1.value, 7);
+        assert!(!*dropped.borrow());
+    }
+
+    #[test]
+    fn test_weak_ref_raw() {
+        let dropped = RefCell::new(false);
+
+        let inner = Inner {
+            value: 7,
+            on_drop: || {
+                *dropped.borrow_mut() = true;
+            },
+        };
+
+        let rc1 = RefCount::new(inner);
+        let w = RefCount::downgrade(&rc1);
+        let ptr = w.into_raw();
+        assert_eq!(RefCount::strong_count(&rc1), 1);
+        assert_eq!(RefCount::weak_count(&rc1), 1);
+        assert_eq!(unsafe { ptr.as_ref() }.unwrap().value, 7);
+        assert!(!*dropped.borrow());
+
+        let w = unsafe { WeakRef::from_raw(ptr) };
+        assert_eq!(RefCount::strong_count(&rc1), 1);
+        assert_eq!(w.strong_count(), 1);
+        assert_eq!(RefCount::weak_count(&rc1), 1);
+        assert_eq!(w.weak_count(), 1);
+        assert_eq!(rc1.value, 7);
+        assert!(!*dropped.borrow());
+
+        let rc2 = w.upgrade().expect("Upgraded ref should be Some(_)");
+        assert_eq!(RefCount::strong_count(&rc1), 2);
+        assert_eq!(RefCount::strong_count(&rc2), 2);
+        assert_eq!(w.strong_count(), 2);
+        assert_eq!(RefCount::weak_count(&rc1), 1);
+        assert_eq!(RefCount::weak_count(&rc2), 1);
+        assert_eq!(w.weak_count(), 1);
+        assert_eq!(rc2.value, 7);
         assert!(!*dropped.borrow());
     }
 }
