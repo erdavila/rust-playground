@@ -1,7 +1,7 @@
 use std::borrow::Borrow;
 use std::cell::Cell;
 use std::hash::Hash;
-use std::marker::PhantomData;
+use std::mem::MaybeUninit;
 use std::ops::Deref;
 use std::ptr::NonNull;
 
@@ -12,8 +12,9 @@ pub struct RefCount<T> {
 impl<T> RefCount<T> {
     pub fn new(value: T) -> Self {
         let control = move_to_heap(Control {
-            value,
-            count: Cell::new(1),
+            value: ValueHolder::new(value),
+            strong_count: Count::new(1),
+            weak_count: Count::new(0),
         });
         RefCount { control }
     }
@@ -36,15 +37,18 @@ impl<T> RefCount<T> {
     }
 
     pub fn downgrade(this: &Self) -> WeakRef<T> {
-        todo!()
+        this.control().weak_count.inc();
+        WeakRef {
+            control: this.control,
+        }
     }
 
     pub fn weak_count(this: &Self) -> usize {
-        todo!()
+        this.control().weak_count.get()
     }
 
     pub fn strong_count(this: &Self) -> usize {
-        this.control().count.get()
+        this.control().strong_count.get()
     }
 
     pub fn get_mut(this: &mut Self) -> Option<&mut T> {
@@ -57,6 +61,10 @@ impl<T> RefCount<T> {
 
     fn control(&self) -> &Control<T> {
         unsafe { self.control.as_ref() }
+    }
+
+    fn control_mut(&mut self) -> &mut Control<T> {
+        unsafe { self.control.as_mut() }
     }
 }
 
@@ -74,7 +82,7 @@ impl<T> Borrow<T> for RefCount<T> {
 
 impl<T> Clone for RefCount<T> {
     fn clone(&self) -> Self {
-        self.control().update_count(|count| count + 1);
+        self.control().strong_count.inc();
         RefCount {
             control: self.control,
         }
@@ -94,15 +102,20 @@ impl<T> Deref for RefCount<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        &self.control().value
+        self.control().value.get_ref()
     }
 }
 
 impl<T> Drop for RefCount<T> {
     fn drop(&mut self) {
-        let count = self.control().update_count(|count| count - 1);
+        let control = self.control_mut();
+        let count = control.strong_count.dec();
         if count == 0 {
-            drop_from_heap(self.control);
+            control.value.drop_in_place();
+
+            if Self::weak_count(self) == 0 {
+                drop_from_heap(self.control);
+            }
         }
     }
 }
@@ -152,29 +165,97 @@ where
 impl<T> Eq for RefCount<T> where T: Eq {}
 
 struct Control<T> {
-    count: Cell<usize>,
-    value: T,
+    strong_count: Count,
+    weak_count: Count,
+    value: ValueHolder<T>,
 }
 
-impl<T> Control<T> {
-    fn update_count<F>(&self, f: F) -> usize
+struct Count {
+    cell: Cell<usize>,
+}
+
+impl Count {
+    fn new(count: usize) -> Self {
+        Count {
+            cell: Cell::new(count),
+        }
+    }
+
+    fn get(&self) -> usize {
+        self.cell.get()
+    }
+
+    fn inc(&self) -> usize {
+        self.update(|count| count + 1)
+    }
+
+    fn dec(&self) -> usize {
+        self.update(|count| count - 1)
+    }
+
+    fn update<F>(&self, f: F) -> usize
     where
         F: FnOnce(usize) -> usize,
     {
-        let count = self.count.get();
+        let count = self.cell.get();
         let count = f(count);
-        self.count.set(count);
+        self.cell.set(count);
         count
     }
 }
 
+pub struct ValueHolder<T> {
+    value: MaybeUninit<T>,
+    #[cfg(test)]
+    initialized: bool,
+}
+
+impl<T> ValueHolder<T> {
+    fn new(value: T) -> ValueHolder<T> {
+        ValueHolder {
+            value: MaybeUninit::new(value),
+            #[cfg(test)]
+            initialized: true,
+        }
+    }
+
+    fn get_ref(&self) -> &T {
+        self.assert_initialized();
+        unsafe { self.value.assume_init_ref() }
+    }
+
+    fn drop_in_place(&mut self) {
+        self.assert_initialized();
+        unsafe { self.value.assume_init_drop() };
+        self.set_initialized(false);
+    }
+
+    #[cfg(test)]
+    fn assert_initialized(&self) {
+        assert!(self.initialized);
+    }
+    #[cfg(not(test))]
+    fn assert_initialized(&self) {}
+
+    #[cfg(test)]
+    fn set_initialized(&mut self, value: bool) {
+        self.initialized = value;
+    }
+    #[cfg(not(test))]
+    fn set_initialized(&mut self, _: bool) {}
+}
+
 pub struct WeakRef<T> {
-    phantom: PhantomData<T>,
+    control: NonNull<Control<T>>,
 }
 
 impl<T> WeakRef<T> {
     pub fn new() -> Self {
         todo!()
+    }
+
+    fn control(&self) -> &Control<T> {
+        unsafe { self.control.as_ref() }
     }
 
     pub fn as_ptr(&self) -> *const T {
@@ -191,15 +272,22 @@ impl<T> WeakRef<T> {
     }
 
     pub fn upgrade(&self) -> Option<RefCount<T>> {
-        todo!();
+        if self.strong_count() > 0 {
+            self.control().strong_count.inc();
+            Some(RefCount {
+                control: self.control,
+            })
+        } else {
+            None
+        }
     }
 
     pub fn strong_count(&self) -> usize {
-        todo!()
+        self.control().strong_count.get()
     }
 
     pub fn weak_count(&self) -> usize {
-        todo!()
+        self.control().weak_count.get()
     }
 
     pub fn ptr_eq(&self, other: &Self) -> bool {
@@ -209,7 +297,10 @@ impl<T> WeakRef<T> {
 
 impl<T> Clone for WeakRef<T> {
     fn clone(&self) -> Self {
-        todo!()
+        self.control().weak_count.inc();
+        WeakRef {
+            control: self.control,
+        }
     }
 }
 
@@ -221,7 +312,10 @@ impl<T> Default for WeakRef<T> {
 
 impl<T> Drop for WeakRef<T> {
     fn drop(&mut self) {
-        todo!()
+        let count = self.control().weak_count.dec();
+        if count == 0 && self.strong_count() == 0 {
+            drop_from_heap(self.control);
+        }
     }
 }
 
@@ -288,5 +382,73 @@ mod tests {
 
         drop(rc2);
         assert!(*dropped.borrow());
+    }
+
+    #[test]
+    fn test_weak() {
+        let dropped = RefCell::new(false);
+
+        let inner = Inner {
+            value: 7,
+            on_drop: || {
+                *dropped.borrow_mut() = true;
+            },
+        };
+
+        let rc1 = RefCount::new(inner);
+        assert_eq!(RefCount::strong_count(&rc1), 1);
+        assert_eq!(RefCount::weak_count(&rc1), 0);
+
+        let w1 = RefCount::downgrade(&rc1);
+        assert_eq!(RefCount::strong_count(&rc1), 1);
+        assert_eq!(w1.strong_count(), 1);
+        assert_eq!(RefCount::weak_count(&rc1), 1);
+        assert_eq!(w1.weak_count(), 1);
+
+        let rc2 = w1.upgrade().expect("Upgraded ref should be Some(_)");
+        assert_eq!(RefCount::strong_count(&rc1), 2);
+        assert_eq!(RefCount::strong_count(&rc2), 2);
+        assert_eq!(w1.strong_count(), 2);
+        assert_eq!(RefCount::weak_count(&rc1), 1);
+        assert_eq!(RefCount::weak_count(&rc2), 1);
+        assert_eq!(w1.weak_count(), 1);
+        assert_eq!(rc2.value, 7);
+
+        let w2 = w1.clone();
+        assert_eq!(RefCount::strong_count(&rc1), 2);
+        assert_eq!(RefCount::strong_count(&rc2), 2);
+        assert_eq!(w1.strong_count(), 2);
+        assert_eq!(w2.strong_count(), 2);
+        assert_eq!(RefCount::weak_count(&rc1), 2);
+        assert_eq!(RefCount::weak_count(&rc2), 2);
+        assert_eq!(w1.weak_count(), 2);
+        assert_eq!(w2.weak_count(), 2);
+        assert_eq!(rc2.value, 7);
+
+        drop(rc1);
+        assert_eq!(RefCount::strong_count(&rc2), 1);
+        assert_eq!(w1.strong_count(), 1);
+        assert_eq!(w2.strong_count(), 1);
+        assert_eq!(RefCount::weak_count(&rc2), 2);
+        assert_eq!(w1.weak_count(), 2);
+        assert_eq!(w2.weak_count(), 2);
+        assert!(!*dropped.borrow());
+        assert!(w1.upgrade().is_some());
+        assert!(w2.upgrade().is_some());
+
+        drop(rc2);
+        assert_eq!(w1.strong_count(), 0);
+        assert_eq!(w2.strong_count(), 0);
+        assert_eq!(w1.weak_count(), 2);
+        assert_eq!(w2.weak_count(), 2);
+        assert!(*dropped.borrow());
+        assert!(w1.upgrade().is_none());
+        assert!(w2.upgrade().is_none());
+
+        drop(w1);
+        assert_eq!(w2.strong_count(), 0);
+        assert_eq!(w2.weak_count(), 1);
+        assert!(*dropped.borrow());
+        assert!(w2.upgrade().is_none());
     }
 }
