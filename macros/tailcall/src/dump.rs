@@ -9,10 +9,11 @@ use syn::{
     Abi, AngleBracketedGenericArguments, Arm, AttrStyle, Attribute, Block, Expr, ExprAssign,
     ExprBlock, ExprCall, ExprLit, ExprLoop, ExprMatch, ExprMethodCall, ExprPath, ExprReturn, Field,
     Fields, FieldsUnnamed, FnArg, GenericArgument, GenericMethodArgument, GenericParam, Generics,
-    Ident, Item, ItemEnum, ItemFn, Label, Lifetime, Lit, LitInt, LitStr, Local, MethodTurbofish,
-    Pat, PatIdent, PatLit, PatTuple, PatTupleStruct, PatType, PatWild, Path, PathArguments,
-    PathSegment, QSelf, ReturnType, Signature, Stmt, Token, Type, TypeParam, TypeParamBound,
-    TypePath, TypeReference, Variadic, Variant, Visibility, WhereClause, WherePredicate,
+    Ident, Item, ItemEnum, ItemFn, ItemMod, Label, Lifetime, Lit, LitInt, LitStr, Local,
+    MethodTurbofish, Pat, PatIdent, PatLit, PatTuple, PatTupleStruct, PatType, PatWild, Path,
+    PathArguments, PathSegment, QSelf, ReturnType, Signature, Stmt, Token, Type, TypeParam,
+    TypeParamBound, TypePath, TypeReference, Variadic, Variant, VisPublic, Visibility, WhereClause,
+    WherePredicate,
 };
 
 const PRINT_USELESS_TOKENS: bool = false;
@@ -346,9 +347,11 @@ to_value_token_singleton![let];
 to_value_token_singleton![loop];
 to_value_token_singleton![<]; // Lt
 to_value_token_singleton![match];
+to_value_token_singleton![mod];
 to_value_token_singleton![mut];
 to_value_string_singleton!(Paren, "(...)");
 to_value_token_singleton![#]; // Pound
+to_value_token_singleton![pub];
 to_value_token_singleton![->]; // RArrow
 to_value_token_singleton![return];
 to_value_token_singleton![ref];
@@ -466,7 +469,7 @@ to_value_enum!(GenericArgument, 1: [Type], _);
 to_value_enum!(GenericMethodArgument, _);
 to_value_enum!(GenericParam, 1: [Type], _);
 to_value_to_string_in_set!(Ident);
-to_value_enum!(Item, 1: [Enum, Fn], _);
+to_value_enum!(Item, 1: [Enum, Fn, Mod], _);
 to_value_struct!(
     ItemEnum,
     [
@@ -480,6 +483,17 @@ to_value_struct!(
     ]
 );
 to_value_struct!(ItemFn, [[if_any]: attrs, vis, sig, block]);
+to_value_struct!(
+    ItemMod,
+    [
+        [if_any]: attrs,
+        vis,
+        [useless_token]: mod_token,
+        ident,
+        [if_some]: content,
+        [if_some]: semi
+    ]
+);
 to_value_struct!(Label, [name, [useless_token]: colon_token]);
 to_value_struct!(Lifetime, [/* apostrophe,  */ ident]);
 to_value_enum!(Lit, 1: [ Int, Str], _);
@@ -603,7 +617,8 @@ to_value_struct!(
     Variant,
     [[if_any]: attrs, ident, fields, [if_some]: discriminant]
 );
-to_value_enum!(Visibility, 0: [Inherited], _);
+to_value_enum!(Visibility, 0: [Inherited], 1: [Public], _);
+to_value_struct!(VisPublic, [[useless_token]: pub_token]);
 to_value_struct!(WhereClause, [[useless_token]: where_token, predicates]);
 to_value_enum!(WherePredicate, _);
 //-------------------------------------------------------------------------------------

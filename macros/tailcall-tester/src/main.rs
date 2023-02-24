@@ -37,39 +37,44 @@ fn general_recursive(n: u8, trace: Vec<&str>) -> Vec<&str> {
 
 #[dump]
 fn general_loop(n: u8, trace: Vec<&str>) -> Vec<&str> {
-    enum Control<A0, A1, R> {
-        Continue(A0, A1),
-        Return(R),
-    }
-
-    let mut control = __tailcall_impl(n, trace);
-    loop {
-        match control {
-            Control::Continue(a0, a1) => control = __tailcall_impl(a0, a1),
-            Control::Return(r) => return r,
+    mod __tailcall {
+        pub enum Control<A0, A1, R> {
+            Continue(A0, A1),
+            Return(R),
         }
     }
 
-    fn __tailcall_impl(n: u8, trace: Vec<&str>) -> Control<u8, Vec<&str>, Vec<&str>> {
+    let mut control = __tailcall_general_loop(n, trace);
+    loop {
+        match control {
+            __tailcall::Control::Continue(a0, a1) => control = __tailcall_general_loop(a0, a1),
+            __tailcall::Control::Return(r) => return r,
+        }
+    }
+
+    fn __tailcall_general_loop(
+        n: u8,
+        trace: Vec<&str>,
+    ) -> __tailcall::Control<u8, Vec<&str>, Vec<&str>> {
         let __tailcall_result = {
             let mut trace = trace;
             match n {
                 0 => {
                     trace.push("0");
-                    return Control::Continue(1, trace);
+                    return __tailcall::Control::Continue(1, trace);
                 }
                 1 => {
                     trace.push("1");
-                    return Control::Continue(2, trace);
+                    return __tailcall::Control::Continue(2, trace);
                 }
                 2 => {
-                    return Control::Continue(3, {
+                    return __tailcall::Control::Continue(3, {
                         trace.push("2");
                         trace
                     })
                 }
                 3 => {
-                    return Control::Continue(4, {
+                    return __tailcall::Control::Continue(4, {
                         trace.push("3");
                         trace
                     })
@@ -80,11 +85,11 @@ fn general_loop(n: u8, trace: Vec<&str>) -> Vec<&str> {
                 }
                 _ => {
                     trace.push("_");
-                    return Control::Return(trace);
+                    return __tailcall::Control::Return(trace);
                 }
             }
         };
-        Control::Return(__tailcall_result)
+        __tailcall::Control::Return(__tailcall_result)
     }
 }
 
