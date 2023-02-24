@@ -3,7 +3,8 @@ use std::ops::Deref;
 use proc_macro::TokenStream;
 use quote::{format_ident, quote, ToTokens};
 use syn::{
-    parse2, parse_macro_input, parse_str, FieldsUnnamed, FnArg, Generics, ItemFn, Pat, Signature,
+    parse2, parse_macro_input, parse_str, ExprCall, FieldsUnnamed, FnArg, Generics, ItemFn, Pat,
+    Signature,
 };
 
 use crate::dump::dump_item_fn;
@@ -51,6 +52,10 @@ fn transform(item_fn: ItemFn) -> ItemFn {
         parse_str2!("({})", continue_fields_types_names.join(", "));
     let return_field_type = format_ident!("{CONTROL_RETURN_TYPE_NAME}");
 
+    let inner_function_ident = format_ident!("__tailcall_{}", item_fn.sig.ident);
+    let inner_function_call: ExprCall =
+        parse_str2!("{}({})", inner_function_ident, args_names.join(", "));
+
     let outer_function_tokens = quote! {
         #outer_function_sig {
             mod __tailcall {
@@ -60,21 +65,17 @@ fn transform(item_fn: ItemFn) -> ItemFn {
                 }
             }
 
-            // TODO: derive function name from parameter
-            // TODO: use arguments names
-            let mut control = __tailcall_general_recursive(n, trace);
+            let mut control = #inner_function_call;
             loop {
                 match control {
-                    // TODO: derive function name from parameter
                     // TODO: use arguments names
-                    __tailcall::Control::Continue(n, trace) => control = __tailcall_general_recursive(n, trace),
+                    __tailcall::Control::Continue(n, trace) => control = #inner_function_call,
                     __tailcall::Control::Return(r) => return r,
                 }
             }
 
-            // TODO: derive function name from parameter
             // TODO: change return type
-            fn __tailcall_general_recursive(n: u8, trace: Vec<&str>) -> __tailcall::Control<u8, Vec<&str>, Vec<&str>> {
+            fn #inner_function_ident(n: u8, trace: Vec<&str>) -> __tailcall::Control<u8, Vec<&str>, Vec<&str>> {
                 // TODO: enclose body
                 let __tailcall_result = {
                     // TODO: replace returns in body
