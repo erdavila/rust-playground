@@ -59,6 +59,8 @@ fn transform(item_fn: ItemFn) -> ItemFn {
     let control_continue_pattern: Pat =
         parse_str2!("__tailcall::Control::Continue({})", args_names.join(", "));
 
+    let inner_function_inputs = item_fn.sig.inputs;
+
     let outer_function_tokens = quote! {
         #outer_function_sig {
             mod __tailcall {
@@ -77,7 +79,7 @@ fn transform(item_fn: ItemFn) -> ItemFn {
             }
 
             // TODO: change return type
-            fn #inner_function_ident(n: u8, trace: Vec<&str>) -> __tailcall::Control<u8, Vec<&str>, Vec<&str>> {
+            fn #inner_function_ident( #inner_function_inputs ) -> __tailcall::Control<u8, Vec<&str>, Vec<&str>> {
                 // TODO: enclose body
                 let __tailcall_result = {
                     // TODO: replace returns in body
