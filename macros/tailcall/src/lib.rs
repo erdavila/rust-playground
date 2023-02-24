@@ -28,10 +28,11 @@ pub fn dump(_attr: TokenStream, input: TokenStream) -> TokenStream {
     input
 }
 
-fn transform(_item_fn: ItemFn) -> ItemFn {
+fn transform(item_fn: ItemFn) -> ItemFn {
+    let outer_function_sig = item_fn.sig;
+
     let outer_function_tokens = quote! {
-        // TODO: take signature from parameter
-        fn general_recursive(n: u8, trace: Vec<&str>) -> Vec<&str> {
+        #outer_function_sig {
             mod __tailcall {
                 // TODO: use arguments names
                 pub enum Control<N, Trace, __tailcall_Return> {
