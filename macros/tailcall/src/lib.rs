@@ -1,6 +1,10 @@
+use std::ops::Deref;
+
 use proc_macro::TokenStream;
-use quote::{quote, ToTokens};
-use syn::{parse2, parse_macro_input, ItemFn};
+use quote::{format_ident, quote, ToTokens};
+use syn::{
+    parse2, parse_macro_input, parse_str, FieldsUnnamed, FnArg, Generics, ItemFn, Pat, Signature,
+};
 
 use crate::dump::dump_item_fn;
 
@@ -28,17 +32,31 @@ pub fn dump(_attr: TokenStream, input: TokenStream) -> TokenStream {
     input
 }
 
+const CONTROL_RETURN_TYPE_NAME: &str = "__tailcall_Return";
+
+macro_rules! parse_str2 {
+    ($($arg:tt)*) => {
+        parse_str(&format!($($arg)*)).unwrap()
+    };
+}
+
 fn transform(item_fn: ItemFn) -> ItemFn {
-    let outer_function_sig = item_fn.sig;
+    let outer_function_sig = item_fn.sig.clone();
+
+    let args_names = get_args_names(&item_fn.sig);
+
+    let continue_fields_types_names = get_continue_fields_types_names(&args_names);
+    let control_generics = get_control_generics(&continue_fields_types_names);
+    let continue_fields: FieldsUnnamed =
+        parse_str2!("({})", continue_fields_types_names.join(", "));
+    let return_field_type = format_ident!("{CONTROL_RETURN_TYPE_NAME}");
 
     let outer_function_tokens = quote! {
         #outer_function_sig {
             mod __tailcall {
-                // TODO: use arguments names
-                pub enum Control<N, Trace, __tailcall_Return> {
-                    // TODO: use arguments names
-                    Continue(N, Trace),
-                    Return(__tailcall_Return),
+                pub enum Control #control_generics {
+                    Continue #continue_fields,
+                    Return(#return_field_type),
                 }
             }
 
@@ -99,4 +117,49 @@ fn transform(item_fn: ItemFn) -> ItemFn {
     };
 
     parse2::<ItemFn>(outer_function_tokens).unwrap()
+}
+
+fn get_args_names(signature: &Signature) -> Vec<String> {
+    signature
+        .inputs
+        .iter()
+        .map(|fn_arg| match fn_arg {
+            FnArg::Typed(pat_type) => match pat_type.pat.deref() {
+                Pat::Ident(pat_ident) => pat_ident.ident.to_string(),
+                _ => todo!(),
+            },
+            _ => todo!(),
+        })
+        .collect()
+}
+
+fn get_continue_fields_types_names(args_names: &[String]) -> Vec<String> {
+    args_names
+        .iter()
+        .map(|name| snake_case_to_upper_camel_case(name))
+        .collect()
+}
+
+fn snake_case_to_upper_camel_case(str: &str) -> String {
+    str.split('_').map(capitalize).collect()
+}
+
+fn capitalize(str: &str) -> String {
+    let mut chars = str.chars();
+
+    let first_char = chars.next();
+
+    let mut out = String::with_capacity(str.len());
+    if let Some(first_char) = first_char {
+        out.extend(first_char.to_uppercase());
+    }
+    out.extend(chars);
+
+    out
+}
+
+fn get_control_generics(continue_fields_types_names: &[String]) -> Generics {
+    let mut types_names = continue_fields_types_names.to_owned();
+    types_names.push(CONTROL_RETURN_TYPE_NAME.to_string());
+    parse_str(&format!("<{}>", types_names.join(", "))).unwrap()
 }
