@@ -56,6 +56,9 @@ fn transform(item_fn: ItemFn) -> ItemFn {
     let inner_function_call: ExprCall =
         parse_str2!("{}({})", inner_function_ident, args_names.join(", "));
 
+    let control_continue_pattern: Pat =
+        parse_str2!("__tailcall::Control::Continue({})", args_names.join(", "));
+
     let outer_function_tokens = quote! {
         #outer_function_sig {
             mod __tailcall {
@@ -68,8 +71,7 @@ fn transform(item_fn: ItemFn) -> ItemFn {
             let mut control = #inner_function_call;
             loop {
                 match control {
-                    // TODO: use arguments names
-                    __tailcall::Control::Continue(n, trace) => control = #inner_function_call,
+                    #control_continue_pattern => control = #inner_function_call,
                     __tailcall::Control::Return(r) => return r,
                 }
             }
@@ -162,5 +164,5 @@ fn capitalize(str: &str) -> String {
 fn get_control_generics(continue_fields_types_names: &[String]) -> Generics {
     let mut types_names = continue_fields_types_names.to_owned();
     types_names.push(CONTROL_RETURN_TYPE_NAME.to_string());
-    parse_str(&format!("<{}>", types_names.join(", "))).unwrap()
+    parse_str2!("<{}>", types_names.join(", "))
 }
