@@ -3,8 +3,8 @@ use std::ops::Deref;
 use proc_macro::TokenStream;
 use quote::{format_ident, quote, ToTokens};
 use syn::{
-    parse2, parse_macro_input, parse_str, ExprCall, FieldsUnnamed, FnArg, Generics, ItemFn, Pat,
-    Signature,
+    parse2, parse_macro_input, parse_str, AngleBracketedGenericArguments, ExprCall, FieldsUnnamed,
+    FnArg, GenericArgument, Generics, ItemFn, Pat, ReturnType, Signature, Type,
 };
 
 use crate::dump::dump_item_fn;
@@ -59,7 +59,9 @@ fn transform(item_fn: ItemFn) -> ItemFn {
     let control_continue_pattern: Pat =
         parse_str2!("__tailcall::Control::Continue({})", args_names.join(", "));
 
-    let inner_function_inputs = item_fn.sig.inputs;
+    let inner_function_inputs = item_fn.sig.inputs.clone();
+
+    let outer_function_return_type_generics = get_outer_function_return_type_generics(&item_fn.sig);
 
     let outer_function_tokens = quote! {
         #outer_function_sig {
@@ -78,8 +80,7 @@ fn transform(item_fn: ItemFn) -> ItemFn {
                 }
             }
 
-            // TODO: change return type
-            fn #inner_function_ident( #inner_function_inputs ) -> __tailcall::Control<u8, Vec<&str>, Vec<&str>> {
+            fn #inner_function_ident( #inner_function_inputs ) -> __tailcall::Control #outer_function_return_type_generics {
                 // TODO: enclose body
                 let __tailcall_result = {
                     // TODO: replace returns in body
@@ -167,4 +168,33 @@ fn get_control_generics(continue_fields_types_names: &[String]) -> Generics {
     let mut types_names = continue_fields_types_names.to_owned();
     types_names.push(CONTROL_RETURN_TYPE_NAME.to_string());
     parse_str2!("<{}>", types_names.join(", "))
+}
+
+fn get_outer_function_return_type_generics(sig: &Signature) -> AngleBracketedGenericArguments {
+    let mut outer_function_return_type_generics = AngleBracketedGenericArguments {
+        colon2_token: None,
+        lt_token: Default::default(),
+        args: Default::default(),
+        gt_token: Default::default(),
+    };
+
+    let mut add_type = |ty: Type| {
+        outer_function_return_type_generics
+            .args
+            .push(GenericArgument::Type(ty))
+    };
+
+    for fn_arg in &sig.inputs {
+        match fn_arg {
+            FnArg::Typed(pat_type) => add_type(pat_type.ty.as_ref().clone()),
+            FnArg::Receiver(_) => todo!(),
+        };
+    }
+
+    match &sig.output {
+        ReturnType::Type(_, r#type) => add_type(r#type.as_ref().clone()),
+        ReturnType::Default => todo!(),
+    }
+
+    outer_function_return_type_generics
 }
