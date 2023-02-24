@@ -3,8 +3,9 @@ use std::ops::Deref;
 use proc_macro::TokenStream;
 use quote::{format_ident, quote, ToTokens};
 use syn::{
-    parse2, parse_macro_input, parse_str, AngleBracketedGenericArguments, ExprCall, FieldsUnnamed,
-    FnArg, GenericArgument, Generics, ItemFn, Pat, ReturnType, Signature, Type,
+    parse2, parse_macro_input, parse_str, AngleBracketedGenericArguments, Block, ExprCall,
+    FieldsUnnamed, FnArg, GenericArgument, Generics, ItemFn, Pat, ReturnType, Signature, Stmt,
+    Type,
 };
 
 use crate::dump::dump_item_fn;
@@ -41,6 +42,12 @@ macro_rules! parse_str2 {
     };
 }
 
+macro_rules! quote2 {
+    ($($e:tt)*) => {
+        parse2(quote!($($e)*)).unwrap()
+    };
+}
+
 fn transform(item_fn: ItemFn) -> ItemFn {
     let outer_function_sig = item_fn.sig.clone();
 
@@ -63,7 +70,10 @@ fn transform(item_fn: ItemFn) -> ItemFn {
 
     let outer_function_return_type_generics = get_outer_function_return_type_generics(&item_fn.sig);
 
-    let outer_function_tokens = quote! {
+    let function_body = get_function_body(*item_fn.block);
+    let inner_function_body = handle_implicit_return(function_body);
+
+    quote2! {
         #outer_function_sig {
             mod __tailcall {
                 pub enum Control #control_generics {
@@ -80,49 +90,10 @@ fn transform(item_fn: ItemFn) -> ItemFn {
                 }
             }
 
-            fn #inner_function_ident( #inner_function_inputs ) -> __tailcall::Control #outer_function_return_type_generics {
-                // TODO: enclose body
-                let __tailcall_result = {
-                    // TODO: replace returns in body
-                    // TODO: replace recursions in body
-                    let mut trace = trace;
-                    match n {
-                        0 => {
-                            trace.push("0");
-                            return __tailcall::Control::Continue(1, trace);
-                        }
-                        1 => {
-                            trace.push("1");
-                            return __tailcall::Control::Continue(2, trace);
-                        }
-                        2 => {
-                            return __tailcall::Control::Continue(3, {
-                                trace.push("2");
-                                trace
-                            })
-                        }
-                        3 => {
-                            return __tailcall::Control::Continue(4, {
-                                trace.push("3");
-                                trace
-                            })
-                        }
-                        4 => {
-                            trace.push("4");
-                            trace
-                        }
-                        _ => {
-                            trace.push("_");
-                            return __tailcall::Control::Return(trace);
-                        }
-                    }
-                };
-                __tailcall::Control::Return(__tailcall_result)
-            }
+            fn #inner_function_ident( #inner_function_inputs ) -> __tailcall::Control #outer_function_return_type_generics
+                #inner_function_body
         }
-    };
-
-    parse2::<ItemFn>(outer_function_tokens).unwrap()
+    }
 }
 
 fn get_args_names(signature: &Signature) -> Vec<String> {
@@ -197,4 +168,57 @@ fn get_outer_function_return_type_generics(sig: &Signature) -> AngleBracketedGen
     }
 
     outer_function_return_type_generics
+}
+
+fn get_function_body(_block: Block) -> Block {
+    quote2! {
+        {
+            // TODO: replace returns in body
+            // TODO: replace recursions in body
+            let mut trace = trace;
+            match n {
+                0 => {
+                    trace.push("0");
+                    return __tailcall::Control::Continue(1, trace);
+                }
+                1 => {
+                    trace.push("1");
+                    return __tailcall::Control::Continue(2, trace);
+                }
+                2 => {
+                    return __tailcall::Control::Continue(3, {
+                        trace.push("2");
+                        trace
+                    })
+                }
+                3 => {
+                    return __tailcall::Control::Continue(4, {
+                        trace.push("3");
+                        trace
+                    })
+                }
+                4 => {
+                    trace.push("4");
+                    trace
+                }
+                _ => {
+                    trace.push("_");
+                    return __tailcall::Control::Return(trace);
+                }
+            }
+        }
+    }
+}
+
+fn handle_implicit_return(block: Block) -> Block {
+    if let Some(Stmt::Expr(_)) = block.stmts.last() {
+        quote2! {
+            {
+                let __tailcall_result = #block;
+                __tailcall::Control::Return(__tailcall_result)
+            }
+        }
+    } else {
+        block
+    }
 }
