@@ -1,6 +1,24 @@
 use tailcall::{dump, tailcall};
 
-fn main() {}
+fn main() {
+    let addrs = addrs(vec![]);
+    for addr in addrs {
+        println!("{:p}", addr);
+    }
+}
+
+#[tailcall]
+fn addrs(mut ptrs: Vec<*const ()>) -> Vec<*const ()> {
+    let ptr = &ptrs as *const Vec<*const ()>;
+    let ptr = ptr as *const ();
+
+    ptrs.push(ptr);
+    if ptrs.len() < 3 {
+        addrs(ptrs)
+    } else {
+        ptrs
+    }
+}
 
 #[tailcall]
 fn general_recursive(n: u8, trace: Vec<&str>) -> Vec<&str> {

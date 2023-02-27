@@ -10,7 +10,8 @@ use syn::{
     Signature, Stmt, Token, Type,
 };
 
-use crate::dump::dump_item_fn;
+use crate::dump::tokens;
+use crate::dump::tree;
 
 mod dump;
 
@@ -18,9 +19,14 @@ mod dump;
 pub fn tailcall(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let item_fn = parse_macro_input!(input as ItemFn);
 
-    dump_item_fn(&item_fn, &(item_fn.sig.ident.to_string() + "-BEFORE"));
+    tree::dump_item_fn(&item_fn, &(item_fn.sig.ident.to_string() + "-TREE-BEFORE"));
+    tokens::dump_item_fn(
+        &item_fn,
+        &(item_fn.sig.ident.to_string() + "-TOKENS-BEFORE"),
+    );
     let item_fn = transform(item_fn);
-    dump_item_fn(&item_fn, &(item_fn.sig.ident.to_string() + "-AFTER"));
+    tree::dump_item_fn(&item_fn, &(item_fn.sig.ident.to_string() + "-TREE-AFTER"));
+    tokens::dump_item_fn(&item_fn, &(item_fn.sig.ident.to_string() + "-TOKENS-AFTER"));
 
     TokenStream::from(item_fn.to_token_stream())
 }
@@ -30,7 +36,8 @@ pub fn dump(_attr: TokenStream, input: TokenStream) -> TokenStream {
     {
         let input = input.clone();
         let item_fn = parse_macro_input!(input as ItemFn);
-        dump_item_fn(&item_fn, &item_fn.sig.ident.to_string());
+        tree::dump_item_fn(&item_fn, &(item_fn.sig.ident.to_string() + "-TREE"));
+        tokens::dump_item_fn(&item_fn, &(item_fn.sig.ident.to_string() + "-TOKENS"));
     }
 
     input
@@ -51,7 +58,7 @@ macro_rules! quote2 {
 }
 
 fn transform(item_fn: ItemFn) -> ItemFn {
-    let outer_function_sig = item_fn.sig.clone();
+    let outer_function_sig = get_outer_function_signature(&item_fn.sig);
 
     let args_names = get_args_names(&item_fn.sig);
 
@@ -97,6 +104,20 @@ fn transform(item_fn: ItemFn) -> ItemFn {
                 #inner_function_body
         }
     }
+}
+
+fn get_outer_function_signature(signature: &Signature) -> Signature {
+    let mut sig = signature.clone();
+
+    for fn_arg in sig.inputs.iter_mut() {
+        if let FnArg::Typed(typed) = fn_arg {
+            if let Pat::Ident(pat_ident) = typed.pat.deref_mut() {
+                pat_ident.mutability = None;
+            }
+        }
+    }
+
+    sig
 }
 
 fn get_args_names(signature: &Signature) -> Vec<String> {
