@@ -18,8 +18,8 @@ use syn::{
 
 const PRINT_USELESS_TOKENS: bool = false;
 
-pub fn dump_item_fn(item_fn: &ItemFn) {
-    let mut w = File::create(item_fn.sig.ident.to_string()).unwrap();
+pub fn dump_item_fn(item_fn: &ItemFn, name: &str) {
+    let mut w = File::create(name).unwrap();
 
     item_fn.to_value().dump(&mut w, Indentation(0)).unwrap();
     writeln!(w).unwrap();

@@ -1,11 +1,13 @@
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 
 use proc_macro::TokenStream;
 use quote::{format_ident, quote, ToTokens};
+use syn::punctuated::Punctuated;
+use syn::visit_mut::{visit_expr_mut, VisitMut};
 use syn::{
-    parse2, parse_macro_input, parse_str, AngleBracketedGenericArguments, Block, ExprCall,
-    FieldsUnnamed, FnArg, GenericArgument, Generics, ItemFn, Pat, ReturnType, Signature, Stmt,
-    Type,
+    parse2, parse_macro_input, parse_str, AngleBracketedGenericArguments, Block, Expr, ExprCall,
+    ExprPath, FieldsUnnamed, FnArg, GenericArgument, Generics, ItemFn, Pat, Path, ReturnType,
+    Signature, Stmt, Token, Type,
 };
 
 use crate::dump::dump_item_fn;
@@ -16,9 +18,9 @@ mod dump;
 pub fn tailcall(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let item_fn = parse_macro_input!(input as ItemFn);
 
+    dump_item_fn(&item_fn, &(item_fn.sig.ident.to_string() + "-BEFORE"));
     let item_fn = transform(item_fn);
-
-    dump_item_fn(&item_fn);
+    dump_item_fn(&item_fn, &(item_fn.sig.ident.to_string() + "-AFTER"));
 
     TokenStream::from(item_fn.to_token_stream())
 }
@@ -28,7 +30,7 @@ pub fn dump(_attr: TokenStream, input: TokenStream) -> TokenStream {
     {
         let input = input.clone();
         let item_fn = parse_macro_input!(input as ItemFn);
-        dump_item_fn(&item_fn);
+        dump_item_fn(&item_fn, &item_fn.sig.ident.to_string());
     }
 
     input
@@ -70,8 +72,9 @@ fn transform(item_fn: ItemFn) -> ItemFn {
 
     let outer_function_return_type_generics = get_outer_function_return_type_generics(&item_fn.sig);
 
-    let function_body = get_function_body(*item_fn.block);
-    let inner_function_body = handle_implicit_return(function_body);
+    let mut inner_function_body = *item_fn.block;
+    handle_control_points(&mut inner_function_body, &item_fn.sig.ident.to_string());
+    handle_implicit_return(&mut inner_function_body);
 
     quote2! {
         #outer_function_sig {
@@ -170,55 +173,99 @@ fn get_outer_function_return_type_generics(sig: &Signature) -> AngleBracketedGen
     outer_function_return_type_generics
 }
 
-fn get_function_body(_block: Block) -> Block {
-    quote2! {
-        {
-            // TODO: replace returns in body
-            // TODO: replace recursions in body
-            let mut trace = trace;
-            match n {
-                0 => {
-                    trace.push("0");
-                    return __tailcall::Control::Continue(1, trace);
-                }
-                1 => {
-                    trace.push("1");
-                    return __tailcall::Control::Continue(2, trace);
-                }
-                2 => {
-                    return __tailcall::Control::Continue(3, {
-                        trace.push("2");
-                        trace
-                    })
-                }
-                3 => {
-                    return __tailcall::Control::Continue(4, {
-                        trace.push("3");
-                        trace
-                    })
-                }
-                4 => {
-                    trace.push("4");
-                    trace
-                }
-                _ => {
-                    trace.push("_");
-                    return __tailcall::Control::Return(trace);
-                }
+struct RecursiveCall<'a> {
+    path: &'a mut Path,
+    args: &'a mut Punctuated<Expr, Token![,]>,
+}
+impl<'a> RecursiveCall<'a> {
+    fn from(expr_call: &'a mut ExprCall, function_name: &str) -> Option<Self> {
+        if let Expr::Path(ExprPath { path, .. }) = expr_call.func.deref_mut() {
+            if path.leading_colon.is_none()
+                && path.segments.len() == 1
+                && path.segments.first().unwrap().ident == function_name
+            {
+                return Some(RecursiveCall {
+                    path,
+                    args: &mut expr_call.args,
+                });
             }
         }
+
+        None
     }
 }
 
-fn handle_implicit_return(block: Block) -> Block {
+fn handle_control_points(block: &mut Block, function_name: &str) {
+    struct Visitor<'a> {
+        function_name: &'a str,
+    }
+    impl<'a> Visitor<'a> {
+        fn turn_into_control_continue(&mut self, recursive_call: &mut RecursiveCall) {
+            *recursive_call.path = parse_str2!("__tailcall::Control::Continue");
+            for arg in &mut recursive_call.args.iter_mut() {
+                self.visit_expr_mut(arg);
+            }
+        }
+
+        fn turn_into_control_return(&mut self, expr: &mut Option<Box<Expr>>) {
+            let mut expr_call: ExprCall = parse_str2!("__tailcall::Control::Return()");
+
+            if let Some(result) = expr {
+                let mut arg = result.deref_mut().clone();
+                self.visit_expr_mut(&mut arg);
+                expr_call.args.push(arg);
+            }
+
+            *expr = Some(Box::new(Expr::Call(expr_call)));
+        }
+    }
+    impl<'a> VisitMut for Visitor<'a> {
+        fn visit_expr_mut(&mut self, expr: &mut Expr) {
+            match expr {
+                Expr::Return(expr_return) => {
+                    let recursive_call =
+                        expr_return.expr.as_deref_mut().and_then(|expr| match expr {
+                            Expr::Call(expr_call) => {
+                                RecursiveCall::from(expr_call, self.function_name)
+                            }
+                            _ => None,
+                        });
+
+                    if let Some(mut recursive_call) = recursive_call {
+                        self.turn_into_control_continue(&mut recursive_call);
+                    } else {
+                        self.turn_into_control_return(&mut expr_return.expr);
+                    }
+                }
+                Expr::Call(expr_call) => {
+                    if let Some(mut recursive_call) =
+                        RecursiveCall::from(expr_call, self.function_name)
+                    {
+                        self.turn_into_control_continue(&mut recursive_call);
+
+                        *expr = quote2! {
+                            { return #expr_call; }
+                        };
+                    } else {
+                        visit_expr_mut(self, expr);
+                    }
+                }
+                _ => visit_expr_mut(self, expr),
+            }
+        }
+    }
+
+    let mut visitor = Visitor { function_name };
+    visitor.visit_block_mut(block);
+}
+
+fn handle_implicit_return(block: &mut Block) {
     if let Some(Stmt::Expr(_)) = block.stmts.last() {
-        quote2! {
+        *block = quote2! {
             {
                 let __tailcall_result = #block;
                 __tailcall::Control::Return(__tailcall_result)
             }
-        }
-    } else {
-        block
+        };
     }
 }

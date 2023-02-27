@@ -61,7 +61,9 @@ fn general_loop(n: u8, trace: Vec<&str>) -> Vec<&str> {
             match n {
                 0 => {
                     trace.push("0");
-                    return __tailcall::Control::Continue(1, trace);
+                    {
+                        return __tailcall::Control::Continue(1, trace);
+                    }
                 }
                 1 => {
                     trace.push("1");
@@ -71,7 +73,7 @@ fn general_loop(n: u8, trace: Vec<&str>) -> Vec<&str> {
                     return __tailcall::Control::Continue(3, {
                         trace.push("2");
                         trace
-                    })
+                    });
                 }
                 3 => {
                     return __tailcall::Control::Continue(4, {
