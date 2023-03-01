@@ -6,14 +6,14 @@ use syn::punctuated::Punctuated;
 use syn::token::{Brace, Bracket, Paren};
 use syn::{
     Abi, AngleBracketedGenericArguments, Arm, AttrStyle, Attribute, BinOp, Block, Expr, ExprAssign,
-    ExprBinary, ExprBlock, ExprCall, ExprCast, ExprIf, ExprLit, ExprLoop, ExprMatch,
-    ExprMethodCall, ExprPath, ExprReference, ExprReturn, Field, Fields, FieldsUnnamed, FnArg,
-    GenericArgument, GenericMethodArgument, GenericParam, Generics, Ident, Item, ItemEnum, ItemFn,
-    ItemMod, Label, Lifetime, Lit, LitInt, LitStr, Local, MethodTurbofish, Pat, PatIdent, PatLit,
-    PatTuple, PatTupleStruct, PatType, PatWild, Path, PathArguments, PathSegment, QSelf,
-    ReturnType, Signature, Stmt, Token, Type, TypeParam, TypeParamBound, TypePath, TypePtr,
-    TypeReference, TypeTuple, Variadic, Variant, VisPublic, Visibility, WhereClause,
-    WherePredicate,
+    ExprAssignOp, ExprBinary, ExprBlock, ExprCall, ExprCast, ExprIf, ExprLet, ExprLit, ExprLoop,
+    ExprMatch, ExprMethodCall, ExprPath, ExprReference, ExprReturn, ExprUnsafe, Field, Fields,
+    FieldsUnnamed, FnArg, GenericArgument, GenericMethodArgument, GenericParam, Generics, Ident,
+    Item, ItemEnum, ItemFn, ItemMod, ItemStatic, Label, Lifetime, Lit, LitInt, LitStr, Local,
+    MethodTurbofish, Pat, PatIdent, PatLit, PatTuple, PatTupleStruct, PatType, PatWild, Path,
+    PathArguments, PathSegment, QSelf, ReturnType, Signature, Stmt, Token, Type, TypeParam,
+    TypeParamBound, TypePath, TypePtr, TypeReference, TypeTuple, Variadic, Variant, VisPublic,
+    Visibility, WhereClause, WherePredicate,
 };
 
 use super::indentation::Indentation;
@@ -350,6 +350,7 @@ to_value_token_singleton![return];
 to_value_token_singleton![ref];
 to_value_token_singleton![;]; // Semi
 to_value_token_singleton![*]; // Star
+to_value_token_singleton![static];
 to_value_token_singleton![_]; // Underscore
 to_value_token_singleton![unsafe];
 to_value_token_singleton![where];
@@ -389,6 +390,7 @@ to_value_enum!(AttrStyle, _);
 impl ToValue for BinOp {
     fn to_value(&self) -> Value {
         match self {
+            BinOp::AddEq(_) => Value::singleton("AddEq"),
             BinOp::Lt(_) => Value::singleton("Lt"),
             _ => todo!("at line {}: {:?}", line!(), self),
         }
@@ -398,13 +400,14 @@ impl ToValue for BinOp {
 to_value_struct!(Block, [[useless_token]: brace_token, stmts]);
 to_value_enum!(
     Expr,
-    1: [Assign, Binary, Block, Call, Cast, If, Lit, Loop, Match, MethodCall, Path, Reference, Return],
+    1: [Assign, AssignOp, Binary, Block, Call, Cast, If, Let, Lit, Loop, Match, MethodCall, Path, Reference, Return, Unsafe],
     _
 );
 to_value_struct!(
     ExprAssign,
     [[if_any]: attrs, left, [useless_token]: eq_token, right]
 );
+to_value_struct!(ExprAssignOp, [[if_any]: attrs, left, op, right]);
 to_value_struct!(ExprBinary, [[if_any]: attrs, left, op, right]);
 to_value_struct!(ExprBlock, [[if_any]: attrs, [if_some]: label, block]);
 to_value_struct!(
@@ -423,6 +426,16 @@ to_value_struct!(
         cond,
         then_branch,
         [if_some]: else_branch
+    ]
+);
+to_value_struct!(
+    ExprLet,
+    [
+        [if_any]: attrs,
+        [useless_token]: let_token,
+        pat,
+        [useless_token]: eq_token,
+        expr
     ]
 );
 to_value_struct!(ExprLit, [[if_any]: attrs, lit]);
@@ -472,6 +485,10 @@ to_value_struct!(
     [[if_any]: attrs, [useless_token]: return_token, expr]
 );
 to_value_struct!(
+    ExprUnsafe,
+    [[if_any]: attrs, [useless_token]: unsafe_token, block]
+);
+to_value_struct!(
     Field,
     [
         [if_any]: attrs,
@@ -497,7 +514,7 @@ to_value_enum!(GenericArgument, 1: [Type], _);
 to_value_enum!(GenericMethodArgument, _);
 to_value_enum!(GenericParam, 1: [Type], _);
 to_value_to_string_in_set!(Ident);
-to_value_enum!(Item, 1: [Enum, Fn, Mod], _);
+to_value_enum!(Item, 1: [Enum, Fn, Mod, Static], _);
 to_value_struct!(
     ItemEnum,
     [
@@ -520,6 +537,21 @@ to_value_struct!(
         ident,
         [if_some]: content,
         [if_some]: semi
+    ]
+);
+to_value_struct!(
+    ItemStatic,
+    [
+        [if_any]: attrs,
+        vis,
+        [useless_token]: static_token,
+        [if_some]: mutability,
+        ident,
+        [useless_token]: colon_token,
+        ty,
+        [useless_token]: eq_token,
+        expr,
+        [useless_token]: semi_token
     ]
 );
 to_value_struct!(Label, [name, [useless_token]: colon_token]);

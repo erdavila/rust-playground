@@ -1,25 +1,3 @@
-use tailcall::tailcall;
-
-fn main() {
-    let addrs = addrs(vec![]);
-    for addr in addrs {
-        println!("{:p}", addr);
-    }
-}
-
-#[tailcall]
-fn addrs(mut ptrs: Vec<*const ()>) -> Vec<*const ()> {
-    let ptr = &ptrs as *const Vec<*const ()>;
-    let ptr = ptr as *const ();
-
-    ptrs.push(ptr);
-    if ptrs.len() < 3 {
-        addrs(ptrs)
-    } else {
-        ptrs
-    }
-}
-
 mod general {
     #[tailcall::tailcall]
     fn general(n: u8, trace: Vec<&str>) -> Vec<&str> {
@@ -62,5 +40,33 @@ mod general {
         assert_eq!(general(3, vec![]), vec!["3", "4"]);
         assert_eq!(general(4, vec![]), vec!["4"]);
         assert_eq!(general(50, vec![]), vec!["_"]);
+    }
+}
+
+mod stack_addresses {
+    #[tailcall::tailcall]
+    fn stack_addresses(option: Option<Vec<*const ()>>) -> Vec<*const ()> {
+        if let Some(mut ptrs) = option {
+            let ptr = &ptrs as *const Vec<*const ()>;
+            let ptr = ptr as *const ();
+
+            ptrs.push(ptr);
+            if ptrs.len() < 3 {
+                stack_addresses(Some(ptrs))
+            } else {
+                ptrs
+            }
+        } else {
+            stack_addresses(Some(Vec::new()))
+        }
+    }
+
+    #[test]
+    fn test() {
+        let addresses = stack_addresses(None);
+        let first_addr = addresses[0];
+        for addr in &addresses[1..] {
+            assert_eq!(*addr, first_addr);
+        }
     }
 }
