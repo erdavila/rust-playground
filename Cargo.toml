@@ -5,6 +5,5 @@ members = [
     "closures",
     "insertion_order_hash_map",
     "ref_count",
-    "macros/tailcall",
-    "macros/tailcall-tester",
+    "tailcall",
 ]
