@@ -12,9 +12,9 @@ use syn::{
     ExprAssignOp, ExprBinary, ExprBlock, ExprCall, ExprCast, ExprIf, ExprLet, ExprLit, ExprLoop,
     ExprMatch, ExprMethodCall, ExprPath, ExprReference, ExprReturn, ExprUnsafe, Field, Fields,
     FieldsUnnamed, FnArg, GenericArgument, GenericMethodArgument, GenericParam, Generics, Ident,
-    Item, ItemEnum, ItemFn, ItemMod, ItemStatic, Label, Lifetime, Lit, LitInt, LitStr, Local,
-    MethodTurbofish, Pat, PatIdent, PatLit, PatTuple, PatTupleStruct, PatType, PatWild, Path,
-    PathArguments, PathSegment, QSelf, ReturnType, Signature, Stmt, Token, Type, TypeParam,
+    Item, ItemEnum, ItemFn, ItemMod, ItemStatic, Label, Lifetime, Lit, LitBool, LitInt, LitStr,
+    Local, MethodTurbofish, Pat, PatIdent, PatLit, PatTuple, PatTupleStruct, PatType, PatWild,
+    Path, PathArguments, PathSegment, QSelf, ReturnType, Signature, Stmt, Token, Type, TypeParam,
     TypeParamBound, TypePath, TypePtr, TypeReference, TypeTuple, Variadic, Variant, VisPublic,
     Visibility, WhereClause, WherePredicate,
 };
@@ -393,6 +393,8 @@ impl ToValue for BinOp {
         match self {
             BinOp::AddEq(_) => Value::singleton("AddEq"),
             BinOp::Lt(_) => Value::singleton("Lt"),
+            BinOp::Gt(_) => Value::singleton("Gt"),
+            BinOp::Sub(_) => Value::singleton("Sub"),
             _ => todo!("at {}:{}: {:?}", file!(), line!(), self),
         }
     }
@@ -569,7 +571,13 @@ to_value_struct!(
 );
 to_value_struct!(Label, [name, [useless_token]: colon_token]);
 to_value_struct!(Lifetime, [/* apostrophe,  */ ident]);
-to_value_enum!(Lit, 1: [ Int, Str], _);
+to_value_enum!(Lit, 1: [Bool, Int, Str], _);
+
+impl ToValue for LitBool {
+    fn to_value(&self) -> Value {
+        Value::singleton(self.token())
+    }
+}
 
 impl ToValue for Literal {
     fn to_value(&self) -> Value {
@@ -661,7 +669,7 @@ to_value_struct!(
         [useless_token]: gt_token
     ]
 );
-to_value_enum!(ReturnType, 2: [Type], _);
+to_value_enum!(ReturnType, 0: [Default], 2: [Type]);
 to_value_struct!(
     Signature,
     [

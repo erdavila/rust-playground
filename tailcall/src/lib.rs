@@ -7,7 +7,7 @@ use syn::visit_mut::{visit_expr_mut, VisitMut};
 use syn::{
     parse2, parse_macro_input, parse_str, AngleBracketedGenericArguments, Block, Expr, ExprCall,
     ExprPath, FieldsUnnamed, FnArg, GenericArgument, Generics, ItemFn, Pat, Path, ReturnType,
-    Signature, Stmt, Token, Type,
+    Signature, Stmt, Token, Type, TypeTuple,
 };
 
 #[proc_macro_attribute]
@@ -105,9 +105,9 @@ fn get_args_names(signature: &Signature) -> Vec<String> {
         .map(|fn_arg| match fn_arg {
             FnArg::Typed(pat_type) => match pat_type.pat.deref() {
                 Pat::Ident(pat_ident) => pat_ident.ident.to_string(),
-                _ => todo!(),
+                _ => todo!("at {}:{}", file!(), line!()),
             },
-            _ => todo!(),
+            _ => todo!("at {}:{}: {fn_arg:?}", file!(), line!()),
         })
         .collect()
 }
@@ -160,13 +160,16 @@ fn get_outer_function_return_type_generics(sig: &Signature) -> AngleBracketedGen
     for fn_arg in &sig.inputs {
         match fn_arg {
             FnArg::Typed(pat_type) => add_type(pat_type.ty.as_ref().clone()),
-            FnArg::Receiver(_) => todo!(),
+            FnArg::Receiver(_) => todo!("at {}:{}", file!(), line!()),
         };
     }
 
     match &sig.output {
         ReturnType::Type(_, r#type) => add_type(r#type.as_ref().clone()),
-        ReturnType::Default => todo!(),
+        ReturnType::Default => add_type(Type::Tuple(TypeTuple {
+            elems: Default::default(),
+            paren_token: Default::default(),
+        })),
     }
 
     outer_function_return_type_generics

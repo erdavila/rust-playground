@@ -11,9 +11,9 @@ use syn::{
     ExprAssignOp, ExprBinary, ExprBlock, ExprCall, ExprCast, ExprIf, ExprLet, ExprLit, ExprLoop,
     ExprMatch, ExprMethodCall, ExprPath, ExprReference, ExprReturn, ExprUnsafe, Field, Fields,
     FieldsUnnamed, FnArg, GenericArgument, GenericMethodArgument, GenericParam, Generics, Ident,
-    Item, ItemEnum, ItemFn, ItemMod, ItemStatic, Label, Lifetime, Lit, LitInt, LitStr, Local,
-    MethodTurbofish, Pat, PatIdent, PatLit, PatTuple, PatTupleStruct, PatType, PatWild, Path,
-    PathArguments, PathSegment, QSelf, ReturnType, Signature, Stmt, Token, Type, TypeParam,
+    Item, ItemEnum, ItemFn, ItemMod, ItemStatic, Label, Lifetime, Lit, LitBool, LitInt, LitStr,
+    Local, MethodTurbofish, Pat, PatIdent, PatLit, PatTuple, PatTupleStruct, PatType, PatWild,
+    Path, PathArguments, PathSegment, QSelf, ReturnType, Signature, Stmt, Token, Type, TypeParam,
     TypeParamBound, TypePath, TypePtr, TypeReference, TypeTuple, Variadic, Variant, VisPublic,
     Visibility,
 };
@@ -170,7 +170,7 @@ impl Dump for Attribute {
 }
 
 impl_dump_for_enum!(AttrStyle, 0: [Outer], _);
-impl_dump_for_enum!(BinOp, 1: [AddEq, Lt], _);
+impl_dump_for_enum!(BinOp, 1: [AddEq, Gt, Lt, Sub], _);
 
 impl Dump for Block {
     fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
@@ -444,7 +444,13 @@ impl Dump for Lifetime {
     }
 }
 
-impl_dump_for_enum!(Lit, 1: [Int, Str], _);
+impl_dump_for_enum!(Lit, 1: [Bool, Int, Str], _);
+
+impl Dump for LitBool {
+    fn dump(&self, w: &mut impl Write, _indentation: Indentation) -> io::Result<()> {
+        write!(w, "{}", self.token())
+    }
+}
 
 impl Dump for Literal {
     fn dump(&self, w: &mut impl Write, _indentation: Indentation) -> io::Result<()> {
@@ -587,13 +593,14 @@ impl_dump_for_token![return];
 impl Dump for ReturnType {
     fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
         match self {
+            ReturnType::Default => (),
             ReturnType::Type(rarrow, r#type) => {
                 write!(w, " ")?;
                 rarrow.dump_with_space(w, indentation)?;
-                r#type.dump_with_space(w, indentation)
+                r#type.dump_with_space(w, indentation)?;
             }
-            _ => todo!("at line {}: {:?}", line!(), self),
         }
+        Ok(())
     }
 }
 
@@ -622,6 +629,7 @@ impl Dump for Signature {
 impl_dump_for_token![*]; // Star
 impl_dump_for_token![static];
 impl_dump_for_enum!(Stmt, 1: [Expr, Item, Local], 2: [Semi]);
+impl_dump_for_token![-]; // Sub
 
 impl Dump for TokenStream2 {
     fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {

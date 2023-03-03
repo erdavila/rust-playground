@@ -97,3 +97,27 @@ mod no_args {
         assert_eq!(no_args(), 5);
     }
 }
+
+mod no_explicit_return_type {
+    static mut DONE: bool = false;
+
+    #[syn_dump::dump(suffix = "-BEFORE")]
+    #[tailcall::tailcall]
+    #[syn_dump::dump(suffix = "-AFTER")]
+    fn no_explicit_return_type(n: u8) {
+        if n > 0 {
+            no_explicit_return_type(n - 1);
+        } else {
+            unsafe { DONE = true };
+        }
+    }
+
+    #[test]
+    fn test() {
+        unsafe { DONE = false };
+
+        no_explicit_return_type(5);
+
+        assert!(unsafe { DONE });
+    }
+}
