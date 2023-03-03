@@ -70,3 +70,26 @@ mod stack_addresses {
         }
     }
 }
+
+mod no_args {
+    #[tailcall::tailcall]
+    fn no_args() -> u8 {
+        static mut N: u8 = 0;
+
+        unsafe {
+            N += 1;
+            if N < 5 {
+                no_args()
+            } else {
+                let value = N;
+                N = 0;
+                value
+            }
+        }
+    }
+
+    #[test]
+    fn test() {
+        assert_eq!(no_args(), 5);
+    }
+}
