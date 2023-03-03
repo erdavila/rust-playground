@@ -2,6 +2,9 @@ use std::fs::File;
 use std::io::{self, Write};
 use std::ops::Deref;
 
+use proc_macro2::{
+    Delimiter as Delimiter2, Group, Literal, Punct, Spacing, TokenStream as TokenStream2, TokenTree,
+};
 use syn::punctuated::Punctuated;
 use syn::token::{Brace, Bracket, Paren};
 use syn::{
@@ -20,13 +23,10 @@ use super::indentation::Indentation;
 
 const PRINT_USELESS_TOKENS: bool = false;
 
-pub fn dump_item_fn(item_fn: &ItemFn, name: &str) {
-    let mut w = File::create(name).unwrap();
+pub fn dump_item(item: &Item, file_path: &str) {
+    let mut w = File::create(file_path).unwrap();
 
-    item_fn
-        .to_value()
-        .dump(&mut w, Indentation::new(2))
-        .unwrap();
+    item.to_value().dump(&mut w, Indentation::new(2)).unwrap();
     writeln!(w).unwrap();
 }
 
@@ -300,7 +300,7 @@ macro_rules! to_value_enum {
                         )*
                     )?
                     $(
-                        _ $($dummy)? => todo!("at line {}: {:?}", line!(), self),
+                        _ $($dummy)? => todo!("at {}:{}: {:?}", file!(), line!(), self),
                     )?
                 }
             }
@@ -382,22 +382,24 @@ to_value_struct!(
         [useless_token]: pound_token,
         style,
         [useless_token]: bracket_token,
-        path
+        path,
+        tokens
     ]
 );
-to_value_enum!(AttrStyle, _);
+to_value_enum!(AttrStyle, 0: [Outer], _);
 
 impl ToValue for BinOp {
     fn to_value(&self) -> Value {
         match self {
             BinOp::AddEq(_) => Value::singleton("AddEq"),
             BinOp::Lt(_) => Value::singleton("Lt"),
-            _ => todo!("at line {}: {:?}", line!(), self),
+            _ => todo!("at {}:{}: {:?}", file!(), line!(), self),
         }
     }
 }
 
 to_value_struct!(Block, [[useless_token]: brace_token, stmts]);
+to_value_enum!(Delimiter2, 0: [Parenthesis], _);
 to_value_enum!(
     Expr,
     1: [Assign, AssignOp, Binary, Block, Call, Cast, If, Let, Lit, Loop, Match, MethodCall, Path, Reference, Return, Unsafe],
@@ -513,6 +515,17 @@ to_value_struct!(
 to_value_enum!(GenericArgument, 1: [Type], _);
 to_value_enum!(GenericMethodArgument, _);
 to_value_enum!(GenericParam, 1: [Type], _);
+
+impl ToValue for Group {
+    fn to_value(&self) -> Value {
+        Value::list(vec![
+            self.delimiter().to_value().labeled("delimiter"),
+            self.stream().to_value().labeled("stream"),
+        ])
+        .named("Group")
+    }
+}
+
 to_value_to_string_in_set!(Ident);
 to_value_enum!(Item, 1: [Enum, Fn, Mod, Static], _);
 to_value_struct!(
@@ -557,6 +570,13 @@ to_value_struct!(
 to_value_struct!(Label, [name, [useless_token]: colon_token]);
 to_value_struct!(Lifetime, [/* apostrophe,  */ ident]);
 to_value_enum!(Lit, 1: [ Int, Str], _);
+
+impl ToValue for Literal {
+    fn to_value(&self) -> Value {
+        Value::singleton(self)
+    }
+}
+
 to_value_to_string_in_set!(LitInt);
 
 impl ToValue for LitStr {
@@ -615,6 +635,16 @@ to_value_struct!(
     [[if_any]: attrs, [useless_token]: underscore_token]
 );
 
+impl ToValue for Punct {
+    fn to_value(&self) -> Value {
+        Value::list(vec![
+            Value::singleton(self.as_char().to_string()).labeled("char"),
+            self.spacing().to_value().labeled("spacing"),
+        ])
+        .named("Punct")
+    }
+}
+
 impl<T: ToValue, P> ToValue for Punctuated<T, P> {
     fn to_value(&self) -> Value {
         Value::r#struct("Punctuated", self.iter().map(|x| x.to_value()).collect())
@@ -648,7 +678,21 @@ to_value_struct!(
         output
     ]
 );
+to_value_enum!(Spacing, 0: [Alone], _);
 to_value_enum!(Stmt, 1: [Expr , Item, Local], 2: [Semi]);
+
+impl ToValue for TokenStream2 {
+    fn to_value(&self) -> Value {
+        Value::list(
+            self.clone()
+                .into_iter()
+                .map(|token_tree| token_tree.to_value())
+                .collect(),
+        )
+    }
+}
+
+to_value_enum!(TokenTree, 1: [Group, Ident, Literal, Punct]);
 to_value_enum!(Type, 1: [Ptr, Path, Reference, Tuple], _);
 to_value_struct!(
     TypeParam,

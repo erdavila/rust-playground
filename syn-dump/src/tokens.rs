@@ -1,10 +1,13 @@
+use proc_macro2::{
+    Delimiter, Group, Literal, Punct, Spacing, TokenStream as TokenStream2, TokenTree,
+};
 use std::fs::File;
 use std::io::{self, Write};
 use std::ops::Deref;
 
 use syn::punctuated::{Pair, Punctuated};
 use syn::{
-    Abi, AngleBracketedGenericArguments, Arm, Attribute, BinOp, Block, Expr, ExprAssign,
+    Abi, AngleBracketedGenericArguments, Arm, AttrStyle, Attribute, BinOp, Block, Expr, ExprAssign,
     ExprAssignOp, ExprBinary, ExprBlock, ExprCall, ExprCast, ExprIf, ExprLet, ExprLit, ExprLoop,
     ExprMatch, ExprMethodCall, ExprPath, ExprReference, ExprReturn, ExprUnsafe, Field, Fields,
     FieldsUnnamed, FnArg, GenericArgument, GenericMethodArgument, GenericParam, Generics, Ident,
@@ -15,12 +18,12 @@ use syn::{
     Visibility,
 };
 
-use super::indentation::Indentation;
+use crate::indentation::Indentation;
 
-pub fn dump_item_fn(item_fn: &ItemFn, name: &str) {
+pub fn dump_item(item: &Item, name: &str) {
     let mut w = File::create(name).unwrap();
 
-    item_fn.dump(&mut w, Indentation::new(4)).unwrap();
+    item.dump(&mut w, Indentation::new(4)).unwrap();
 }
 
 //---------------------------------------------------------------------------------------
@@ -30,6 +33,71 @@ macro_rules! impl_dump_for_token {
         impl Dump for Token![$token] {
             fn dump(&self, w: &mut impl Write, _indentation: Indentation) -> io::Result<()> {
                 write!(w, stringify!($token))
+            }
+        }
+    };
+}
+
+macro_rules! impl_dump_for_struct {
+    ($name:ident, [$($([$attr:ident]:)? $member:ident),*]) => {
+        impl Dump for $name {
+            fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
+                $(
+                    _impl_dump_for_struct_member!(self, w, indentation, $($attr)?: $member);
+                )*
+                Ok(())
+            }
+        }
+    };
+}
+
+macro_rules! _impl_dump_for_struct_member {
+    ($self:ident, $w:ident, $indentation:ident, spaced: $member:ident) => {
+        $self.$member.dump_spaced($w, $indentation)?;
+    };
+    ($self:ident, $w:ident, $indentation:ident, with_space: $member:ident) => {
+        $self.$member.dump_with_space($w, $indentation)?;
+    };
+    ($self:ident, $w:ident, $indentation:ident, : $member:ident) => {
+        $self.$member.dump($w, $indentation)?;
+    };
+}
+
+macro_rules! impl_dump_for_enum {
+    (
+        $name:ident
+        $(, 0: [$($var0:ident),*])?
+        $(, 1: [$($var1:ident),*])?
+        $(, 2: [$($var2:ident),*])?
+        $(, $($dummy:ident)? _)?
+    ) => {
+        impl Dump for $name {
+            #[allow(unused_variables)]
+            fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
+                match self {
+                    $(
+                        $(
+                            $name::$var0 => (),
+                        )*
+                    )?
+                    $(
+                        $(
+                            $name::$var1(x) => x.dump(w, indentation)?,
+                        )*
+                    )?
+                    $(
+                        $(
+                            $name::$var2(x, y) => {
+                                x.dump(w, indentation)?;
+                                y.dump(w, indentation)?;
+                            },
+                        )*
+                    )?
+                    $(
+                        $($dummy)? _ => todo!("at {}:{}: {:?}", file!(), line!(), self),
+                    )?
+                }
+                Ok(())
             }
         }
     };
@@ -60,22 +128,17 @@ impl<T: Dump, U: Dump> Dump for (T, U) {
 
 impl Dump for Abi {
     fn dump(&self, _w: &mut impl Write, _indentation: Indentation) -> io::Result<()> {
-        todo!("at line {}", line!());
+        todo!("at {}:{}", file!(), line!());
     }
 }
 
 impl_dump_for_token![+]; // Add
 impl_dump_for_token![+=]; // AddEq
 impl_dump_for_token![&]; // And
-
-impl Dump for AngleBracketedGenericArguments {
-    fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
-        self.colon2_token.dump(w, indentation)?;
-        self.lt_token.dump(w, indentation)?;
-        self.args.dump_spaced(w, indentation)?;
-        self.gt_token.dump(w, indentation)
-    }
-}
+impl_dump_for_struct!(
+    AngleBracketedGenericArguments,
+    [colon2_token, lt_token, [spaced]: args, gt_token]
+);
 
 impl Dump for Arm {
     fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
@@ -96,20 +159,18 @@ impl_dump_for_token![async];
 impl_dump_for_token![@]; // At
 
 impl Dump for Attribute {
-    fn dump(&self, _w: &mut impl Write, _indentation: Indentation) -> io::Result<()> {
-        todo!("at line {}", line!());
+    fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
+        self.pound_token.dump(w, indentation)?;
+        self.style.dump(w, indentation)?;
+        write!(w, "[")?;
+        self.path.dump(w, indentation)?;
+        self.tokens.dump(w, indentation)?;
+        write!(w, "]")
     }
 }
 
-impl Dump for BinOp {
-    fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
-        match self {
-            BinOp::AddEq(add_eq) => add_eq.dump(w, indentation),
-            BinOp::Lt(lt) => lt.dump(w, indentation),
-            _ => todo!("at line {}: {:?}", line!(), self),
-        }
-    }
-}
+impl_dump_for_enum!(AttrStyle, 0: [Outer], _);
+impl_dump_for_enum!(BinOp, 1: [AddEq, Lt], _);
 
 impl Dump for Block {
     fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
@@ -133,65 +194,25 @@ impl_dump_for_token![.]; // Dot
 impl_dump_for_token![else];
 impl_dump_for_token![enum];
 impl_dump_for_token![=]; // Eq
-
-impl Dump for Expr {
-    fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
-        match self {
-            Expr::Assign(expr_assign) => expr_assign.dump(w, indentation),
-            Expr::AssignOp(expr_assign_op) => expr_assign_op.dump(w, indentation),
-            Expr::Binary(expr_binary) => expr_binary.dump(w, indentation),
-            Expr::Block(expr_block) => expr_block.dump(w, indentation),
-            Expr::Call(expr_call) => expr_call.dump(w, indentation),
-            Expr::Cast(expr_cast) => expr_cast.dump(w, indentation),
-            Expr::If(expr_if) => expr_if.dump(w, indentation),
-            Expr::Let(expr_let) => expr_let.dump(w, indentation),
-            Expr::Lit(expr_lit) => expr_lit.dump(w, indentation),
-            Expr::Loop(expr_loop) => expr_loop.dump(w, indentation),
-            Expr::Match(expr_match) => expr_match.dump(w, indentation),
-            Expr::MethodCall(expr_method_call) => expr_method_call.dump(w, indentation),
-            Expr::Path(expr_path) => expr_path.dump(w, indentation),
-            Expr::Reference(expr_reference) => expr_reference.dump(w, indentation),
-            Expr::Return(expr_return) => expr_return.dump(w, indentation),
-            Expr::Unsafe(expr_unsafe) => expr_unsafe.dump(w, indentation),
-            _ => todo!("at line {}: {:?}", line!(), self),
-        }
-    }
-}
-
-impl Dump for ExprAssign {
-    fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
-        self.attrs.dump_spaced(w, indentation)?;
-        self.left.dump_with_space(w, indentation)?;
-        self.eq_token.dump_with_space(w, indentation)?;
-        self.right.dump(w, indentation)
-    }
-}
-
-impl Dump for ExprAssignOp {
-    fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
-        self.attrs.dump_spaced(w, indentation)?;
-        self.left.dump_with_space(w, indentation)?;
-        self.op.dump_with_space(w, indentation)?;
-        self.right.dump(w, indentation)
-    }
-}
-
-impl Dump for ExprBinary {
-    fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
-        self.attrs.dump_spaced(w, indentation)?;
-        self.left.dump_with_space(w, indentation)?;
-        self.op.dump_with_space(w, indentation)?;
-        self.right.dump(w, indentation)
-    }
-}
-
-impl Dump for ExprBlock {
-    fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
-        self.attrs.dump_spaced(w, indentation)?;
-        self.label.dump_with_space(w, indentation)?;
-        self.block.dump(w, indentation)
-    }
-}
+impl_dump_for_enum!(Expr, 1: [Assign, AssignOp, Binary, Block, Call, Cast, If, Let, Lit, Loop, Match, MethodCall, Path, Reference, Return, Unsafe], _);
+impl_dump_for_struct!(
+    ExprAssign,
+    [
+        [spaced]: attrs,
+        [with_space]: left,
+        [with_space]: eq_token,
+        right
+    ]
+);
+impl_dump_for_struct!(
+    ExprAssignOp,
+    [[spaced]: attrs, [with_space]: left, [with_space]: op, right]
+);
+impl_dump_for_struct!(
+    ExprBinary,
+    [[spaced]: attrs, [with_space]: left, [with_space]: op, right]
+);
+impl_dump_for_struct!(ExprBlock, [[spaced]: attrs, [with_space]: label, block]);
 
 impl Dump for ExprCall {
     fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
@@ -203,14 +224,15 @@ impl Dump for ExprCall {
     }
 }
 
-impl Dump for ExprCast {
-    fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
-        self.attrs.dump_spaced(w, indentation)?;
-        self.expr.dump_with_space(w, indentation)?;
-        self.as_token.dump_with_space(w, indentation)?;
-        self.ty.dump(w, indentation)
-    }
-}
+impl_dump_for_struct!(
+    ExprCast,
+    [
+        [spaced]: attrs,
+        [with_space]: expr,
+        [with_space]: as_token,
+        ty
+    ]
+);
 
 impl Dump for ExprIf {
     fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
@@ -227,31 +249,26 @@ impl Dump for ExprIf {
     }
 }
 
-impl Dump for ExprLet {
-    fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
-        self.attrs.dump_spaced(w, indentation)?;
-        self.let_token.dump_with_space(w, indentation)?;
-        self.pat.dump_with_space(w, indentation)?;
-        self.eq_token.dump_with_space(w, indentation)?;
-        self.expr.dump(w, indentation)
-    }
-}
-
-impl Dump for ExprLit {
-    fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
-        self.attrs.dump_spaced(w, indentation)?;
-        self.lit.dump(w, indentation)
-    }
-}
-
-impl Dump for ExprLoop {
-    fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
-        self.attrs.dump_spaced(w, indentation)?;
-        self.label.dump_with_space(w, indentation)?;
-        self.loop_token.dump_with_space(w, indentation)?;
-        self.body.dump(w, indentation)
-    }
-}
+impl_dump_for_struct!(
+    ExprLet,
+    [
+        [spaced]: attrs,
+        [with_space]: let_token,
+        [with_space]: pat,
+        [with_space]: eq_token,
+        expr
+    ]
+);
+impl_dump_for_struct!(ExprLit, [[spaced]: attrs, lit]);
+impl_dump_for_struct!(
+    ExprLoop,
+    [
+        [spaced]: attrs,
+        [with_space]: label,
+        [with_space]: loop_token,
+        body
+    ]
+);
 
 impl Dump for ExprMatch {
     fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
@@ -277,22 +294,11 @@ impl Dump for ExprMethodCall {
     }
 }
 
-impl Dump for ExprPath {
-    fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
-        self.attrs.dump_spaced(w, indentation)?;
-        self.qself.dump(w, indentation)?;
-        self.path.dump(w, indentation)
-    }
-}
-
-impl Dump for ExprReference {
-    fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
-        self.attrs.dump_spaced(w, indentation)?;
-        self.and_token.dump(w, indentation)?;
-        self.mutability.dump_with_space(w, indentation)?;
-        self.expr.dump(w, indentation)
-    }
-}
+impl_dump_for_struct!(ExprPath, [[spaced]: attrs, qself, path]);
+impl_dump_for_struct!(
+    ExprReference,
+    [[spaced]: attrs, and_token, [with_space]: mutability, expr]
+);
 
 impl Dump for ExprReturn {
     fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
@@ -306,14 +312,10 @@ impl Dump for ExprReturn {
     }
 }
 
-impl Dump for ExprUnsafe {
-    fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
-        self.attrs.dump_spaced(w, indentation)?;
-        self.unsafe_token.dump_with_space(w, indentation)?;
-        self.block.dump(w, indentation)
-    }
-}
-
+impl_dump_for_struct!(
+    ExprUnsafe,
+    [[spaced]: attrs, [with_space]: unsafe_token, block]
+);
 impl_dump_for_token![=>]; // FatArrow
 
 impl Dump for Field {
@@ -329,14 +331,7 @@ impl Dump for Field {
     }
 }
 
-impl Dump for Fields {
-    fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
-        match self {
-            Fields::Unnamed(fields_unnamed) => fields_unnamed.dump(w, indentation),
-            _ => todo!("at line {}: {:?}", line!(), self),
-        }
-    }
-}
+impl_dump_for_enum!(Fields, 1: [Unnamed], _);
 
 impl Dump for FieldsUnnamed {
     fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
@@ -347,24 +342,8 @@ impl Dump for FieldsUnnamed {
 }
 
 impl_dump_for_token![fn];
-
-impl Dump for FnArg {
-    fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
-        match self {
-            FnArg::Receiver(_) => todo!("at line {}", line!()),
-            FnArg::Typed(pat_type) => pat_type.dump(w, indentation),
-        }
-    }
-}
-
-impl Dump for GenericArgument {
-    fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
-        match self {
-            GenericArgument::Type(r#type) => r#type.dump(w, indentation),
-            _ => todo!("at line {}: {:?}", line!(), self),
-        }
-    }
-}
+impl_dump_for_enum!(FnArg, 1: [Typed], _);
+impl_dump_for_enum!(GenericArgument, 1: [Type], _);
 
 impl Dump for GenericMethodArgument {
     fn dump(&self, _w: &mut impl Write, _indentation: Indentation) -> io::Result<()> {
@@ -372,14 +351,7 @@ impl Dump for GenericMethodArgument {
     }
 }
 
-impl Dump for GenericParam {
-    fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
-        match self {
-            GenericParam::Type(type_param) => type_param.dump(w, indentation),
-            _ => todo!("at line {}: {:?}", line!(), self),
-        }
-    }
-}
+impl_dump_for_enum!(GenericParam, 1: [Type], _);
 
 impl Dump for Generics {
     fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
@@ -388,10 +360,23 @@ impl Dump for Generics {
         self.gt_token.dump(w, indentation)?;
 
         if self.where_clause.is_some() {
-            todo!("at line {}", line!());
+            todo!("at {}:{}", file!(), line!());
         }
 
         Ok(())
+    }
+}
+
+impl Dump for Group {
+    fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
+        let (open, close): (&str, &str) = match self.delimiter() {
+            Delimiter::Parenthesis => ("(", ")"),
+            x => todo!("at {}:{}: {:?}", file!(), line!(), x),
+        };
+
+        write!(w, "{}", open)?;
+        self.stream().dump(w, indentation)?;
+        write!(w, "{}", close)
     }
 }
 
@@ -404,18 +389,7 @@ impl Dump for Ident {
 }
 
 impl_dump_for_token![if];
-
-impl Dump for Item {
-    fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
-        match self {
-            Item::Enum(item_enum) => item_enum.dump(w, indentation),
-            Item::Fn(item_fn) => item_fn.dump(w, indentation),
-            Item::Mod(item_mod) => item_mod.dump(w, indentation),
-            Item::Static(item_static) => item_static.dump(w, indentation),
-            _ => todo!("at line {}: {:?}", line!(), self),
-        }
-    }
-}
+impl_dump_for_enum!(Item, 1:[Enum, Fn, Mod, Static], _);
 
 impl Dump for ItemEnum {
     fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
@@ -445,52 +419,36 @@ impl Dump for ItemMod {
     }
 }
 
-impl Dump for ItemFn {
-    fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
-        self.attrs.dump_spaced(w, indentation)?;
-        self.vis.dump(w, indentation)?;
-        self.sig.dump(w, indentation)?;
-        self.block.dump(w, indentation)
-    }
-}
-
-impl Dump for ItemStatic {
-    fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
-        self.attrs.dump_spaced(w, indentation)?;
-        self.vis.dump_with_space(w, indentation)?;
-        self.static_token.dump_with_space(w, indentation)?;
-        self.mutability.dump_with_space(w, indentation)?;
-        self.ident.dump(w, indentation)?;
-        self.colon_token.dump_with_space(w, indentation)?;
-        self.ty.dump_with_space(w, indentation)?;
-        self.eq_token.dump_with_space(w, indentation)?;
-        self.expr.dump(w, indentation)?;
-        self.semi_token.dump(w, indentation)
-    }
-}
-
-impl Dump for Label {
-    fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
-        self.name.dump(w, indentation)?;
-        self.colon_token.dump(w, indentation)
-    }
-}
-
+impl_dump_for_struct!(ItemFn, [[spaced]: attrs, vis, sig, block]);
+impl_dump_for_struct!(
+    ItemStatic,
+    [
+        [spaced]: attrs,
+        [with_space]: vis,
+        [with_space]: static_token,
+        [with_space]: mutability,
+        ident,
+        [with_space]: colon_token,
+        [with_space]: ty,
+        [with_space]: eq_token,
+        expr,
+        semi_token
+    ]
+);
+impl_dump_for_struct!(Label, [name, colon_token]);
 impl_dump_for_token![let];
 
 impl Dump for Lifetime {
     fn dump(&self, _w: &mut impl Write, _indentation: Indentation) -> io::Result<()> {
-        todo!("at line {}", line!())
+        todo!("at {}:{}", file!(), line!())
     }
 }
 
-impl Dump for Lit {
-    fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
-        match self {
-            Lit::Int(lit_int) => lit_int.dump(w, indentation),
-            Lit::Str(lit_str) => lit_str.dump(w, indentation),
-            _ => todo!("at line {}: {:?}", line!(), self),
-        }
+impl_dump_for_enum!(Lit, 1: [Int, Str], _);
+
+impl Dump for Literal {
+    fn dump(&self, w: &mut impl Write, _indentation: Indentation) -> io::Result<()> {
+        write!(w, "{}", self)
     }
 }
 
@@ -523,16 +481,10 @@ impl Dump for Local {
 impl_dump_for_token![loop];
 impl_dump_for_token![<]; // Lt
 impl_dump_for_token![match];
-
-impl Dump for MethodTurbofish {
-    fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
-        self.colon2_token.dump(w, indentation)?;
-        self.lt_token.dump(w, indentation)?;
-        self.args.dump_spaced(w, indentation)?;
-        self.gt_token.dump(w, indentation)
-    }
-}
-
+impl_dump_for_struct!(
+    MethodTurbofish,
+    [colon2_token, lt_token, [spaced]: args, gt_token]
+);
 impl_dump_for_token![mod];
 impl_dump_for_token![mut];
 
@@ -562,58 +514,21 @@ impl<T: Dump> Dump for Option<T> {
     }
 }
 
-impl Dump for Pat {
-    fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
-        match self {
-            Pat::Ident(pat_ident) => pat_ident.dump(w, indentation),
-            Pat::Lit(pat_lit) => pat_lit.dump(w, indentation),
-            Pat::TupleStruct(pat_tuple_struct) => pat_tuple_struct.dump(w, indentation),
-            Pat::Wild(pat_wild) => pat_wild.dump(w, indentation),
-            _ => todo!("at line {}: {:?}", line!(), self),
-        }
-    }
-}
-
-impl Dump for Path {
-    fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
-        self.leading_colon.dump(w, indentation)?;
-        self.segments.dump(w, indentation)
-    }
-}
-
-impl Dump for PathArguments {
-    fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
-        match self {
-            PathArguments::None => Ok(()),
-            PathArguments::AngleBracketed(args) => args.dump(w, indentation),
-            _ => todo!("at line {}: {:?}", line!(), self),
-        }
-    }
-}
-
-impl Dump for PathSegment {
-    fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
-        self.ident.dump(w, indentation)?;
-        self.arguments.dump(w, indentation)
-    }
-}
-
-impl Dump for PatIdent {
-    fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
-        self.attrs.dump_spaced(w, indentation)?;
-        self.by_ref.dump_with_space(w, indentation)?;
-        self.mutability.dump_with_space(w, indentation)?;
-        self.ident.dump(w, indentation)?;
-        self.subpat.dump(w, indentation)
-    }
-}
-
-impl Dump for PatLit {
-    fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
-        self.attrs.dump_spaced(w, indentation)?;
-        self.expr.dump(w, indentation)
-    }
-}
+impl_dump_for_enum!(Pat, 1: [Ident, Lit, TupleStruct, Wild], _);
+impl_dump_for_struct!(Path, [leading_colon, segments]);
+impl_dump_for_enum!(PathArguments, 0: [None], 1: [AngleBracketed], _);
+impl_dump_for_struct!(PathSegment, [ident, arguments]);
+impl_dump_for_struct!(
+    PatIdent,
+    [
+        [spaced]: attrs,
+        [with_space]: by_ref,
+        [with_space]: mutability,
+        ident,
+        subpat
+    ]
+);
+impl_dump_for_struct!(PatLit, [[spaced]: attrs, expr]);
 
 impl Dump for PatTuple {
     fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
@@ -624,31 +539,25 @@ impl Dump for PatTuple {
     }
 }
 
-impl Dump for PatTupleStruct {
-    fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
-        self.attrs.dump_spaced(w, indentation)?;
-        self.path.dump(w, indentation)?;
-        self.pat.dump(w, indentation)
-    }
-}
-
-impl Dump for PatType {
-    fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
-        self.attrs.dump_spaced(w, indentation)?;
-        self.pat.dump(w, indentation)?;
-        self.colon_token.dump_with_space(w, indentation)?;
-        self.ty.dump(w, indentation)
-    }
-}
-
-impl Dump for PatWild {
-    fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
-        self.attrs.dump_spaced(w, indentation)?;
-        self.underscore_token.dump(w, indentation)
-    }
-}
-
+impl_dump_for_struct!(PatTupleStruct, [[spaced]: attrs, path, pat]);
+impl_dump_for_struct!(
+    PatType,
+    [[spaced]: attrs, pat, [with_space]: colon_token, ty]
+);
+impl_dump_for_struct!(PatWild, [[spaced]: attrs, underscore_token]);
+impl_dump_for_token![#]; // Pound
 impl_dump_for_token![pub];
+
+impl Dump for Punct {
+    fn dump(&self, w: &mut impl Write, _indentation: Indentation) -> io::Result<()> {
+        write!(w, "{}", self.as_char())?;
+        match self.spacing() {
+            Spacing::Alone => write!(w, " ")?,
+            Spacing::Joint => (),
+        }
+        Ok(())
+    }
+}
 
 impl<T: Dump, P: Dump> Dump for Punctuated<T, P> {
     fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
@@ -667,7 +576,7 @@ impl<T: Dump, P: Dump> Dump for Punctuated<T, P> {
 
 impl Dump for QSelf {
     fn dump(&self, _w: &mut impl Write, _indentation: Indentation) -> io::Result<()> {
-        todo!("at line {}", line!())
+        todo!("at {}:{}", file!(), line!())
     }
 }
 
@@ -712,32 +621,19 @@ impl Dump for Signature {
 
 impl_dump_for_token![*]; // Star
 impl_dump_for_token![static];
+impl_dump_for_enum!(Stmt, 1: [Expr, Item, Local], 2: [Semi]);
 
-impl Dump for Stmt {
+impl Dump for TokenStream2 {
     fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
-        match self {
-            Stmt::Expr(expr) => expr.dump(w, indentation),
-            Stmt::Item(item) => item.dump(w, indentation),
-            Stmt::Local(local) => local.dump(w, indentation),
-            Stmt::Semi(expr, semi) => {
-                expr.dump(w, indentation)?;
-                semi.dump(w, indentation)
-            }
+        for token in self.clone() {
+            token.dump(w, indentation)?;
         }
+        Ok(())
     }
 }
 
-impl Dump for Type {
-    fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
-        match self {
-            Type::Path(type_path) => type_path.dump(w, indentation),
-            Type::Ptr(type_ptr) => type_ptr.dump(w, indentation),
-            Type::Reference(type_reference) => type_reference.dump(w, indentation),
-            Type::Tuple(type_tuple) => type_tuple.dump(w, indentation),
-            _ => todo!("at line {}: {:?}", line!(), self),
-        }
-    }
-}
+impl_dump_for_enum!(TokenTree, 1: [Group, Ident, Punct, Literal]);
+impl_dump_for_enum!(Type, 1:[Path, Ptr, Reference, Tuple], _);
 
 impl Dump for TypeParam {
     fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
@@ -763,30 +659,9 @@ impl Dump for TypeParamBound {
     }
 }
 
-impl Dump for TypePath {
-    fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
-        self.qself.dump(w, indentation)?;
-        self.path.dump(w, indentation)
-    }
-}
-
-impl Dump for TypePtr {
-    fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
-        self.star_token.dump(w, indentation)?;
-        self.const_token.dump_with_space(w, indentation)?;
-        self.mutability.dump(w, indentation)?;
-        self.elem.dump(w, indentation)
-    }
-}
-
-impl Dump for TypeReference {
-    fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
-        self.and_token.dump(w, indentation)?;
-        self.lifetime.dump(w, indentation)?;
-        self.mutability.dump(w, indentation)?;
-        self.elem.dump(w, indentation)
-    }
-}
+impl_dump_for_struct!(TypePath, [qself, path]);
+impl_dump_for_struct!(TypePtr, [star_token, [with_space]: const_token, mutability]);
+impl_dump_for_struct!(TypeReference, [and_token, lifetime, mutability, elem]);
 
 impl Dump for TypeTuple {
     fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
@@ -801,7 +676,7 @@ impl_dump_for_token![unsafe];
 
 impl Dump for Variadic {
     fn dump(&self, _w: &mut impl Write, _indentation: Indentation) -> io::Result<()> {
-        todo!("at line {}", line!())
+        todo!("at {}:{}", file!(), line!())
     }
 }
 
@@ -837,11 +712,7 @@ impl Dump for Visibility {
     }
 }
 
-impl Dump for VisPublic {
-    fn dump(&self, w: &mut impl Write, indentation: Indentation) -> io::Result<()> {
-        self.pub_token.dump(w, indentation)
-    }
-}
+impl_dump_for_struct!(VisPublic, [pub_token]);
 
 //---------------------------------------------------------------------------------------
 

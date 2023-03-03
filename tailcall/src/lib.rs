@@ -10,37 +10,10 @@ use syn::{
     Signature, Stmt, Token, Type,
 };
 
-use crate::dump::tokens;
-use crate::dump::tree;
-
-mod dump;
-
 #[proc_macro_attribute]
 pub fn tailcall(_attr: TokenStream, input: TokenStream) -> TokenStream {
     let item_fn = parse_macro_input!(input as ItemFn);
-
-    tree::dump_item_fn(&item_fn, &(item_fn.sig.ident.to_string() + "-TREE-BEFORE"));
-    tokens::dump_item_fn(
-        &item_fn,
-        &(item_fn.sig.ident.to_string() + "-TOKENS-BEFORE"),
-    );
-    let item_fn = transform(item_fn);
-    tree::dump_item_fn(&item_fn, &(item_fn.sig.ident.to_string() + "-TREE-AFTER"));
-    tokens::dump_item_fn(&item_fn, &(item_fn.sig.ident.to_string() + "-TOKENS-AFTER"));
-
-    TokenStream::from(item_fn.to_token_stream())
-}
-
-#[proc_macro_attribute]
-pub fn dump(_attr: TokenStream, input: TokenStream) -> TokenStream {
-    {
-        let input = input.clone();
-        let item_fn = parse_macro_input!(input as ItemFn);
-        tree::dump_item_fn(&item_fn, &(item_fn.sig.ident.to_string() + "-TREE"));
-        tokens::dump_item_fn(&item_fn, &(item_fn.sig.ident.to_string() + "-TOKENS"));
-    }
-
-    input
+    transform(item_fn).to_token_stream().into()
 }
 
 const CONTROL_RETURN_TYPE_NAME: &str = "__tailcall_Return";
@@ -83,7 +56,7 @@ fn transform(item_fn: ItemFn) -> ItemFn {
     handle_control_points(&mut inner_function_body, &item_fn.sig.ident.to_string());
     handle_implicit_return(&mut inner_function_body);
 
-    quote2! {
+    let mut outer_function: ItemFn = quote2! {
         #outer_function_sig {
             mod __tailcall {
                 pub enum Control #control_generics {
@@ -103,7 +76,12 @@ fn transform(item_fn: ItemFn) -> ItemFn {
             fn #inner_function_ident( #inner_function_inputs ) -> __tailcall::Control #outer_function_return_type_generics
                 #inner_function_body
         }
-    }
+    };
+
+    outer_function.attrs = item_fn.attrs;
+    outer_function.vis = item_fn.vis;
+
+    outer_function
 }
 
 fn get_outer_function_signature(signature: &Signature) -> Signature {

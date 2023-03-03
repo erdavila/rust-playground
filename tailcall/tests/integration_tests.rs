@@ -44,7 +44,9 @@ mod general {
 }
 
 mod stack_addresses {
+    #[syn_dump::dump(suffix = "-BEFORE")]
     #[tailcall::tailcall]
+    #[syn_dump::dump(suffix = "-AFTER")]
     fn stack_addresses(option: Option<Vec<*const ()>>) -> Vec<*const ()> {
         if let Some(mut ptrs) = option {
             let ptr = &ptrs as *const Vec<*const ()>;
@@ -72,7 +74,9 @@ mod stack_addresses {
 }
 
 mod no_args {
+    #[syn_dump::dump(suffix = "-BEFORE")]
     #[tailcall::tailcall]
+    #[syn_dump::dump(suffix = "-AFTER")]
     fn no_args() -> u8 {
         static mut N: u8 = 0;
 
