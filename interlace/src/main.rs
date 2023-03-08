@@ -1,10 +1,14 @@
 use std::env;
 
+use cell::Cell;
+use colorizer::Colorizer;
 use grid::Grid;
 use interlace::Interlace;
 use position::PositionDelta;
 use segment::Segment;
 
+mod cell;
+mod colorizer;
 mod grid;
 mod interlace;
 mod position;
@@ -25,14 +29,17 @@ fn main() {
 
     make_paths(&interlace, &mut grid);
 
+    let number_of_colors = Colorizer::colorize(&mut grid, &interlace);
+    println!("Number of colors: {number_of_colors}");
+
     print_grid(&grid);
 }
 
-fn make_paths(interlace: &Interlace, grid: &mut Grid<Option<Segment>>) {
-    grid[interlace.left_corner()] = Some(Segment::Horizontal);
-    grid[interlace.top_corner()] = Some(Segment::Vertical);
-    grid[interlace.right_corner()] = Some(Segment::Horizontal);
-    grid[interlace.bottom_corner()] = Some(Segment::Vertical);
+fn make_paths(interlace: &Interlace, grid: &mut Grid<Option<Cell>>) {
+    grid[interlace.left_corner()] = Some(Cell::no_color(Segment::Horizontal));
+    grid[interlace.top_corner()] = Some(Cell::no_color(Segment::Vertical));
+    grid[interlace.right_corner()] = Some(Cell::no_color(Segment::Horizontal));
+    grid[interlace.bottom_corner()] = Some(Cell::no_color(Segment::Vertical));
 
     for p in interlace
         .left_corner()
@@ -40,7 +47,7 @@ fn make_paths(interlace: &Interlace, grid: &mut Grid<Option<Segment>>) {
         .skip(1)
         .take(interlace.n1 as usize)
     {
-        grid[p] = Some(Segment::DownAndRight);
+        grid[p] = Some(Cell::no_color(Segment::DownAndRight));
     }
 
     for p in interlace
@@ -49,7 +56,7 @@ fn make_paths(interlace: &Interlace, grid: &mut Grid<Option<Segment>>) {
         .skip(1)
         .take(interlace.n1 as usize)
     {
-        grid[p] = Some(Segment::UpAndLeft);
+        grid[p] = Some(Cell::no_color(Segment::UpAndLeft));
     }
 
     for p in (interlace.left_corner() + PositionDelta::to_right())
@@ -60,7 +67,7 @@ fn make_paths(interlace: &Interlace, grid: &mut Grid<Option<Segment>>) {
             .iter(PositionDelta::to_bottom_right())
             .take((interlace.n2 + 1) as usize)
         {
-            grid[p2] = Some(Segment::Horizontal);
+            grid[p2] = Some(Cell::no_color(Segment::Horizontal));
         }
     }
 
@@ -72,7 +79,7 @@ fn make_paths(interlace: &Interlace, grid: &mut Grid<Option<Segment>>) {
             .iter(PositionDelta::to_bottom_right())
             .take(interlace.n2 as usize)
         {
-            grid[p2] = Some(Segment::Vertical);
+            grid[p2] = Some(Cell::no_color(Segment::Vertical));
         }
     }
 
@@ -82,7 +89,7 @@ fn make_paths(interlace: &Interlace, grid: &mut Grid<Option<Segment>>) {
         .skip(1)
         .take(interlace.n2 as usize)
     {
-        grid[p] = Some(Segment::UpAndRight);
+        grid[p] = Some(Cell::no_color(Segment::UpAndRight));
     }
 
     for p in interlace
@@ -91,11 +98,11 @@ fn make_paths(interlace: &Interlace, grid: &mut Grid<Option<Segment>>) {
         .skip(1)
         .take(interlace.n2 as usize)
     {
-        grid[p] = Some(Segment::DownAndLeft);
+        grid[p] = Some(Cell::no_color(Segment::DownAndLeft));
     }
 }
 
-fn print_grid(grid: &Grid<Option<Segment>>) {
+fn print_grid(grid: &Grid<Option<Cell>>) {
     let print_border_row = |first_segment, last_segment| {
         println!(
             "{}{}{}",
@@ -111,9 +118,27 @@ fn print_grid(grid: &Grid<Option<Segment>>) {
 
     for row in &grid.content {
         print!("{} ", Segment::Vertical);
-        for segment in row {
-            let char = segment.map_or(' ', |segm| segm.char());
-            print!("{} ", char);
+        for cell in row {
+            let (char, color_number) = match cell {
+                Some(cell) => (cell.segment.char(), cell.color_number),
+                None => (' ', None),
+            };
+
+            let (color_code_begin, color_code_end) = match color_number {
+                Some(color_number) => {
+                    assert!(color_number < 7, "Only 7 colors are supported");
+                    fn color_code(number: usize) -> String {
+                        format!("\x1b[{}m", number)
+                    }
+
+                    let begin = color_code(31 + color_number);
+                    let end = color_code(0);
+                    (begin, end)
+                }
+                None => (String::new(), String::new()),
+            };
+
+            print!("{}{}{} ", color_code_begin, char, color_code_end);
         }
         println!("{}", Segment::Vertical);
     }

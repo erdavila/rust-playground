@@ -17,6 +17,12 @@ impl<T> Grid<T> {
         let content = vec_repeat(row, size);
         Self { size, content }
     }
+
+    pub fn get_mut(&mut self, position: Position) -> Option<&mut T> {
+        self.content
+            .get_mut(position.row as usize)
+            .and_then(|row| row.get_mut(position.col as usize))
+    }
 }
 
 impl<T> Index<Position> for Grid<T> {

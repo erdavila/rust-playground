@@ -20,10 +20,30 @@ pub struct PositionDelta {
 }
 
 impl PositionDelta {
+    pub fn to_left() -> Self {
+        PositionDelta {
+            rows: 0,
+            cols: Self::left_cols_delta(),
+        }
+    }
     pub fn to_right() -> Self {
         PositionDelta {
             rows: 0,
             cols: Self::right_cols_delta(),
+        }
+    }
+
+    pub fn to_top() -> Self {
+        PositionDelta {
+            rows: Self::top_rows_delta(),
+            cols: 0,
+        }
+    }
+
+    pub fn to_bottom() -> Self {
+        PositionDelta {
+            rows: Self::bottom_rows_delta(),
+            cols: 0,
         }
     }
 
@@ -39,6 +59,10 @@ impl PositionDelta {
             rows: Self::bottom_rows_delta(),
             cols: Self::right_cols_delta(),
         }
+    }
+
+    fn left_cols_delta() -> i8 {
+        -1
     }
 
     fn top_rows_delta() -> i8 {

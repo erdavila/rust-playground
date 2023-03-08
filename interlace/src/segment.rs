@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Segment {
     Horizontal,
     Vertical,
