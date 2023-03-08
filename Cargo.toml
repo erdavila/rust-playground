@@ -4,6 +4,7 @@ members = [
     "clone_on_mut",
     "closures",
     "insertion_order_hash_map",
+    "interlace",
     "ref_count",
     "syn-dump",
     "tailcall",
