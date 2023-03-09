@@ -25,7 +25,7 @@ fn main() {
 
     let interlace = Interlace::new(n1, n2);
 
-    let mut grid = Grid::new(None, interlace.required_grid_size());
+    let mut grid = Grid::new(n1, n2);
 
     make_paths(&interlace, &mut grid);
 
@@ -35,11 +35,14 @@ fn main() {
     print_grid(&grid);
 }
 
-fn make_paths(interlace: &Interlace, grid: &mut Grid<Option<Cell>>) {
-    grid[interlace.left_corner()] = Some(Cell::no_color(Segment::Horizontal));
-    grid[interlace.top_corner()] = Some(Cell::no_color(Segment::Vertical));
-    grid[interlace.right_corner()] = Some(Cell::no_color(Segment::Horizontal));
-    grid[interlace.bottom_corner()] = Some(Cell::no_color(Segment::Vertical));
+fn make_paths(interlace: &Interlace, grid: &mut Grid) {
+    grid.set_at(interlace.left_corner(), Cell::no_color(Segment::Horizontal));
+    grid.set_at(interlace.top_corner(), Cell::no_color(Segment::Vertical));
+    grid.set_at(
+        interlace.right_corner(),
+        Cell::no_color(Segment::Horizontal),
+    );
+    grid.set_at(interlace.bottom_corner(), Cell::no_color(Segment::Vertical));
 
     for p in interlace
         .left_corner()
@@ -47,7 +50,7 @@ fn make_paths(interlace: &Interlace, grid: &mut Grid<Option<Cell>>) {
         .skip(1)
         .take(interlace.n1 as usize)
     {
-        grid[p] = Some(Cell::no_color(Segment::DownAndRight));
+        grid.set_at(p, Cell::no_color(Segment::DownAndRight));
     }
 
     for p in interlace
@@ -56,7 +59,7 @@ fn make_paths(interlace: &Interlace, grid: &mut Grid<Option<Cell>>) {
         .skip(1)
         .take(interlace.n1 as usize)
     {
-        grid[p] = Some(Cell::no_color(Segment::UpAndLeft));
+        grid.set_at(p, Cell::no_color(Segment::UpAndLeft));
     }
 
     for p in (interlace.left_corner() + PositionDelta::to_right())
@@ -67,7 +70,7 @@ fn make_paths(interlace: &Interlace, grid: &mut Grid<Option<Cell>>) {
             .iter(PositionDelta::to_bottom_right())
             .take((interlace.n2 + 1) as usize)
         {
-            grid[p2] = Some(Cell::no_color(Segment::Horizontal));
+            grid.set_at(p2, Cell::no_color(Segment::Horizontal));
         }
     }
 
@@ -79,7 +82,7 @@ fn make_paths(interlace: &Interlace, grid: &mut Grid<Option<Cell>>) {
             .iter(PositionDelta::to_bottom_right())
             .take(interlace.n2 as usize)
         {
-            grid[p2] = Some(Cell::no_color(Segment::Vertical));
+            grid.set_at(p2, Cell::no_color(Segment::Vertical));
         }
     }
 
@@ -89,7 +92,7 @@ fn make_paths(interlace: &Interlace, grid: &mut Grid<Option<Cell>>) {
         .skip(1)
         .take(interlace.n2 as usize)
     {
-        grid[p] = Some(Cell::no_color(Segment::UpAndRight));
+        grid.set_at(p, Cell::no_color(Segment::UpAndRight));
     }
 
     for p in interlace
@@ -98,25 +101,25 @@ fn make_paths(interlace: &Interlace, grid: &mut Grid<Option<Cell>>) {
         .skip(1)
         .take(interlace.n2 as usize)
     {
-        grid[p] = Some(Cell::no_color(Segment::DownAndLeft));
+        grid.set_at(p, Cell::no_color(Segment::DownAndLeft));
     }
 }
 
-fn print_grid(grid: &Grid<Option<Cell>>) {
+fn print_grid(grid: &Grid) {
     let print_border_row = |first_segment, last_segment| {
         println!(
             "{}{}{}",
             first_segment,
             Segment::Horizontal
                 .to_string()
-                .repeat((grid.size * 2 + 1) as usize),
+                .repeat((grid.size() * 2 + 1) as usize),
             last_segment
         );
     };
 
     print_border_row(Segment::DownAndRight, Segment::DownAndLeft);
 
-    for row in &grid.content {
+    for row in grid.rows_iter() {
         print!("{} ", Segment::Vertical);
         for cell in row {
             let (char, color_number) = match cell {

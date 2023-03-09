@@ -10,10 +10,6 @@ impl Interlace {
         Interlace { n1, n2 }
     }
 
-    pub fn required_grid_size(&self) -> u8 {
-        3 + self.n1 + self.n2
-    }
-
     pub fn left_corner(&self) -> Position {
         Position {
             row: (self.n1 + 1) as i8,
@@ -46,12 +42,6 @@ impl Interlace {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn required_grid_size() {
-        assert_eq!(Interlace::new(0, 0).required_grid_size(), 3);
-        assert_eq!(Interlace::new(2, 5).required_grid_size(), 10);
-    }
 
     #[test]
     fn corners() {

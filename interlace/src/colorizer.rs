@@ -5,13 +5,13 @@ use crate::position::{Position, PositionDelta};
 use crate::segment::Segment;
 
 pub struct Colorizer<'a> {
-    grid: &'a mut Grid<Option<Cell>>,
+    grid: &'a mut Grid,
     interlace: &'a Interlace,
     number_of_colors: usize,
 }
 
 impl<'a> Colorizer<'a> {
-    pub fn colorize(grid: &mut Grid<Option<Cell>>, interlace: &Interlace) -> usize {
+    pub fn colorize(grid: &mut Grid, interlace: &Interlace) -> usize {
         let mut colorizer = Colorizer {
             grid,
             interlace,
@@ -30,9 +30,7 @@ impl<'a> Colorizer<'a> {
     }
 
     fn colorize_from(&mut self, position: Position, direction: Direction) -> bool {
-        let cell = self.grid[position]
-            .as_mut()
-            .expect("Tried to colorize from outside of the interlace");
+        let cell = self.grid.at_mut(position);
 
         if cell.color_number.is_some() {
             false
@@ -106,7 +104,7 @@ impl Direction {
 struct Cursor<'a> {
     position: Position,
     direction: Direction,
-    grid: &'a mut Grid<Option<Cell>>,
+    grid: &'a mut Grid,
 }
 impl<'a> Cursor<'a> {
     fn advance(&mut self) -> Option<&mut Cell> {
@@ -129,11 +127,9 @@ impl<'a> Cursor<'a> {
         let cell = self.grid.get_mut(self.position);
 
         let cell = match cell {
-            Some(cell) => cell.as_mut(),
+            Some(cell) => cell,
             None => return AdvanceResult::NotFound,
         };
-
-        let cell = cell.expect("Outside the interlace");
 
         if let Some(next_direction) = self.direction.through(cell.segment) {
             if cell.color_number.is_some() {
