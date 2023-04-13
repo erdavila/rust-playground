@@ -1,5 +1,6 @@
 [workspace]
 members = [
+    "approximate_count_distinct",
     "avl_tree",
     "clone_on_mut",
     "closures",
