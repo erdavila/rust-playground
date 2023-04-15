@@ -4,6 +4,7 @@ members = [
     "avl_tree",
     "clone_on_mut",
     "closures",
+    "deterministic-chooser",
     "insertion_order_hash_map",
     "interlace",
     "ref_count",
