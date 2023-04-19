@@ -29,7 +29,7 @@ fn main() {
     // let value: f64 = 12345.67890;
     // let value: f64 = f64::MAX;
     // let value: f64 = f64::from_bits(0x3FD5_5555_5555_5555);
-    let value: f64 = std::f64::consts::PI;
+    // let value: f64 = std::f64::consts::PI;
 
     // ZERO
     // let value: f64 = 0.0;
@@ -46,6 +46,34 @@ fn main() {
     // SUBNORMAL
     // let value: f64 = f64::from_bits(0x01);
     // let value: f64 = f64::from_bits(0x000F_FFFF_FFFF_FFFF);
+
+    //-------------------------------------------------------------------
+
+    // NORMAL
+    // let value: f32 = 1.0;
+    // let value: f32 = -1.0;
+    // let value: f32 = 3.0;
+    // let value: f32 = 0.123456789;
+    // let value: f32 = 12345.67890;
+    // let value: f32 = f32::MAX;
+    // let value: f32 = f32::from_bits(0x3EAA_AAAB);
+    let value: f32 = std::f32::consts::PI;
+
+    // ZERO
+    // let value: f32 = 0.0;
+    // let value: f32 = -0.0;
+
+    // INFINITY
+    // let value: f32 = f32::INFINITY;
+    // let value: f32 = f32::NEG_INFINITY;
+
+    // NAN
+    // let value: f32 = f32::NAN;
+    // let value: f32 = -f32::NAN;
+
+    // SUBNORMAL
+    // let value: f32 = f32::from_bits(0x01);
+    // let value: f32 = f32::from_bits(0x007F_FFFF);
 
     explore(value);
 }
