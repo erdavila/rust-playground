@@ -1,6 +1,7 @@
 use std::fmt::Display;
 use std::num::FpCategory;
 
+use args::WrappedFloatingPointNumber;
 use fpnumber::FloatingPointNumber;
 
 use crate::ansi::{
@@ -10,6 +11,7 @@ use crate::bit_groups::{BitGroups, Colorizer};
 use crate::bits::Bits;
 
 mod ansi;
+mod args;
 mod bit_groups;
 mod bits;
 mod fpnumber;
@@ -21,61 +23,15 @@ const CATEGORY_INFINITY: &str = "INFINITY";
 const CATEGORY_NAN: &str = "NAN";
 
 fn main() {
-    // NORMAL
-    // let value: f64 = 1.0;
-    // let value: f64 = -1.0;
-    // let value: f64 = 3.0;
-    // let value: f64 = 0.123456789;
-    // let value: f64 = 12345.67890;
-    // let value: f64 = f64::MAX;
-    // let value: f64 = f64::from_bits(0x3FD5_5555_5555_5555);
-    // let value: f64 = std::f64::consts::PI;
-
-    // ZERO
-    // let value: f64 = 0.0;
-    // let value: f64 = -0.0;
-
-    // INFINITY
-    // let value: f64 = f64::INFINITY;
-    // let value: f64 = f64::NEG_INFINITY;
-
-    // NAN
-    // let value: f64 = f64::NAN;
-    // let value: f64 = -f64::NAN;
-
-    // SUBNORMAL
-    // let value: f64 = f64::from_bits(0x01);
-    // let value: f64 = f64::from_bits(0x000F_FFFF_FFFF_FFFF);
-
-    //-------------------------------------------------------------------
-
-    // NORMAL
-    // let value: f32 = 1.0;
-    // let value: f32 = -1.0;
-    // let value: f32 = 3.0;
-    // let value: f32 = 0.123456789;
-    // let value: f32 = 12345.67890;
-    // let value: f32 = f32::MAX;
-    // let value: f32 = f32::from_bits(0x3EAA_AAAB);
-    let value: f32 = std::f32::consts::PI;
-
-    // ZERO
-    // let value: f32 = 0.0;
-    // let value: f32 = -0.0;
-
-    // INFINITY
-    // let value: f32 = f32::INFINITY;
-    // let value: f32 = f32::NEG_INFINITY;
-
-    // NAN
-    // let value: f32 = f32::NAN;
-    // let value: f32 = -f32::NAN;
-
-    // SUBNORMAL
-    // let value: f32 = f32::from_bits(0x01);
-    // let value: f32 = f32::from_bits(0x007F_FFFF);
-
-    explore(value);
+    match args::parse() {
+        Ok(Some(WrappedFloatingPointNumber::SinglePrecision(n))) => explore(n),
+        Ok(Some(WrappedFloatingPointNumber::DoublePrecision(n))) => explore(n),
+        Ok(None) => (),
+        Err(e) => {
+            eprintln!("ERROR: {e}");
+            eprintln!("Execute with --help for expected arguments");
+        }
+    }
 }
 
 fn explore<N: FloatingPointNumber>(value: N) {
