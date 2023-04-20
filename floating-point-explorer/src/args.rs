@@ -1,6 +1,7 @@
 use std::env;
 use std::num::{ParseFloatError, ParseIntError};
 
+use crate::bits::Bits;
 use crate::fpnumber::FloatingPointNumber;
 
 pub enum WrappedFloatingPointNumber {
@@ -111,7 +112,7 @@ pub fn parse() -> Result<Option<WrappedFloatingPointNumber>> {
 fn parse_value<N: FloatingPointNumber>(arg: &str) -> Result<N> {
     for f in [
         parse_nan,
-        parse_infinity,
+        parse_predefined_value,
         parse_binary,
         parse_hexadecimal,
         parse_decimal_bytes,
@@ -130,7 +131,7 @@ fn parse_nan<N: FloatingPointNumber>(arg: &str) -> Result<Option<N>> {
     Ok((arg == "nan").then_some(N::NAN))
 }
 
-fn parse_infinity<N: FloatingPointNumber>(arg: &str) -> Result<Option<N>> {
+fn parse_predefined_value<N: FloatingPointNumber>(arg: &str) -> Result<Option<N>> {
     let (negative, arg) = if let Some(arg) = arg.strip_prefix('-') {
         (true, arg)
     } else if let Some(arg) = arg.strip_prefix('+') {
@@ -139,13 +140,26 @@ fn parse_infinity<N: FloatingPointNumber>(arg: &str) -> Result<Option<N>> {
         (false, arg)
     };
 
-    Ok(matches!(arg, "inf" | "infinity" | "infinite").then(|| {
-        if negative {
-            N::NEG_INFINITY
-        } else {
-            N::INFINITY
+    let compose = |exponent_bits, fraction_bits| {
+        N::from_bits((exponent_bits << N::FRACTION_BITS) | fraction_bits)
+    };
+    let all_exponent_bits_set = || Bits::mask(N::EXPONENT_BITS);
+    let all_fraction_bits_set = || Bits::mask(N::FRACTION_BITS);
+
+    let value = match arg {
+        "inf" | "infinity" | "infinite" => compose(all_exponent_bits_set(), 0),
+        "largest_normal" | "largest" => {
+            compose(all_exponent_bits_set() - 1, all_fraction_bits_set())
         }
-    }))
+        "smallest_normal" => compose(1, 0),
+        "largest_subnormal" => compose(0, all_fraction_bits_set()),
+        "smallest_subnormal" | "smallest" => compose(0, 1),
+        "pi" => N::PI,
+        "e" => N::E,
+        _ => return Ok(None),
+    };
+
+    Ok(Some(if negative { -value } else { value }))
 }
 
 fn parse_binary<N: FloatingPointNumber>(arg: &str) -> Result<Option<N>> {
@@ -305,14 +319,20 @@ fn print_help() {
     println!("      single 1.2e3  # meaning 1.2 x 10^3 = 1200.0");
     println!("      double -1.2b-3  # meaning -1.2 x 2^-3 = -0.15");
     println!();
-    println!("  Infinity - an optional sign followed by 'inf', 'infinity', or 'infinite'.");
-    println!("    Examples:");
-    println!("      single inf");
-    println!("      single -inf");
-    println!("      double +infinity");
-    println!();
     println!("  Not-a-number - simply the string 'NaN'.");
     println!("    Examples:");
     println!("      single NAN");
     println!("      double nan");
+    println!();
+    println!("  Predefined values - all optionally signed.");
+    println!("    'inf' or 'infinity' or 'infinite'");
+    println!("    'largest_normal' or 'largest'");
+    println!("    'smallest_normal'");
+    println!("    'largest_subnormal'");
+    println!("    'smallest_subnormal' or 'smallest'");
+    println!("    'pi'");
+    println!("    'e'");
+    println!("    Examples:");
+    println!("      single -inf");
+    println!("      double +smallest");
 }
