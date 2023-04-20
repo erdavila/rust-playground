@@ -65,8 +65,9 @@ fn explore<N: FloatingPointNumber>(value: N) {
 
     let value_composition = |exponent, int| {
         format!(
-            "{value} = (-1)^{sign} x 2^{exponent} x ({int} + {fraction})",
+            "{value} = {value_exp} = (-1)^{sign} x 2^{exponent} x ({int} + {fraction})",
             value = bold(ensure_dot(value)),
+            value_exp = bold(format!("{value:e}")),
             sign = sign_color(sign_bits.value),
         )
     };

@@ -1,9 +1,9 @@
-use std::fmt::Display;
+use std::fmt::{Display, LowerExp};
 use std::num::{FpCategory, ParseFloatError, ParseIntError};
 use std::ops::{Div, Mul};
 use std::str::FromStr;
 
-pub trait FloatingPointNumber: Copy + Display
+pub trait FloatingPointNumber: Copy + Display + LowerExp
 where
     Self: Div<Self, Output = Self>,
     Self: Mul<Self, Output = Self>,
