@@ -10,6 +10,7 @@ members = [
     "happy_number",
     "insertion_order_hash_map",
     "interlace",
+    "ratatui-scrolling",
     "ref_count",
     "syn-dump",
     "tailcall",
