@@ -1,132 +1,221 @@
-use crate::Type;
+use crate::Object;
 
-pub fn emulation() {
-    emulate_fn();
-    emulate_fn_mut();
-    emulate_fn_once();
+trait EmulatedFnOnce<Args> {
+    type Output;
+
+    fn call_once(self, args: Args) -> Self::Output;
 }
 
-fn emulate_fn() {
-    let mut value = Type;
+trait EmulatedFnMut<Args>: EmulatedFnOnce<Args> {
+    fn call_mut(&mut self, args: Args) -> Self::Output;
+}
 
-    struct Closure<'a> {
-        captured: &'a Type,
-    }
-    impl FnOnceClosure<()> for Closure<'_> {
-        type Output = ();
-        fn call_once(mut self, args: ()) -> Self::Output {
-            self.call_mut(args)
+trait EmulatedFn<Args>: EmulatedFnMut<Args> {
+    fn call(&self, args: Args) -> Self::Output;
+}
+
+pub fn test() {
+    test_fn();
+    test_fn_mut();
+    test_fn_once();
+}
+
+fn test_fn() {
+    let obj_ref = &Object;
+    let obj_mut_ref = &mut Object;
+    let mut owned = Object;
+
+    let closure = {
+        struct EmulatedFn<'a>(&'a Object, &'a Object, &'a Object);
+        let closure = EmulatedFn(
+            obj_ref,     // Immutable reference captured as immutable reference
+            obj_mut_ref, // Mutable reference captured as immutable reference
+            &owned,      // Owned value captured as immutable reference
+        );
+        impl self::EmulatedFnOnce<()> for EmulatedFn<'_> {
+            type Output = ();
+            fn call_once(mut self, args: ()) -> Self::Output {
+                self.call_mut(args)
+            }
         }
-    }
-    impl FnMutClosure<()> for Closure<'_> {
-        fn call_mut(&mut self, args: ()) -> Self::Output {
-            self.call(args);
+        impl self::EmulatedFnMut<()> for EmulatedFn<'_> {
+            fn call_mut(&mut self, args: ()) -> Self::Output {
+                self.call(args);
+            }
         }
-    }
-    impl FnClosure<()> for Closure<'_> {
-        fn call(&self, _: ()) -> Self::Output {
-            self.captured.access();
+        impl self::EmulatedFn<()> for EmulatedFn<'_> {
+            fn call(&self, _: ()) -> Self::Output {
+                let EmulatedFn(obj_ref, obj_mut_ref, owned) = self;
+
+                obj_ref.access();
+                obj_mut_ref.access();
+                owned.access();
+
+                // obj_mut_ref.mutate(); // Mutability required
+                // owned.mutate(); // Mutability required
+
+                // owned.r#move(); // Ownership required
+            }
         }
-    }
-    let closure = Closure { captured: &value };
+        closure
+    };
 
     let closure = accept_fn(closure);
     let closure = accept_fn_mut(closure);
     let closure = accept_fn_once(closure);
 
-    value.access();
-    // value.mutate(); // Cannot borrow as mutable because it is borrowed as immutable by the closure
+    obj_ref.access();
+    obj_mut_ref.access();
+    owned.access();
+
+    // obj_mut_ref.mutate(); // Cannot borrow as mutable because it is borrowed as mutable by the closure
+    // owned.mutate(); // Cannot borrow as mutable because it is borrowed as immutable by the closure
+
+    // owned.r#move(); // Cannot move because it is borrowed by the closure
 
     closure.call(());
     closure.call(()); // Can be called again
 
-    value.mutate(); // Can borrow as mutable because it is not borrowed anymore
+    obj_ref.access();
+    obj_mut_ref.access();
+    owned.access();
+
+    obj_mut_ref.mutate();
+    owned.mutate();
+
+    owned.r#move();
 }
 
-fn emulate_fn_mut() {
-    let mut value = Type;
+fn test_fn_mut() {
+    let obj_ref = &Object;
+    let obj_mut_ref = &mut Object;
+    let mut owned = Object;
 
-    struct Closure<'a> {
-        captured: &'a mut Type,
-    }
-    impl FnOnceClosure<()> for Closure<'_> {
-        type Output = ();
-        fn call_once(mut self, args: ()) -> Self::Output {
-            self.call_mut(args)
+    let closure = {
+        struct EmulatedFnMut<'a>(&'a Object, &'a mut Object, &'a mut Object);
+        let closure = EmulatedFnMut(
+            obj_ref,     // Immutable reference captured as immutable reference
+            obj_mut_ref, // Mutable reference captured as mutable reference
+            &mut owned,  // Owned value captured as mutable reference
+        );
+        impl self::EmulatedFnOnce<()> for EmulatedFnMut<'_> {
+            type Output = ();
+            fn call_once(mut self, args: ()) -> Self::Output {
+                self.call_mut(args)
+            }
         }
-    }
-    impl FnMutClosure<()> for Closure<'_> {
-        fn call_mut(&mut self, _: ()) -> Self::Output {
-            self.captured.mutate();
+        impl self::EmulatedFnMut<()> for EmulatedFnMut<'_> {
+            fn call_mut(&mut self, _: ()) -> Self::Output {
+                let EmulatedFnMut(obj_ref, obj_mut_ref, owned) = self;
+
+                obj_ref.access();
+                obj_mut_ref.access();
+                owned.access();
+
+                obj_mut_ref.mutate();
+                owned.mutate();
+
+                // owned.r#move(); // Cannot move because it is borrowed
+            }
         }
-    }
-    let closure = Closure {
-        captured: &mut value,
+        closure
     };
 
     // let closure = accept_fn(closure); // Closure that mutates captured value cannot be FnClosure
     let closure = accept_fn_mut(closure);
     let closure = accept_fn_once(closure);
 
-    // value.access(); // Cannot borrow as immutable because it is borrowed as mutable by the closure
-    // value.mutate(); // Cannot borrow as mutable because it is borrowed as mutable by the closure
+    obj_ref.access();
+    // obj_mut_ref.access(); // Cannot borrow as immutable because it is borrowed as mutable by the closure
+    // owned.access(); // Cannot borrow as immutable because it is borrowed as mutable by the closure
+
+    // obj_mut_ref.mutate(); // Cannot borrow as mutable because it is borrowed as mutable by the closure
+    // owned.mutate(); // Cannot borrow as mutable because it is borrowed as immutable by the closure
+
+    // owned.r#move(); // Cannot move because it is borrowed by the closure
 
     let mut closure = closure;
     closure.call_mut(());
     closure.call_mut(()); // Can be called again
 
-    value.mutate(); // Can borrow as mutable because it is not borrowed anymore
+    obj_ref.access();
+    obj_mut_ref.access();
+    owned.access();
+
+    obj_mut_ref.mutate();
+    owned.mutate();
+
+    owned.r#move();
 }
 
-fn emulate_fn_once() {
-    let value = Type;
+fn test_fn_once() {
+    let obj_ref = &Object;
+    let obj_mut_ref = &mut Object;
+    let owned = Object; // EMULATION DISCREPANCY: Mutability is not required
 
-    struct Closure {
-        captured: Type,
-    }
-    impl FnOnceClosure<()> for Closure {
-        type Output = ();
-        fn call_once(self, _: ()) -> Self::Output {
-            self.captured.use_ownership();
+    let closure = {
+        struct EmulatedFnOnce<'a>(&'a Object, &'a mut Object, Object);
+        let closure = EmulatedFnOnce(
+            obj_ref,     // Immutable reference captured as immutable reference
+            obj_mut_ref, // Mutable reference captured as mutable reference
+            owned,       // Owned value captured by moving
+        );
+        impl<'a> self::EmulatedFnOnce<()> for EmulatedFnOnce<'a> {
+            type Output = ();
+            fn call_once(self, _: ()) -> Self::Output {
+                let EmulatedFnOnce(
+                    obj_ref,
+                    obj_mut_ref,
+                    mut owned, // EMULATION: Mutability must be signaled here
+                ) = self;
+
+                obj_ref.access();
+                obj_mut_ref.access();
+                owned.access();
+
+                obj_mut_ref.mutate();
+                owned.mutate();
+
+                owned.r#move();
+            }
         }
-    }
-    let closure = Closure { captured: value };
+        closure
+    };
 
     // let closure = accept_fn(closure); // Closure that uses ownership of captured value cannot be FnClosure
     // let closure = accept_fn_mut(closure); // Closure that uses ownership of captured value cannot be FnMutClosure
     let closure = accept_fn_once(closure);
 
-    // value.access(); // Cannot borrow moved value
-    // value.mutate(); // Cannot borrow moved value
+    obj_ref.access();
+    // obj_mut_ref.access(); // Cannot borrow as immutable because it is borrowed as mutable by the closure
+    // owned.access(); // Cannot borrow because it is moved by the closure
+
+    // obj_mut_ref.mutate(); // Cannot borrow as mutable because it is borrowed as mutable by the closure
+    // owned.mutate(); // Cannot borrow because it is moved by the closure
+
+    // owned.r#move(); // Cannot move because it is moved by the closure
 
     closure.call_once(());
     // closure.call_once(()); // Cannot be called again
 
-    // value.mutate(); // Cannot borrow moved value
+    obj_ref.access();
+    obj_mut_ref.access();
+    // owned.access(); // Cannot borrow because it was moved by the closure
+
+    obj_mut_ref.mutate();
+    // owned.mutate(); // Cannot borrow because it was moved by the closure
+
+    // owned.r#move(); // Cannot borrow because it was moved by the closure
 }
 
-trait FnOnceClosure<Args> {
-    type Output;
-
-    fn call_once(self, args: Args) -> Self::Output;
-}
-
-trait FnMutClosure<Args>: FnOnceClosure<Args> {
-    fn call_mut(&mut self, args: Args) -> Self::Output;
-}
-
-trait FnClosure<Args>: FnMutClosure<Args> {
-    fn call(&self, args: Args) -> Self::Output;
-}
-
-fn accept_fn<Args, F: FnClosure<Args>>(f: F) -> F {
+fn accept_fn<Args, F: EmulatedFn<Args>>(f: F) -> F {
     f
 }
 
-fn accept_fn_mut<Args, F: FnMutClosure<Args>>(f: F) -> F {
+fn accept_fn_mut<Args, F: EmulatedFnMut<Args>>(f: F) -> F {
     f
 }
 
-fn accept_fn_once<Args, F: FnOnceClosure<Args>>(f: F) -> F {
+fn accept_fn_once<Args, F: EmulatedFnOnce<Args>>(f: F) -> F {
     f
 }
