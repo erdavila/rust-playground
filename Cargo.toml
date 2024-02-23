@@ -6,6 +6,7 @@ members = [
     "clone_on_mut",
     "closures",
     "deterministic-chooser",
+    "emulated_closures",
     "floating-point-explorer",
     "happy_number",
     "insertion_order_hash_map",
