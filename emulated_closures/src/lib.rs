@@ -1,3 +1,5 @@
+pub mod composition;
+
 pub trait EmulatedFnOnce<Args> {
     type Output;
 
