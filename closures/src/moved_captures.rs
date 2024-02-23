@@ -16,10 +16,10 @@ fn test_fn() {
         obj_mut_ref.access();
         owned.access();
 
-        // obj_mut_ref.mutate(); // The closure would be FnMut
-        // owned.mutate(); // The closure would be FnMut
+        // obj_mut_ref.mutate(); // Mutability required - the closure couldn't be Fn
+        // owned.mutate(); // Mutability required - the closure couldn't be Fn
 
-        // owned.r#move(); // The closure would be FnOnce
+        // owned.r#move(); // Ownership required - the closure couldn't be Fn
     };
 
     let closure = accept_fn(closure);
@@ -51,7 +51,7 @@ fn test_fn_mut() {
         obj_mut_ref.mutate();
         owned.mutate();
 
-        // owned.r#move(); // The closure would be FnOnce
+        // owned.r#move(); // Ownership required - the closure couldn't be FnMu
     };
 
     // let closure = accept_fn(closure); // Closure that mutates captured value cannot be Fn
