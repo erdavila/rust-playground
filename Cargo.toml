@@ -13,6 +13,7 @@ members = [
     "interlace",
     "ratatui-scrolling",
     "ref_count",
+    "shared_ownership",
     "syn-dump",
     "tailcall",
 ]
