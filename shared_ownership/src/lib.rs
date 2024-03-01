@@ -1,5 +1,7 @@
+mod shared_mutable_ownership;
 mod shared_ownership;
 
+pub use shared_mutable_ownership::*;
 pub use shared_ownership::*;
 
 #[cfg(test)]
@@ -24,6 +26,10 @@ mod tests {
 
         pub(crate) fn access(&self) {
             self.0.borrow_mut().accesses += 1;
+        }
+
+        pub(crate) fn mutate(&mut self) {
+            self.0.borrow_mut().mutations += 1;
         }
     }
 }
