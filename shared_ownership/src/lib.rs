@@ -1,6 +1,8 @@
+mod shared_movable_ownership;
 mod shared_mutable_ownership;
 mod shared_ownership;
 
+pub use shared_movable_ownership::*;
 pub use shared_mutable_ownership::*;
 pub use shared_ownership::*;
 
@@ -30,6 +32,10 @@ mod tests {
 
         pub(crate) fn mutate(&mut self) {
             self.0.borrow_mut().mutations += 1;
+        }
+
+        pub(crate) fn r#move(self) {
+            self.0.borrow_mut().moves += 1;
         }
     }
 }
