@@ -1,5 +1,6 @@
-pub use std::cell::{Ref, RefMut};
 use std::{cell::RefCell, rc::Rc};
+
+use crate::refs::{Ref, RefMut};
 
 pub struct SharedMutableOwnership<T>(Rc<RefCell<T>>);
 
@@ -15,11 +16,11 @@ impl<T> SharedMutableOwnership<T> {
     }
 
     pub fn get_ref(&self) -> Ref<T> {
-        self.refcell().borrow()
+        Ref(self.refcell().borrow())
     }
 
     pub fn get_mut(&mut self) -> RefMut<T> {
-        self.refcell().borrow_mut()
+        RefMut(self.refcell().borrow_mut())
     }
 
     fn refcell(&self) -> &RefCell<T> {

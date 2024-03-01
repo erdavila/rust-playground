@@ -1,5 +1,9 @@
-pub use std::cell::{Ref, RefMut};
-use std::{cell::RefCell, rc::Rc};
+use std::{
+    cell::{self, RefCell},
+    rc::Rc,
+};
+
+use crate::{Ref, RefMut};
 
 pub struct SharedMovableOwnership<T>(Rc<RefCell<Option<T>>>);
 
@@ -16,16 +20,20 @@ impl<T> SharedMovableOwnership<T> {
 
     pub fn get_ref(&self) -> Option<Ref<T>> {
         let refcell_ref = self.refcell().borrow();
-        refcell_ref
-            .is_some()
-            .then(|| Ref::map(refcell_ref, |option| option.as_ref().unwrap()))
+        refcell_ref.is_some().then(|| {
+            Ref(cell::Ref::map(refcell_ref, |option| {
+                option.as_ref().unwrap()
+            }))
+        })
     }
 
     pub fn get_mut(&mut self) -> Option<RefMut<T>> {
         let refcell_refmut = self.refcell().borrow_mut();
-        refcell_refmut
-            .is_some()
-            .then(|| RefMut::map(refcell_refmut, |option| option.as_mut().unwrap()))
+        refcell_refmut.is_some().then(|| {
+            RefMut(cell::RefMut::map(refcell_refmut, |option| {
+                option.as_mut().unwrap()
+            }))
+        })
     }
 
     pub fn r#move(self) -> Option<T> {
