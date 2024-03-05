@@ -3,10 +3,21 @@ mod shared_movable_ownership;
 mod shared_mutable_ownership;
 mod shared_ownership;
 
+use std::{error::Error, fmt::Display};
+
 pub use refs::*;
 pub use shared_movable_ownership::*;
 pub use shared_mutable_ownership::*;
 pub use shared_ownership::*;
+
+#[derive(Debug)]
+pub struct AlreadyMutablyBorrowed;
+impl Error for AlreadyMutablyBorrowed {}
+impl Display for AlreadyMutablyBorrowed {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{self:?}")
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -19,6 +30,7 @@ mod tests {
         pub(crate) moves: u32,
     }
 
+    #[derive(Debug)]
     pub(crate) struct Value(Rc<RefCell<Usage>>);
 
     impl Value {

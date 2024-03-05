@@ -1,6 +1,9 @@
 use std::{cell::RefCell, rc::Rc};
 
-use crate::refs::{Ref, RefMut};
+use crate::{
+    refs::{Ref, RefMut},
+    AlreadyMutablyBorrowed,
+};
 
 pub struct SharedMutableOwnership<T>(Rc<RefCell<T>>);
 
@@ -21,6 +24,20 @@ impl<T> SharedMutableOwnership<T> {
 
     pub fn get_mut(&mut self) -> RefMut<T> {
         RefMut(self.refcell().borrow_mut())
+    }
+
+    pub fn try_get_ref(&self) -> Result<Ref<T>, AlreadyMutablyBorrowed> {
+        self.refcell()
+            .try_borrow()
+            .map(Ref)
+            .map_err(|_| AlreadyMutablyBorrowed)
+    }
+
+    pub fn try_get_mut(&mut self) -> Result<RefMut<T>, AlreadyMutablyBorrowed> {
+        self.refcell()
+            .try_borrow_mut()
+            .map(RefMut)
+            .map_err(|_| AlreadyMutablyBorrowed)
     }
 
     fn refcell(&self) -> &RefCell<T> {
@@ -115,5 +132,98 @@ mod tests {
                 moves: 0,
             }
         );
+    }
+
+    #[test]
+    fn try_get_when_not_borrowed() {
+        let (val, val_usage) = Value::new_with_usage();
+
+        let shared = SharedMutableOwnership::new(val);
+
+        shared.try_get_ref().unwrap().access();
+
+        assert_eq!(
+            *val_usage.borrow(),
+            Usage {
+                accesses: 1,
+                mutations: 0,
+                moves: 0,
+            }
+        );
+    }
+
+    #[test]
+    fn try_get_when_immutably_borrowed() {
+        let (val, val_usage) = Value::new_with_usage();
+
+        let shared1 = SharedMutableOwnership::new(val);
+        let shared2 = shared1.clone();
+
+        let _val_ref = shared1.get_ref();
+
+        shared2.try_get_ref().unwrap().access();
+
+        assert_eq!(
+            *val_usage.borrow(),
+            Usage {
+                accesses: 1,
+                mutations: 0,
+                moves: 0,
+            }
+        );
+    }
+
+    #[test]
+    fn try_get_when_mutably_borrowed() {
+        let (val, _val_usage) = Value::new_with_usage();
+
+        let mut shared1 = SharedMutableOwnership::new(val);
+        let shared2 = shared1.clone();
+
+        let _val_ref_mut = shared1.get_mut();
+
+        assert!(shared2.try_get_ref().is_err());
+    }
+
+    #[test]
+    fn try_get_mut_when_not_borrowed() {
+        let (val, val_usage) = Value::new_with_usage();
+
+        let mut shared = SharedMutableOwnership::new(val);
+
+        shared.try_get_mut().unwrap().mutate();
+
+        assert_eq!(
+            *val_usage.borrow(),
+            Usage {
+                accesses: 0,
+                mutations: 1,
+                moves: 0,
+            }
+        );
+    }
+
+    #[test]
+    fn try_get_mut_when_immutably_borrowed() {
+        let (val, _val_usage) = Value::new_with_usage();
+
+        let shared1 = SharedMutableOwnership::new(val);
+        let mut shared2 = shared1.clone();
+
+        let _val_ref_mut = shared1.get_ref();
+
+        assert!(shared2.try_get_mut().is_err());
+    }
+
+    #[test]
+    fn try_get_mut_when_mutably_borrowed() {
+        let (val, _val_usage) = Value::new_with_usage();
+
+        let mut shared1 = SharedMutableOwnership::new(val);
+        let mut shared2 = shared1.clone();
+
+        let _val_ref_mut = shared1.get_mut();
+
+        assert!(shared2.try_get_mut().is_err());
     }
 }
