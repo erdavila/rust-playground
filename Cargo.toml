@@ -3,6 +3,7 @@ resolver = "2"
 members = [
     "approximate_count_distinct",
     "avl_tree",
+    "build-env-vars",
     "clone_on_mut",
     "closures",
     "deterministic-chooser",
