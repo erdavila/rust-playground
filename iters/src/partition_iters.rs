@@ -1,12 +1,30 @@
 use std::{cell::RefCell, collections::VecDeque, fmt::Debug, iter::FusedIterator, rc::Rc};
 
-type PartitionId = bool;
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum PartitionId {
+    True,
+    False,
+}
+impl PartitionId {
+    fn other(self) -> PartitionId {
+        match self {
+            PartitionId::True => PartitionId::False,
+            PartitionId::False => PartitionId::True,
+        }
+    }
+}
+impl From<bool> for PartitionId {
+    fn from(value: bool) -> Self {
+        if value {
+            PartitionId::True
+        } else {
+            PartitionId::False
+        }
+    }
+}
 
 pub trait PartitionIters: Iterator + Sized {
-    fn partition_iters<P>(
-        self,
-        predicate: P,
-    ) -> (PartitionIter<true, Self, P>, PartitionIter<false, Self, P>)
+    fn partition_iters<P>(self, predicate: P) -> (PartitionIter<Self, P>, PartitionIter<Self, P>)
     where
         P: FnMut(&Self::Item) -> bool,
     {
@@ -14,14 +32,20 @@ pub trait PartitionIters: Iterator + Sized {
             source: self,
             predicate,
             pending: VecDeque::new(),
-            pending_partition_id: false,
+            pending_partition_id: PartitionId::False,
         };
 
         let state1 = Rc::new(RefCell::new(state));
         let state2 = Rc::clone(&state1);
 
-        let it1 = PartitionIter { state: state1 };
-        let it2 = PartitionIter { state: state2 };
+        let it1 = PartitionIter {
+            partition_id: PartitionId::True,
+            state: state1,
+        };
+        let it2 = PartitionIter {
+            partition_id: PartitionId::False,
+            state: state2,
+        };
 
         (it1, it2)
     }
@@ -30,14 +54,15 @@ pub trait PartitionIters: Iterator + Sized {
 impl<I> PartitionIters for I where I: Iterator {}
 
 #[derive(Clone)]
-pub struct PartitionIter<const PARTITION_ID: PartitionId, I, P>
+pub struct PartitionIter<I, P>
 where
     I: Iterator,
     P: FnMut(&I::Item) -> bool,
 {
+    partition_id: PartitionId,
     state: Rc<RefCell<State<I, P>>>,
 }
-impl<const PARTITION_ID: PartitionId, I, P> Iterator for PartitionIter<PARTITION_ID, I, P>
+impl<I, P> Iterator for PartitionIter<I, P>
 where
     I: Iterator,
     P: FnMut(&I::Item) -> bool,
@@ -45,16 +70,16 @@ where
     type Item = I::Item;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.state.borrow_mut().next(PARTITION_ID)
+        self.state.borrow_mut().next(self.partition_id)
     }
 }
-impl<const PARTITION_ID: PartitionId, I, P> FusedIterator for PartitionIter<PARTITION_ID, I, P>
+impl<I, P> FusedIterator for PartitionIter<I, P>
 where
     I: Iterator + FusedIterator,
     P: FnMut(&I::Item) -> bool,
 {
 }
-impl<const PARTITION_ID: PartitionId, I, P> Debug for PartitionIter<PARTITION_ID, I, P>
+impl<I, P> Debug for PartitionIter<I, P>
 where
     I: Iterator + Debug,
     I::Item: Debug,
@@ -93,14 +118,14 @@ where
         while next.is_none() {
             match self.source.next() {
                 Some(value) => {
-                    if (self.predicate)(&value) == partition_id {
+                    if PartitionId::from((self.predicate)(&value)) == partition_id {
                         next = Some(value)
                     } else {
                         debug_assert!(
                             self.pending_partition_id != partition_id || self.pending.is_empty()
                         );
                         self.pending.push_back(value);
-                        self.pending_partition_id = !partition_id;
+                        self.pending_partition_id = partition_id.other();
                     }
                 }
                 None => break,
