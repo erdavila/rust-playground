@@ -13,6 +13,7 @@ members = [
     "happy_number",
     "insertion_order_hash_map",
     "interlace",
+    "iters",
     "ratatui-scrolling",
     "ref_count",
     "shared_ownership",
