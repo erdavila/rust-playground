@@ -1,4 +1,8 @@
+mod evaluation;
+
 use std::{cell::RefCell, ops::DerefMut};
+
+use evaluation::{Eq, Evaluator, Gt, Lt, Not};
 
 pub trait CountIs: Iterator + Sized {
     fn count_is(self) -> CountIsEvaluator<Self> {
@@ -16,19 +20,8 @@ where
     I: Iterator,
 {
     fn eq(&self, other: &usize) -> bool {
-        let mut it = self.0.borrow_mut();
-        let mut count = 0;
-
-        loop {
-            if it.next().is_some() {
-                count += 1;
-                if count > *other {
-                    return false;
-                }
-            } else {
-                return count == *other;
-            }
-        }
+        let e = Eq::new(*other);
+        e.evaluate(&mut *self.0.borrow_mut())
     }
 }
 impl<I> PartialOrd<usize> for CountIsEvaluator<I>
@@ -62,27 +55,23 @@ where
     }
 
     fn lt(&self, other: &usize) -> bool {
-        if *other == 0 {
-            return false;
-        }
+        let e = Lt::new(*other);
+        e.evaluate(&mut *self.0.borrow_mut())
+    }
 
-        let mut it = self.0.borrow_mut();
-        let mut count = 0;
+    fn gt(&self, other: &usize) -> bool {
+        let e = Gt::new(*other);
+        e.evaluate(&mut *self.0.borrow_mut())
+    }
 
-        loop {
-            if it.next().is_some() {
-                count += 1;
-                if count >= *other {
-                    return false;
-                }
-            } else {
-                return count < *other;
-            }
-        }
+    fn le(&self, other: &usize) -> bool {
+        let e = Not::new(Gt::new(*other));
+        e.evaluate(&mut *self.0.borrow_mut())
     }
 
     fn ge(&self, other: &usize) -> bool {
-        !self.lt(other)
+        let e = Not::new(Lt::new(*other));
+        e.evaluate(&mut *self.0.borrow_mut())
     }
 }
 
