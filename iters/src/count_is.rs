@@ -31,6 +31,58 @@ where
         }
     }
 }
+impl<I> PartialOrd<usize> for CountIsEvaluator<I>
+where
+    I: Iterator,
+{
+    fn partial_cmp(&self, other: &usize) -> Option<std::cmp::Ordering> {
+        todo!()
+    }
+
+    fn lt(&self, other: &usize) -> bool {
+        if *other == 0 {
+            return false;
+        }
+
+        let mut it = self.0.borrow_mut();
+        let mut count = 0;
+
+        loop {
+            if it.next().is_some() {
+                count += 1;
+                if count >= *other {
+                    return false;
+                }
+            } else {
+                return count < *other;
+            }
+        }
+    }
+
+    fn le(&self, other: &usize) -> bool {
+        todo!()
+    }
+
+    fn gt(&self, other: &usize) -> bool {
+        let mut it = self.0.borrow_mut();
+        let mut count = 0;
+
+        loop {
+            if it.next().is_some() {
+                count += 1;
+                if count > *other {
+                    return true;
+                }
+            } else {
+                return count > *other;
+            }
+        }
+    }
+
+    fn ge(&self, other: &usize) -> bool {
+        todo!()
+    }
+}
 
 #[cfg(test)]
 mod tests {
@@ -99,5 +151,47 @@ mod tests {
         assert_op!((3 elems).count_is() != 2, 3);
         assert_op!((3 elems).count_is() != 3, 3);
         assert_op!((3 elems).count_is() != 4, 3);
+    }
+
+    #[test]
+    fn lt() {
+        assert_op!((0 elems).count_is() < 0, 0);
+        assert_op!((0 elems).count_is() < 1, 0);
+
+        assert_op!((1 elems).count_is() < 0, 0);
+        assert_op!((1 elems).count_is() < 1, 1);
+        assert_op!((1 elems).count_is() < 2, 1);
+
+        assert_op!((2 elems).count_is() < 0, 0);
+        assert_op!((2 elems).count_is() < 1, 1);
+        assert_op!((2 elems).count_is() < 2, 2);
+        assert_op!((2 elems).count_is() < 3, 2);
+
+        assert_op!((3 elems).count_is() < 0, 0);
+        assert_op!((3 elems).count_is() < 1, 1);
+        assert_op!((3 elems).count_is() < 2, 2);
+        assert_op!((3 elems).count_is() < 3, 3);
+        assert_op!((3 elems).count_is() < 4, 3);
+    }
+
+    #[test]
+    fn gt() {
+        assert_op!((0 elems).count_is() > 0, 0);
+        assert_op!((0 elems).count_is() > 1, 0);
+
+        assert_op!((1 elems).count_is() > 0, 1);
+        assert_op!((1 elems).count_is() > 1, 1);
+        assert_op!((1 elems).count_is() > 2, 1);
+
+        assert_op!((2 elems).count_is() > 0, 1);
+        assert_op!((2 elems).count_is() > 1, 2);
+        assert_op!((2 elems).count_is() > 2, 2);
+        assert_op!((2 elems).count_is() > 3, 2);
+
+        assert_op!((3 elems).count_is() > 0, 1);
+        assert_op!((3 elems).count_is() > 1, 2);
+        assert_op!((3 elems).count_is() > 2, 3);
+        assert_op!((3 elems).count_is() > 3, 3);
+        assert_op!((3 elems).count_is() > 4, 3);
     }
 }
