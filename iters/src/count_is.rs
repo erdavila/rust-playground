@@ -60,10 +60,6 @@ where
     }
 
     fn le(&self, other: &usize) -> bool {
-        todo!()
-    }
-
-    fn gt(&self, other: &usize) -> bool {
         let mut it = self.0.borrow_mut();
         let mut count = 0;
 
@@ -71,16 +67,20 @@ where
             if it.next().is_some() {
                 count += 1;
                 if count > *other {
-                    return true;
+                    return false;
                 }
             } else {
-                return count > *other;
+                return count <= *other;
             }
         }
     }
 
+    fn gt(&self, other: &usize) -> bool {
+        !self.le(other)
+    }
+
     fn ge(&self, other: &usize) -> bool {
-        todo!()
+        !self.lt(other)
     }
 }
 
@@ -193,5 +193,47 @@ mod tests {
         assert_op!((3 elems).count_is() > 2, 3);
         assert_op!((3 elems).count_is() > 3, 3);
         assert_op!((3 elems).count_is() > 4, 3);
+    }
+
+    #[test]
+    fn le() {
+        assert_op!((0 elems).count_is() <= 0, 0);
+        assert_op!((0 elems).count_is() <= 1, 0);
+
+        assert_op!((1 elems).count_is() <= 0, 1);
+        assert_op!((1 elems).count_is() <= 1, 1);
+        assert_op!((1 elems).count_is() <= 2, 1);
+
+        assert_op!((2 elems).count_is() <= 0, 1);
+        assert_op!((2 elems).count_is() <= 1, 2);
+        assert_op!((2 elems).count_is() <= 2, 2);
+        assert_op!((2 elems).count_is() <= 3, 2);
+
+        assert_op!((3 elems).count_is() <= 0, 1);
+        assert_op!((3 elems).count_is() <= 1, 2);
+        assert_op!((3 elems).count_is() <= 2, 3);
+        assert_op!((3 elems).count_is() <= 3, 3);
+        assert_op!((3 elems).count_is() <= 4, 3);
+    }
+
+    #[test]
+    fn ge() {
+        assert_op!((0 elems).count_is() >= 0, 0);
+        assert_op!((0 elems).count_is() >= 1, 0);
+
+        assert_op!((1 elems).count_is() >= 0, 0);
+        assert_op!((1 elems).count_is() >= 1, 1);
+        assert_op!((1 elems).count_is() >= 2, 1);
+
+        assert_op!((2 elems).count_is() >= 0, 0);
+        assert_op!((2 elems).count_is() >= 1, 1);
+        assert_op!((2 elems).count_is() >= 2, 2);
+        assert_op!((2 elems).count_is() >= 3, 2);
+
+        assert_op!((3 elems).count_is() >= 0, 0);
+        assert_op!((3 elems).count_is() >= 1, 1);
+        assert_op!((3 elems).count_is() >= 2, 2);
+        assert_op!((3 elems).count_is() >= 3, 3);
+        assert_op!((3 elems).count_is() >= 4, 3);
     }
 }
