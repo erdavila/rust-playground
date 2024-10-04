@@ -1,8 +1,6 @@
-mod evaluation;
-
 use std::{cell::RefCell, ops::DerefMut};
 
-use evaluation::{Eq, Evaluator, Gt, Lt, Not};
+use crate::count_satisfies::evaluation::{Eq, Evaluator, Gt, Lt, Not};
 
 pub trait CountIs: Iterator + Sized {
     fn count_is(self) -> CountIsEvaluator<Self> {
