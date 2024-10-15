@@ -19,6 +19,7 @@ where
 pub struct ForkingCloneableIter<I>
 where
     I: Iterator,
+    I::Item: Clone,
 {
     // Having the state in a Box allows the iterator to be moved without moving the state.
     // The state is in a RefCell so that it can be mutated in Clone::clone.
@@ -28,6 +29,7 @@ where
 impl<I> ForkingCloneableIter<I>
 where
     I: Iterator,
+    I::Item: Clone,
 {
     fn new(source: I) -> Self {
         let state = State {
@@ -37,8 +39,7 @@ where
         };
         let shared_state = SharedState {
             source: Some(source),
-            buffer: VecDeque::new(),
-            first_buffer_item_number: 0,
+            buffer: Buffer::new(),
         };
 
         ForkingCloneableIter {
@@ -58,15 +59,15 @@ where
         let mut shared_state = self.shared_state.borrow_mut();
         let mut state = self.state.borrow_mut();
 
-        let buffer_index = state.next_item_number - shared_state.first_buffer_item_number;
+        let buffer_index = state.next_item_number - shared_state.buffer.first_item_number;
         if buffer_index < shared_state.buffer.len() {
             let elem = if state.prev.is_some()
                 || state.next.is_some_and(|next| {
                     state.next_item_number == unsafe { next.as_ref().next_item_number }
                 }) {
-                shared_state.buffer[buffer_index].clone()
+                shared_state.buffer.get(buffer_index)
             } else {
-                shared_state.buffer_pop()
+                shared_state.buffer.pop()
             };
             state.advance();
             Some(elem)
@@ -77,12 +78,12 @@ where
             if is_single_iterator {
                 assert_eq!(
                     state.next_item_number,
-                    shared_state.first_buffer_item_number
+                    shared_state.buffer.first_item_number
                 );
 
-                // Don't need to increment shared_state.first_buffer_item_number or state.next_item_number
+                // Don't need to increment shared_state.buffer.first_item_number or state.next_item_number
             } else if let Some(elem) = &elem {
-                shared_state.buffer.push_back(elem.clone());
+                shared_state.buffer.push(elem);
                 state.advance();
             }
 
@@ -93,6 +94,7 @@ where
 impl<I> Clone for ForkingCloneableIter<I>
 where
     I: Iterator,
+    I::Item: Clone,
 {
     fn clone(&self) -> Self {
         let mut state = self.state.borrow_mut();
@@ -116,6 +118,7 @@ where
 impl<I> Drop for ForkingCloneableIter<I>
 where
     I: Iterator,
+    I::Item: Clone,
 {
     fn drop(&mut self) {
         let mut state = self.state.borrow_mut();
@@ -127,8 +130,8 @@ where
 
                 let next_iterator_next_item_number = unsafe { next.as_ref().next_item_number };
                 let mut shared_state = self.shared_state.borrow_mut();
-                while shared_state.first_buffer_item_number < next_iterator_next_item_number {
-                    shared_state.buffer_pop();
+                while shared_state.buffer.first_item_number < next_iterator_next_item_number {
+                    shared_state.buffer.pop();
                 }
             }
             (Some(_), None) => state.unlink_prev(),
@@ -223,12 +226,12 @@ where
     I: Iterator,
 {
     source: Option<I>,
-    buffer: VecDeque<I::Item>,
-    first_buffer_item_number: usize,
+    buffer: Buffer<I::Item>,
 }
 impl<I> SharedState<I>
 where
     I: Iterator,
+    I::Item: Clone,
 {
     fn next_elem(&mut self) -> Option<I::Item> {
         if let Some(source) = &mut self.source {
@@ -241,11 +244,43 @@ where
             None
         }
     }
+}
 
-    fn buffer_pop(&mut self) -> I::Item {
-        self.first_buffer_item_number += 1;
-        let elem = self.buffer.pop_front();
-        unsafe { elem.unwrap_unchecked() }
+struct Buffer<T> {
+    elements: VecDeque<T>,
+    first_item_number: usize,
+}
+impl<T> Buffer<T>
+where
+    T: Clone,
+{
+    fn new() -> Self {
+        Buffer {
+            elements: VecDeque::new(),
+            first_item_number: 0,
+        }
+    }
+
+    fn len(&self) -> usize {
+        self.elements.len()
+    }
+
+    #[cfg(test)]
+    fn is_empty(&self) -> bool {
+        self.elements.is_empty()
+    }
+
+    fn get(&self, index: usize) -> T {
+        self.elements[index].clone()
+    }
+
+    fn push(&mut self, elem: &T) {
+        self.elements.push_back(elem.clone());
+    }
+
+    fn pop(&mut self) -> T {
+        self.first_item_number += 1;
+        unsafe { self.elements.pop_front().unwrap_unchecked() }
     }
 }
 
@@ -262,7 +297,7 @@ mod tests {
             let shared_state_rc = iters[0].shared_state.clone();
             let shared_state = shared_state_rc.borrow();
 
-            assert_eq!(iters[0].state.borrow().next_item_number, shared_state.first_buffer_item_number);
+            assert_eq!(iters[0].state.borrow().next_item_number, shared_state.buffer.first_item_number);
             assert!(iters.first().unwrap().state.borrow().prev.is_none());
             assert!(iters.last().unwrap().state.borrow().next.is_none());
 
@@ -270,8 +305,8 @@ mod tests {
                 let iter_state = iter.state.borrow();
 
                 assert!(Rc::ptr_eq(&iter.shared_state, &shared_state_rc));
-                assert!(iter_state.next_item_number >= shared_state.first_buffer_item_number);
-                assert!(iter_state.next_item_number <= shared_state.first_buffer_item_number + shared_state.buffer.len());
+                assert!(iter_state.next_item_number >= shared_state.buffer.first_item_number);
+                assert!(iter_state.next_item_number <= shared_state.buffer.first_item_number + shared_state.buffer.len());
 
                 if i > 0 {
                     let prev_iter_state = iters[i-1].state.borrow();
