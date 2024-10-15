@@ -60,63 +60,33 @@ where
 
         let buffer_index = state.next_item_number - shared_state.first_buffer_item_number;
         if buffer_index < shared_state.buffer.len() {
-            match (state.prev, state.next) {
-                (None, None) => todo!(),
-                (None, Some(next)) => {
-                    if state.next_item_number < unsafe { next.as_ref().next_item_number } {
-                        let elem = shared_state.buffer.pop_front();
-                        shared_state.first_buffer_item_number += 1;
-                        state.next_item_number += 1;
-                        elem
-                    } else {
-                        todo!()
-                    }
-                }
-                (Some(_), None) => todo!(),
-                (Some(_), Some(_)) => todo!(),
-            }
+            let elem = if state.prev.is_some()
+                || state.next.is_some_and(|next| {
+                    state.next_item_number == unsafe { next.as_ref().next_item_number }
+                }) {
+                shared_state.buffer[buffer_index].clone()
+            } else {
+                shared_state.buffer_pop()
+            };
+            state.advance();
+            Some(elem)
         } else {
-            match (state.prev, state.next) {
-                (None, None) => {
-                    assert!(state.next_item_number == shared_state.first_buffer_item_number);
+            let elem = shared_state.next_elem();
 
-                    state.next_item_number += 1;
-                    shared_state.first_buffer_item_number += 1;
+            let is_single_iterator = state.prev.is_none() && state.next.is_none();
+            if is_single_iterator {
+                assert_eq!(
+                    state.next_item_number,
+                    shared_state.first_buffer_item_number
+                );
 
-                    shared_state.next_elem()
-                }
-                (None, Some(mut next)) => {
-                    let elem = shared_state.next_elem();
-                    if let Some(elem) = &elem {
-                        shared_state.buffer.push_back(elem.clone());
-
-                        state.next_item_number += 1;
-                        if state.next_item_number > unsafe { next.as_ref().next_item_number } {
-                            state.unlink_next();
-
-                            while let Some(next_next) = unsafe { next.as_ref().next } {
-                                todo!()
-                            }
-
-                            unsafe {
-                                next.as_mut().insert_next(&mut state);
-                            }
-                        }
-                    }
-
-                    elem
-                }
-                (Some(_), None) => {
-                    let elem = shared_state.next_elem();
-                    if let Some(elem) = &elem {
-                        shared_state.buffer.push_back(elem.clone());
-                        state.next_item_number += 1;
-                    }
-
-                    elem
-                }
-                (Some(_), Some(_)) => todo!(),
+                // Don't need to increment shared_state.first_buffer_item_number or state.next_item_number
+            } else if let Some(elem) = &elem {
+                shared_state.buffer.push_back(elem.clone());
+                state.advance();
             }
+
+            elem
         }
     }
 }
@@ -172,6 +142,28 @@ struct State {
     next: Option<NonNull<State>>,
 }
 impl State {
+    fn advance(&mut self) {
+        self.next_item_number += 1;
+        if let Some(mut next) = self.next {
+            if self.next_item_number > unsafe { next.as_ref().next_item_number } {
+                if let Some(prev) = self.prev {
+                    todo!()
+                } else {
+                    self.unlink_next();
+                }
+
+                while let Some(next_next) = unsafe { next.as_ref().next } {
+                    if self.next_item_number <= unsafe { next_next.as_ref().next_item_number } {
+                        break;
+                    }
+                    next = next_next;
+                }
+
+                unsafe { next.as_mut().insert_next(self) };
+            }
+        }
+    }
+
     fn insert_next(&mut self, state: &mut State) {
         let next = self.next;
         State::link(self, state);
@@ -179,12 +171,8 @@ impl State {
     }
 
     fn link_next(&mut self, next: Option<NonNull<State>>) {
-        if let Some(self_next) = self.next {
-            todo!();
-        }
-
-        if let Some(next) = next {
-            todo!();
+        if let Some(mut next) = next {
+            Self::link(self, unsafe { next.as_mut() });
         } else {
             self.next = None;
         }
@@ -208,10 +196,10 @@ impl State {
         let mut prev = NonNull::from(prev);
         let mut next = NonNull::from(next);
 
-        if let Some(prev_next) = unsafe { prev.as_ref().next } {
-            todo!();
-        }
-        unsafe { prev.as_mut().next = Some(next) };
+        unsafe {
+            prev.as_mut().unlink_next();
+            prev.as_mut().next = Some(next)
+        };
 
         if let Some(next_prev) = unsafe { next.as_ref().prev } {
             todo!();
@@ -242,6 +230,12 @@ where
         } else {
             None
         }
+    }
+
+    fn buffer_pop(&mut self) -> I::Item {
+        self.first_buffer_item_number += 1;
+        let elem = self.buffer.pop_front();
+        unsafe { elem.unwrap_unchecked() }
     }
 }
 
@@ -364,5 +358,90 @@ mod tests {
         let elem = iter1.next();
         assert_eq!(elem, None);
         assert_forking_clones![iter1, iter2];
+    }
+
+    #[test]
+    fn single_iterator_consuming_from_buffer() {
+        let source = get_iterator(2);
+        let mut iter = source.forking_cloneable();
+        iter.clone().for_each(drop); // Transfer remaining elements from source to buffer
+        assert_forking_clones![iter];
+        assert!(iter.shared_state.borrow().source.is_none());
+
+        let elem = iter.next();
+        assert_eq!(elem, Some('A'));
+        assert_forking_clones![iter];
+
+        let elem = iter.next();
+        assert_eq!(elem, Some('B'));
+        assert_forking_clones![iter];
+
+        let elem = iter.next();
+        assert_eq!(elem, None);
+        assert_forking_clones![iter];
+    }
+
+    #[test]
+    fn several_iterators_consuming_from_buffer() {
+        let source = get_iterator(2);
+        let mut iter1 = source.forking_cloneable();
+        iter1.clone().for_each(drop); // Transfer remaining elements from source to buffer
+        assert_forking_clones![iter1];
+        assert!(iter1.shared_state.borrow().source.is_none());
+
+        let mut iter2 = iter1.clone();
+        let mut iter3 = iter1.clone();
+        assert_forking_clones![iter1, iter3, iter2];
+
+        let elem = iter1.next();
+        assert_eq!(elem, Some('A'));
+        assert_forking_clones![iter3, iter2, iter1];
+
+        let elem = iter2.next();
+        assert_eq!(elem, Some('A'));
+        assert_forking_clones![iter3, iter2, iter1];
+
+        let elem = iter3.next();
+        assert_eq!(elem, Some('A'));
+        assert_forking_clones![iter3, iter2, iter1];
+
+        let elem = iter3.next();
+        assert_eq!(elem, Some('B'));
+        assert_forking_clones![iter2, iter1, iter3];
+
+        let elem = iter2.next();
+        assert_eq!(elem, Some('B'));
+        assert_forking_clones![iter1, iter2, iter3];
+
+        let elem = iter1.next();
+        assert_eq!(elem, Some('B'));
+        assert_forking_clones![iter1, iter2, iter3];
+
+        let elem = iter1.next();
+        assert_eq!(elem, None);
+        assert_forking_clones![iter1, iter2, iter3];
+
+        let elem = iter2.next();
+        assert_eq!(elem, None);
+        assert_forking_clones![iter1, iter2, iter3];
+
+        let elem = iter3.next();
+        assert_eq!(elem, None);
+        assert_forking_clones![iter1, iter2, iter3];
+    }
+
+    #[test]
+    fn last_iterator_at_the_middle_of_the_buffer() {
+        let source = get_iterator(5);
+        let first = source.forking_cloneable();
+        let mut last = first.clone();
+        last.next();
+        last.next();
+        last.clone().for_each(drop); // Transfer remaining elements from source to buffer
+        assert_forking_clones![first, last];
+
+        let elem = last.next();
+        assert_eq!(elem, Some('C'));
+        assert_forking_clones![first, last];
     }
 }
