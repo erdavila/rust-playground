@@ -122,9 +122,19 @@ where
 
         match (state.prev, state.next) {
             (None, None) => {}
-            (None, Some(_)) => todo!(), // TODO: check buffer
+            (None, Some(next)) => {
+                state.unlink_next();
+
+                let next_iterator_next_item_number = unsafe { next.as_ref().next_item_number };
+                let mut shared_state = self.shared_state.borrow_mut();
+                while shared_state.first_buffer_item_number < next_iterator_next_item_number {
+                    shared_state.buffer_pop();
+                }
+            }
             (Some(_), None) => state.unlink_prev(),
-            (Some(_), Some(_)) => todo!(),
+            (Some(mut prev), Some(mut next)) => unsafe {
+                State::link(prev.as_mut(), next.as_mut());
+            },
         }
     }
 }
@@ -146,8 +156,10 @@ impl State {
         self.next_item_number += 1;
         if let Some(mut next) = self.next {
             if self.next_item_number > unsafe { next.as_ref().next_item_number } {
-                if let Some(prev) = self.prev {
-                    todo!()
+                if let Some(mut prev) = self.prev {
+                    unsafe {
+                        Self::link(prev.as_mut(), next.as_mut());
+                    }
                 } else {
                     self.unlink_next();
                 }
@@ -198,13 +210,11 @@ impl State {
 
         unsafe {
             prev.as_mut().unlink_next();
-            prev.as_mut().next = Some(next)
-        };
+            next.as_mut().unlink_prev();
 
-        if let Some(next_prev) = unsafe { next.as_ref().prev } {
-            todo!();
-        }
-        unsafe { next.as_mut().prev = Some(prev) };
+            prev.as_mut().next = Some(next);
+            next.as_mut().prev = Some(prev)
+        };
     }
 }
 
@@ -442,6 +452,55 @@ mod tests {
 
         let elem = last.next();
         assert_eq!(elem, Some('C'));
+        assert_forking_clones![first, last];
+    }
+
+    #[test]
+    fn drop_first_iterator_popping_from_buffer() {
+        let source = get_iterator(2);
+        let first = source.forking_cloneable();
+        let mut second = first.clone();
+        second.next();
+        second.next();
+        assert_forking_clones![first, second];
+        assert_eq!(second.shared_state.borrow().buffer.len(), 2);
+        assert!(first.state.borrow().next_item_number < second.state.borrow().next_item_number);
+
+        drop(first);
+
+        assert_forking_clones![second];
+        assert!(second.shared_state.borrow().buffer.is_empty());
+    }
+
+    #[test]
+    fn drop_first_iterator_keeping_buffer() {
+        let source = get_iterator(2);
+        let first = source.forking_cloneable();
+        let second = first.clone();
+        first.clone().for_each(drop); // Transfer remaining elements from source to buffer
+        assert_forking_clones![first, second];
+        assert_eq!(second.shared_state.borrow().buffer.len(), 2);
+        assert!(first.state.borrow().next_item_number == second.state.borrow().next_item_number);
+        assert!(first.state.borrow().prev.is_none());
+
+        drop(first);
+
+        assert_forking_clones![second];
+        assert_eq!(second.shared_state.borrow().buffer.len(), 2);
+    }
+
+    #[test]
+    fn drop_middle_iterator() {
+        let source = get_iterator(2);
+        let first = source.forking_cloneable();
+        let mut middle = first.clone();
+        middle.next();
+        let mut last = middle.clone();
+        last.next();
+        assert_forking_clones![first, middle, last];
+
+        drop(middle);
+
         assert_forking_clones![first, last];
     }
 }
