@@ -19,7 +19,7 @@ pub trait Fork: Iterator + Sized {
         let state = State {
             source: self,
             pending: VecDeque::new(),
-            pending_fork_id: ForkId::First,
+            mode: Mode::IteratorPair(ForkId::First),
         };
 
         let state1 = Rc::new(RefCell::new(state));
@@ -70,6 +70,21 @@ where
     I::Item: Clone,
 {
 }
+impl<I> Drop for ForkIter<I>
+where
+    I: Iterator,
+{
+    fn drop(&mut self) {
+        let mut state = self.state.borrow_mut();
+        if let Mode::IteratorPair(pending_fork_id) = state.mode {
+            if pending_fork_id == self.fork_id {
+                state.pending.clear();
+            }
+
+            state.mode = Mode::SingleIterator;
+        }
+    }
+}
 impl<I> Debug for ForkIter<I>
 where
     I: Iterator + Debug,
@@ -83,6 +98,12 @@ where
     }
 }
 
+#[derive(Clone, Copy, PartialEq, Eq, Debug)]
+enum Mode {
+    SingleIterator,
+    IteratorPair(ForkId),
+}
+
 #[derive(Clone, Debug)]
 struct State<I>
 where
@@ -90,7 +111,7 @@ where
 {
     source: I,
     pending: VecDeque<I::Item>,
-    pending_fork_id: ForkId, // The value doesn't matter when `pending` is empty
+    mode: Mode,
 }
 impl<I> State<I>
 where
@@ -100,16 +121,18 @@ where
     fn next(&mut self, fork_id: ForkId) -> Option<I::Item> {
         let mut next = None;
 
-        if self.pending_fork_id == fork_id {
+        if self.mode != Mode::IteratorPair(fork_id.other()) {
             next = self.pending.pop_front();
         }
 
         while next.is_none() {
             match self.source.next() {
                 Some(value) => {
-                    debug_assert!(self.pending_fork_id != fork_id || self.pending.is_empty());
-                    self.pending.push_back(value.clone());
-                    self.pending_fork_id = fork_id.other();
+                    if let Mode::IteratorPair(pending_fork_id) = &mut self.mode {
+                        self.pending.push_back(value.clone());
+                        *pending_fork_id = fork_id.other();
+                    }
+
                     next = Some(value);
                 }
                 None => break,
@@ -411,5 +434,37 @@ mod tests {
         assert_eq!(first.next(), Some(Value::A { cloned: true }));
         assert_eq!(first.next(), Some(Value::B { cloned: true }));
         assert_eq!(first.next(), None);
+    }
+
+    #[test]
+    fn drop_iterator_while_it_has_pending_elements() {
+        let source = std::iter::successors(Some(0), |n| Some(n + 1));
+        let (mut first, second) = source.fork();
+        first.next();
+        assert_eq!(first.state.borrow().pending.len(), 1);
+
+        drop(second);
+
+        assert!(first.state.borrow().pending.is_empty());
+        assert_eq!(first.next(), Some(1));
+        assert!(first.state.borrow().pending.is_empty());
+        assert_eq!(first.next(), Some(2));
+        assert!(first.state.borrow().pending.is_empty());
+    }
+
+    #[test]
+    fn drop_iterator_while_the_other_has_pending_elements() {
+        let source = std::iter::successors(Some(0), |n| Some(n + 1));
+        let (mut first, mut second) = source.fork();
+        first.next();
+        assert_eq!(first.state.borrow().pending.len(), 1);
+
+        drop(first);
+
+        assert_eq!(second.state.borrow().pending.len(), 1);
+        assert_eq!(second.next(), Some(0));
+        assert!(second.state.borrow().pending.is_empty());
+        assert_eq!(second.next(), Some(1));
+        assert!(second.state.borrow().pending.is_empty());
     }
 }
