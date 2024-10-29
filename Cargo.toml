@@ -6,6 +6,7 @@ members = [
     "build-env-vars",
     "clone_on_mut",
     "closures",
+    "cnpj",
     "deterministic-chooser",
     "dices_probabilities",
     "emulated_closures",
