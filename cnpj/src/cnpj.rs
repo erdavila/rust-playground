@@ -3,7 +3,7 @@ use std::fmt::Display;
 use crate::{CheckDigits, Error, UncheckedCNPJ};
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-pub struct CNPJ([u8; Self::LENGTH]);
+pub struct CNPJ(pub(crate) [u8; Self::LENGTH]);
 impl CNPJ {
     pub const LENGTH: usize = UncheckedCNPJ::LENGTH + CheckDigits::LENGTH;
 

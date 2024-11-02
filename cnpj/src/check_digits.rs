@@ -3,7 +3,7 @@ use std::{array, fmt::Display};
 use crate::{Error, InvalidChar, UncheckedCNPJ};
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-pub struct CheckDigits([u8; Self::LENGTH]);
+pub struct CheckDigits(pub(crate) [u8; Self::LENGTH]);
 impl CheckDigits {
     pub const LENGTH: usize = 2;
 

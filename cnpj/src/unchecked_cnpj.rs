@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{array, fmt::Display};
 
 use crate::{CheckDigits, Error, InvalidChar, CNPJ};
 
@@ -43,7 +43,16 @@ impl UncheckedCNPJ {
 
     #[must_use]
     pub fn with_check_digits(self) -> CNPJ {
-        todo!()
+        let check_digits = self.calculate_check_digits();
+        let bytes = array::from_fn(|i| {
+            if i < Self::LENGTH {
+                self.0[i]
+            } else {
+                check_digits.0[i - Self::LENGTH]
+            }
+        });
+
+        CNPJ(bytes)
     }
 
     #[must_use]
@@ -115,6 +124,18 @@ pub(crate) mod tests {
                 char: '|',
                 index: 10
             }))
+        );
+    }
+
+    #[test]
+    fn with_check_digits() {
+        let unchecked_cnpj = UncheckedCNPJ(BYTES);
+
+        assert_eq!(
+            unchecked_cnpj.with_check_digits(),
+            CNPJ([
+                b'1', b'2', b'A', b'B', b'C', b'3', b'4', b'5', b'0', b'1', b'D', b'E', b'3', b'5'
+            ])
         );
     }
 }
