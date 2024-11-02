@@ -1,13 +1,34 @@
 use std::fmt::Display;
 
-use crate::{Error, UncheckedCNPJ};
+use crate::{Error, InvalidChar, UncheckedCNPJ};
 
+#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct CheckDigits([u8; Self::LENGTH]);
 impl CheckDigits {
     pub const LENGTH: usize = 2;
 
     fn from_iter(iter: impl IntoIterator<Item = char>) -> Result<Self, Error> {
-        todo!()
+        let mut count = 0;
+        let mut bytes = [b'\0'; Self::LENGTH];
+
+        for (index, char) in iter.into_iter().enumerate() {
+            if char.is_ascii_digit() {
+                if count < Self::LENGTH {
+                    bytes[count] = char as u8;
+                    count += 1;
+                } else {
+                    return Err(Error::WrongNumberOfDigits);
+                }
+            } else if !matches!(char, '.' | '/' | '-') {
+                return Err(Error::InvalidCheckDigitChar(InvalidChar { char, index }));
+            }
+        }
+
+        if count != Self::LENGTH {
+            return Err(Error::WrongNumberOfDigits);
+        }
+
+        Ok(CheckDigits(bytes))
     }
 
     #[must_use]
@@ -56,7 +77,28 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test() {
-        //
+    fn from_iter() {
+        for input in ["35", "-35", "35."] {
+            assert_eq!(
+                CheckDigits::from_iter(input.chars()),
+                Ok(CheckDigits([b'3', b'5']))
+            );
+        }
+
+        for input in ["3", "350"] {
+            assert_eq!(
+                CheckDigits::from_iter(input.chars()),
+                Err(Error::WrongNumberOfDigits),
+                "{input}"
+            );
+        }
+
+        assert_eq!(
+            CheckDigits::from_iter("f5".chars()),
+            Err(Error::InvalidCheckDigitChar(crate::InvalidChar {
+                char: 'f',
+                index: 0
+            }))
+        );
     }
 }
