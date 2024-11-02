@@ -49,7 +49,7 @@ impl CNPJ {
 
     #[must_use]
     pub fn char(self, index: usize) -> char {
-        todo!()
+        self.0[index].into()
     }
 
     pub fn chars(self) -> [char; Self::LENGTH] {
@@ -141,5 +141,25 @@ mod tests {
         let cnpj = CNPJ(BYTES);
 
         assert_eq!(cnpj.check_digits(), CheckDigits(check_digits::tests::BYTES));
+    }
+
+    #[test]
+    fn char() {
+        let cnpj = CNPJ(BYTES);
+
+        assert_eq!(cnpj.char(0), '1');
+        assert_eq!(cnpj.char(1), '2');
+        assert_eq!(cnpj.char(2), 'A');
+        assert_eq!(cnpj.char(3), 'B');
+        assert_eq!(cnpj.char(4), 'C');
+        assert_eq!(cnpj.char(5), '3');
+        assert_eq!(cnpj.char(6), '4');
+        assert_eq!(cnpj.char(7), '5');
+        assert_eq!(cnpj.char(8), '0');
+        assert_eq!(cnpj.char(9), '1');
+        assert_eq!(cnpj.char(10), 'D');
+        assert_eq!(cnpj.char(11), 'E');
+        assert_eq!(cnpj.char(12), '3');
+        assert_eq!(cnpj.char(13), '5');
     }
 }
