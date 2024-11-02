@@ -57,7 +57,7 @@ impl UncheckedCNPJ {
 
     #[must_use]
     pub fn char(self, index: usize) -> char {
-        todo!()
+        self.0[index].into()
     }
 
     pub fn chars(self) -> [char; Self::LENGTH] {
@@ -137,5 +137,23 @@ pub(crate) mod tests {
                 b'1', b'2', b'A', b'B', b'C', b'3', b'4', b'5', b'0', b'1', b'D', b'E', b'3', b'5'
             ])
         );
+    }
+
+    #[test]
+    fn char() {
+        let unchecked_cnpj = UncheckedCNPJ(BYTES);
+
+        assert_eq!(unchecked_cnpj.char(0), '1');
+        assert_eq!(unchecked_cnpj.char(1), '2');
+        assert_eq!(unchecked_cnpj.char(2), 'A');
+        assert_eq!(unchecked_cnpj.char(3), 'B');
+        assert_eq!(unchecked_cnpj.char(4), 'C');
+        assert_eq!(unchecked_cnpj.char(5), '3');
+        assert_eq!(unchecked_cnpj.char(6), '4');
+        assert_eq!(unchecked_cnpj.char(7), '5');
+        assert_eq!(unchecked_cnpj.char(8), '0');
+        assert_eq!(unchecked_cnpj.char(9), '1');
+        assert_eq!(unchecked_cnpj.char(10), 'D');
+        assert_eq!(unchecked_cnpj.char(11), 'E');
     }
 }
