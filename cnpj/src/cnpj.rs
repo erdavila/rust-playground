@@ -79,7 +79,7 @@ impl TryFrom<[char; Self::LENGTH]> for CNPJ {
 }
 impl Display for CNPJ {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        write!(f, "{}-{}", self.without_check_digits(), self.check_digits())
     }
 }
 
@@ -187,5 +187,12 @@ mod tests {
             CNPJ::try_from(['1', '2', 'A', 'b', 'C', '3', '4', '5', '0', '1', 'D', 'e', '3', '5']),
             Ok(CNPJ(BYTES))
         );
+    }
+
+    #[test]
+    fn display() {
+        let cnpj = CNPJ(BYTES);
+
+        assert_eq!(cnpj.to_string(), "12.ABC.345/01DE-35");
     }
 }
