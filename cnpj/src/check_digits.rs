@@ -37,7 +37,7 @@ impl CheckDigits {
     }
 
     pub fn chars(self) -> [char; Self::LENGTH] {
-        todo!()
+        self.0.map(Into::into)
     }
 }
 impl From<UncheckedCNPJ> for CheckDigits {
@@ -110,5 +110,12 @@ mod tests {
 
         assert_eq!(check_digits.char(0), '3');
         assert_eq!(check_digits.char(1), '5');
+    }
+
+    #[test]
+    fn chars() {
+        let check_digits = CheckDigits(BYTES);
+
+        assert_eq!(check_digits.chars(), ['3', '5']);
     }
 }
