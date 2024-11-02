@@ -88,7 +88,9 @@ impl TryFrom<[char; Self::LENGTH]> for CheckDigits {
 }
 impl Display for CheckDigits {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        let chars = self.chars();
+
+        write!(f, "{}{}", chars[0], chars[1])
     }
 }
 
@@ -194,5 +196,12 @@ mod tests {
             Ok(CheckDigits(BYTES))
         );
         assert_eq!(CheckDigits::try_from(['3', '5']), Ok(CheckDigits(BYTES)));
+    }
+
+    #[test]
+    fn display() {
+        let check_digits = CheckDigits(BYTES);
+
+        assert_eq!(check_digits.to_string(), "35");
     }
 }
