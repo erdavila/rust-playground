@@ -33,7 +33,7 @@ impl CheckDigits {
 
     #[must_use]
     pub fn char(self, index: usize) -> char {
-        todo!()
+        self.0[index].into()
     }
 
     pub fn chars(self) -> [char; Self::LENGTH] {
@@ -76,12 +76,14 @@ impl Display for CheckDigits {
 mod tests {
     use super::*;
 
+    static BYTES: [u8; CheckDigits::LENGTH] = [b'3', b'5'];
+
     #[test]
     fn from_iter() {
         for input in ["35", "-35", "35."] {
             assert_eq!(
                 CheckDigits::from_iter(input.chars()),
-                Ok(CheckDigits([b'3', b'5']))
+                Ok(CheckDigits(BYTES))
             );
         }
 
@@ -100,5 +102,13 @@ mod tests {
                 index: 0
             }))
         );
+    }
+
+    #[test]
+    fn char() {
+        let check_digits = CheckDigits(BYTES);
+
+        assert_eq!(check_digits.char(0), '3');
+        assert_eq!(check_digits.char(1), '5');
     }
 }
