@@ -60,21 +60,21 @@ impl TryFrom<&str> for CNPJ {
     type Error = Error;
 
     fn try_from(value: &str) -> Result<Self, Error> {
-        todo!()
+        Self::from_iter(value.chars())
     }
 }
 impl TryFrom<String> for CNPJ {
     type Error = Error;
 
     fn try_from(value: String) -> Result<Self, Error> {
-        todo!()
+        Self::from_iter(value.chars())
     }
 }
 impl TryFrom<[char; Self::LENGTH]> for CNPJ {
     type Error = Error;
 
     fn try_from(value: [char; Self::LENGTH]) -> Result<Self, Error> {
-        todo!()
+        Self::from_iter(value)
     }
 }
 impl Display for CNPJ {
@@ -89,13 +89,15 @@ mod tests {
 
     use super::*;
 
+    static FORMATTED_STR: &str = "12.AbC.345/01De-35";
+    static RAW_STR: &str = "12ABC34501DE35";
     static BYTES: [u8; CNPJ::LENGTH] = [
         b'1', b'2', b'A', b'B', b'C', b'3', b'4', b'5', b'0', b'1', b'D', b'E', b'3', b'5',
     ];
 
     #[test]
     fn from_iter() {
-        for input in ["12.AbC.345/01De-35", "12ABC34501DE35"] {
+        for input in [FORMATTED_STR, RAW_STR] {
             assert_eq!(CNPJ::from_iter(input.chars()), Ok(CNPJ(BYTES)));
         }
 
@@ -170,6 +172,20 @@ mod tests {
         assert_eq!(
             cnpj.chars(),
             ['1', '2', 'A', 'B', 'C', '3', '4', '5', '0', '1', 'D', 'E', '3', '5']
+        );
+    }
+
+    #[test]
+    fn try_from() {
+        for input in [FORMATTED_STR, RAW_STR] {
+            assert_eq!(CNPJ::try_from(input), Ok(CNPJ(BYTES)));
+
+            assert_eq!(CNPJ::try_from(input.to_string()), Ok(CNPJ(BYTES)));
+        }
+
+        assert_eq!(
+            CNPJ::try_from(['1', '2', 'A', 'b', 'C', '3', '4', '5', '0', '1', 'D', 'e', '3', '5']),
+            Ok(CNPJ(BYTES))
         );
     }
 }
