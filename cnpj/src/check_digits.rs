@@ -69,21 +69,21 @@ impl TryFrom<&str> for CheckDigits {
     type Error = Error;
 
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        todo!()
+        Self::from_iter(value.chars())
     }
 }
 impl TryFrom<String> for CheckDigits {
     type Error = Error;
 
     fn try_from(value: String) -> Result<Self, Self::Error> {
-        todo!()
+        Self::from_iter(value.chars())
     }
 }
 impl TryFrom<[char; Self::LENGTH]> for CheckDigits {
     type Error = Error;
 
     fn try_from(value: [char; Self::LENGTH]) -> Result<Self, Self::Error> {
-        todo!()
+        Self::from_iter(value)
     }
 }
 impl Display for CheckDigits {
@@ -184,5 +184,15 @@ mod tests {
         ]);
 
         assert_eq!(CheckDigits::from(unchecked_cnpj), CheckDigits(BYTES));
+    }
+
+    #[test]
+    fn try_from() {
+        assert_eq!(CheckDigits::try_from("35"), Ok(CheckDigits(BYTES)));
+        assert_eq!(
+            CheckDigits::try_from("35".to_string()),
+            Ok(CheckDigits(BYTES))
+        );
+        assert_eq!(CheckDigits::try_from(['3', '5']), Ok(CheckDigits(BYTES)));
     }
 }
