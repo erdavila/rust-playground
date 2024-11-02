@@ -181,9 +181,7 @@ mod tests {
 
     #[test]
     fn from() {
-        let unchecked_cnpj = UncheckedCNPJ([
-            b'1', b'2', b'A', b'B', b'C', b'3', b'4', b'5', b'0', b'1', b'D', b'E',
-        ]);
+        let unchecked_cnpj = UncheckedCNPJ(crate::unchecked_cnpj::tests::BYTES);
 
         assert_eq!(CheckDigits::from(unchecked_cnpj), CheckDigits(BYTES));
     }
