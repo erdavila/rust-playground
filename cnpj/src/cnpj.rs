@@ -35,7 +35,9 @@ impl CNPJ {
 
     #[must_use]
     pub fn without_check_digits(self) -> UncheckedCNPJ {
-        todo!()
+        let mut bytes = [b'\0'; UncheckedCNPJ::LENGTH];
+        bytes.copy_from_slice(&self.0[..UncheckedCNPJ::LENGTH]);
+        UncheckedCNPJ(bytes)
     }
 
     #[must_use]
@@ -81,20 +83,18 @@ impl Display for CNPJ {
 
 #[cfg(test)]
 mod tests {
-    use crate::InvalidChar;
+    use crate::{unchecked_cnpj, InvalidChar};
 
     use super::*;
+
+    static BYTES: [u8; CNPJ::LENGTH] = [
+        b'1', b'2', b'A', b'B', b'C', b'3', b'4', b'5', b'0', b'1', b'D', b'E', b'3', b'5',
+    ];
 
     #[test]
     fn from_iter() {
         for input in ["12.AbC.345/01De-35", "12ABC34501DE35"] {
-            assert_eq!(
-                CNPJ::from_iter(input.chars()),
-                Ok(CNPJ([
-                    b'1', b'2', b'A', b'B', b'C', b'3', b'4', b'5', b'0', b'1', b'D', b'E', b'3',
-                    b'5',
-                ]))
-            );
+            assert_eq!(CNPJ::from_iter(input.chars()), Ok(CNPJ(BYTES)));
         }
 
         for input in ["12.AbC.345/01De-3", "12.AbC.345/01De-350"] {
@@ -122,5 +122,15 @@ mod tests {
         for input in ["12.AbC.345/01De-05", "12.AbC.345/01De-30"] {
             assert_eq!(CNPJ::from_iter(input.chars()), Err(Error::WrongCheckDigits));
         }
+    }
+
+    #[test]
+    fn without_check_digits() {
+        let cnpj = CNPJ(BYTES);
+
+        assert_eq!(
+            cnpj.without_check_digits(),
+            UncheckedCNPJ(unchecked_cnpj::tests::BYTES)
+        );
     }
 }
