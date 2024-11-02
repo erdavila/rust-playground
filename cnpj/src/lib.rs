@@ -6,4 +6,5 @@ pub use unchecked_cnpj::*;
 mod check_digits;
 mod cnpj;
 mod error;
+mod parse;
 mod unchecked_cnpj;

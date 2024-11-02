@@ -1,6 +1,9 @@
 use std::{array, fmt::Display};
 
-use crate::{CheckDigits, Error, InvalidChar, CNPJ};
+use crate::{
+    parse::{Parser, UncheckedCNPJParser},
+    CheckDigits, Error, CNPJ,
+};
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct UncheckedCNPJ(pub(crate) [u8; Self::LENGTH]);
@@ -8,27 +11,12 @@ impl UncheckedCNPJ {
     pub const LENGTH: usize = 12;
 
     fn from_iter(iter: impl IntoIterator<Item = char>) -> Result<Self, Error> {
-        let mut count = 0;
-        let mut bytes = [b'\0'; Self::LENGTH];
+        let mut iter = iter.into_iter().enumerate();
 
-        for (index, char) in iter.into_iter().enumerate() {
-            if char.is_ascii_alphanumeric() {
-                if count < Self::LENGTH {
-                    bytes[count] = char.to_ascii_uppercase() as u8;
-                    count += 1;
-                } else {
-                    return Err(Error::WrongNumberOfDigits);
-                }
-            } else if !matches!(char, '.' | '/' | '-') {
-                return Err(Error::InvalidChar(InvalidChar { char, index }));
-            }
-        }
+        let output = UncheckedCNPJParser::parse(&mut iter)?;
+        UncheckedCNPJParser::ensure_all_consumed(&mut iter)?;
 
-        if count != Self::LENGTH {
-            return Err(Error::WrongNumberOfDigits);
-        }
-
-        Ok(UncheckedCNPJ(bytes))
+        Ok(output)
     }
 
     #[must_use]

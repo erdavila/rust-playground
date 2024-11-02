@@ -1,6 +1,9 @@
 use std::{array, fmt::Display};
 
-use crate::{Error, InvalidChar, UncheckedCNPJ};
+use crate::{
+    parse::{CheckDigitsParser, Parser},
+    Error, UncheckedCNPJ,
+};
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct CheckDigits(pub(crate) [u8; Self::LENGTH]);
@@ -8,27 +11,12 @@ impl CheckDigits {
     pub const LENGTH: usize = 2;
 
     fn from_iter(iter: impl IntoIterator<Item = char>) -> Result<Self, Error> {
-        let mut count = 0;
-        let mut bytes = [b'\0'; Self::LENGTH];
+        let mut iter = iter.into_iter().enumerate();
 
-        for (index, char) in iter.into_iter().enumerate() {
-            if char.is_ascii_digit() {
-                if count < Self::LENGTH {
-                    bytes[count] = char as u8;
-                    count += 1;
-                } else {
-                    return Err(Error::WrongNumberOfDigits);
-                }
-            } else if !matches!(char, '.' | '/' | '-') {
-                return Err(Error::InvalidCheckDigitChar(InvalidChar { char, index }));
-            }
-        }
+        let output = CheckDigitsParser::parse(&mut iter)?;
+        CheckDigitsParser::ensure_all_consumed(&mut iter)?;
 
-        if count != Self::LENGTH {
-            return Err(Error::WrongNumberOfDigits);
-        }
-
-        Ok(CheckDigits(bytes))
+        Ok(output)
     }
 
     #[must_use]
