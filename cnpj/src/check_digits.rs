@@ -121,10 +121,10 @@ impl CheckDigitCalculator {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
 
-    static BYTES: [u8; CheckDigits::LENGTH] = [b'3', b'5'];
+    pub(crate) static BYTES: [u8; CheckDigits::LENGTH] = [b'3', b'5'];
 
     #[test]
     fn from_iter() {

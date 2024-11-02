@@ -42,7 +42,9 @@ impl CNPJ {
 
     #[must_use]
     pub fn check_digits(self) -> CheckDigits {
-        todo!()
+        let mut bytes = [b'\0'; CheckDigits::LENGTH];
+        bytes.copy_from_slice(&self.0[UncheckedCNPJ::LENGTH..]);
+        CheckDigits(bytes)
     }
 
     #[must_use]
@@ -83,7 +85,7 @@ impl Display for CNPJ {
 
 #[cfg(test)]
 mod tests {
-    use crate::{unchecked_cnpj, InvalidChar};
+    use crate::{check_digits, unchecked_cnpj, InvalidChar};
 
     use super::*;
 
@@ -132,5 +134,12 @@ mod tests {
             cnpj.without_check_digits(),
             UncheckedCNPJ(unchecked_cnpj::tests::BYTES)
         );
+    }
+
+    #[test]
+    fn check_digits() {
+        let cnpj = CNPJ(BYTES);
+
+        assert_eq!(cnpj.check_digits(), CheckDigits(check_digits::tests::BYTES));
     }
 }
