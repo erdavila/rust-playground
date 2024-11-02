@@ -68,21 +68,21 @@ impl TryFrom<&str> for UncheckedCNPJ {
     type Error = Error;
 
     fn try_from(value: &str) -> Result<Self, Error> {
-        todo!()
+        Self::from_iter(value.chars())
     }
 }
 impl TryFrom<String> for UncheckedCNPJ {
     type Error = Error;
 
     fn try_from(value: String) -> Result<Self, Error> {
-        todo!()
+        Self::from_iter(value.chars())
     }
 }
 impl TryFrom<[char; Self::LENGTH]> for UncheckedCNPJ {
     type Error = Error;
 
     fn try_from(value: [char; Self::LENGTH]) -> Result<Self, Error> {
-        todo!()
+        Self::from_iter(value)
     }
 }
 impl Display for UncheckedCNPJ {
@@ -97,13 +97,15 @@ pub(crate) mod tests {
 
     use super::*;
 
+    static FORMATTED_STR: &str = "12.AbC.345/01De";
+    static RAW_STR: &str = "12AbC34501De";
     pub(crate) static BYTES: [u8; UncheckedCNPJ::LENGTH] = [
         b'1', b'2', b'A', b'B', b'C', b'3', b'4', b'5', b'0', b'1', b'D', b'E',
     ];
 
     #[test]
     fn from_iter() {
-        for input in ["12.AbC.345/01De", "12AbC34501De"] {
+        for input in [FORMATTED_STR, RAW_STR] {
             assert_eq!(
                 UncheckedCNPJ::from_iter(input.chars()),
                 Ok(UncheckedCNPJ(BYTES)),
@@ -164,6 +166,23 @@ pub(crate) mod tests {
         assert_eq!(
             unchecked_cnpj.chars(),
             ['1', '2', 'A', 'B', 'C', '3', '4', '5', '0', '1', 'D', 'E']
+        );
+    }
+
+    #[test]
+    fn try_from() {
+        for input in [FORMATTED_STR, RAW_STR] {
+            assert_eq!(UncheckedCNPJ::try_from(input), Ok(UncheckedCNPJ(BYTES)));
+
+            assert_eq!(
+                UncheckedCNPJ::try_from(input.to_string()),
+                Ok(UncheckedCNPJ(BYTES))
+            );
+        }
+
+        assert_eq!(
+            UncheckedCNPJ::try_from(['1', '2', 'A', 'b', 'C', '3', '4', '5', '0', '1', 'D', 'e']),
+            Ok(UncheckedCNPJ(BYTES))
         );
     }
 }
