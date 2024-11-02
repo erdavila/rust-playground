@@ -87,7 +87,24 @@ impl TryFrom<[char; Self::LENGTH]> for UncheckedCNPJ {
 }
 impl Display for UncheckedCNPJ {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        let chars = self.chars();
+
+        write!(
+            f,
+            "{}{}.{}{}{}.{}{}{}/{}{}{}{}",
+            chars[0],
+            chars[1],
+            chars[2],
+            chars[3],
+            chars[4],
+            chars[5],
+            chars[6],
+            chars[7],
+            chars[8],
+            chars[9],
+            chars[10],
+            chars[11],
+        )
     }
 }
 
@@ -184,5 +201,12 @@ pub(crate) mod tests {
             UncheckedCNPJ::try_from(['1', '2', 'A', 'b', 'C', '3', '4', '5', '0', '1', 'D', 'e']),
             Ok(UncheckedCNPJ(BYTES))
         );
+    }
+
+    #[test]
+    fn display() {
+        let unchecked_cnpj = UncheckedCNPJ(BYTES);
+
+        assert_eq!(unchecked_cnpj.to_string(), "12.ABC.345/01DE");
     }
 }
