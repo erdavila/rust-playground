@@ -53,7 +53,7 @@ impl CNPJ {
     }
 
     pub fn chars(self) -> [char; Self::LENGTH] {
-        todo!()
+        self.0.map(Into::into)
     }
 }
 impl TryFrom<&str> for CNPJ {
@@ -161,5 +161,15 @@ mod tests {
         assert_eq!(cnpj.char(11), 'E');
         assert_eq!(cnpj.char(12), '3');
         assert_eq!(cnpj.char(13), '5');
+    }
+
+    #[test]
+    fn chars() {
+        let cnpj = CNPJ(BYTES);
+
+        assert_eq!(
+            cnpj.chars(),
+            ['1', '2', 'A', 'B', 'C', '3', '4', '5', '0', '1', 'D', 'E', '3', '5']
+        );
     }
 }
