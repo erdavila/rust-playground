@@ -1,4 +1,4 @@
-use std::{array, fmt::Display};
+use std::{array, fmt::Display, str::FromStr};
 
 use crate::{
     parse::{Parser, UncheckedCNPJParser},
@@ -50,6 +50,13 @@ impl UncheckedCNPJ {
 
     pub fn chars(self) -> [char; Self::LENGTH] {
         self.0.map(Into::into)
+    }
+}
+impl FromStr for UncheckedCNPJ {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::from_iter(s.chars())
     }
 }
 impl TryFrom<&str> for UncheckedCNPJ {
@@ -172,6 +179,13 @@ pub(crate) mod tests {
             unchecked_cnpj.chars(),
             ['1', '2', 'A', 'B', 'C', '3', '4', '5', '0', '1', 'D', 'E']
         );
+    }
+
+    #[test]
+    fn from_str() {
+        for input in [FORMATTED_STR, RAW_STR] {
+            assert_eq!(input.parse(), Ok(UncheckedCNPJ(BYTES)));
+        }
     }
 
     #[test]

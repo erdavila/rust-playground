@@ -1,4 +1,4 @@
-use std::{array, fmt::Display};
+use std::{array, fmt::Display, str::FromStr};
 
 use crate::{
     parse::{CheckDigitsParser, Parser},
@@ -51,6 +51,13 @@ impl From<UncheckedCNPJ> for CheckDigits {
         }
 
         CheckDigits(bytes)
+    }
+}
+impl FromStr for CheckDigits {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::from_iter(s.chars())
     }
 }
 impl TryFrom<&str> for CheckDigits {
@@ -172,6 +179,11 @@ pub(crate) mod tests {
         let unchecked_cnpj = UncheckedCNPJ(crate::unchecked_cnpj::tests::BYTES);
 
         assert_eq!(CheckDigits::from(unchecked_cnpj), CheckDigits(BYTES));
+    }
+
+    #[test]
+    fn from_str() {
+        assert_eq!("35".parse(), Ok(CheckDigits(BYTES)));
     }
 
     #[test]

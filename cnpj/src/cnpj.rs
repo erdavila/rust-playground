@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, str::FromStr};
 
 use crate::{
     parse::{CheckDigitsParser, Parser, UncheckedCNPJParser},
@@ -54,6 +54,13 @@ impl CNPJ {
 
     pub fn chars(self) -> [char; Self::LENGTH] {
         self.0.map(Into::into)
+    }
+}
+impl FromStr for CNPJ {
+    type Err = Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::from_iter(s.chars())
     }
 }
 impl TryFrom<&str> for CNPJ {
@@ -173,6 +180,13 @@ mod tests {
             cnpj.chars(),
             ['1', '2', 'A', 'B', 'C', '3', '4', '5', '0', '1', 'D', 'E', '3', '5']
         );
+    }
+
+    #[test]
+    fn from_str() {
+        for input in [FORMATTED_STR, RAW_STR] {
+            assert_eq!(input.parse(), Ok(CNPJ(BYTES)));
+        }
     }
 
     #[test]
