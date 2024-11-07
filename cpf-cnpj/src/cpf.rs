@@ -58,28 +58,28 @@ impl FromStr for CPF {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        todo!()
+        Self::from_iter(s.chars())
     }
 }
 impl TryFrom<&str> for CPF {
     type Error = Error;
 
     fn try_from(value: &str) -> Result<Self, Error> {
-        todo!()
+        Self::from_iter(value.chars())
     }
 }
 impl TryFrom<String> for CPF {
     type Error = Error;
 
     fn try_from(value: String) -> Result<Self, Error> {
-        todo!()
+        Self::from_iter(value.chars())
     }
 }
 impl TryFrom<[char; Self::LENGTH]> for CPF {
     type Error = Error;
 
     fn try_from(value: [char; Self::LENGTH]) -> Result<Self, Error> {
-        todo!()
+        Self::from_iter(value)
     }
 }
 impl Display for CPF {
@@ -173,5 +173,23 @@ pub(crate) mod tests {
         let cpf = CPF(BYTES);
 
         assert_eq!(cpf.chars(), CHARS);
+    }
+
+    #[test]
+    fn from_str() {
+        for input in [FORMATTED_STR, RAW_STR] {
+            assert_eq!(input.parse(), Ok(CPF(BYTES)));
+        }
+    }
+
+    #[test]
+    fn try_from() {
+        for input in [FORMATTED_STR, RAW_STR] {
+            assert_eq!(CPF::try_from(input), Ok(CPF(BYTES)));
+
+            assert_eq!(CPF::try_from(input.to_string()), Ok(CPF(BYTES)));
+        }
+
+        assert_eq!(CPF::try_from(CHARS), Ok(CPF(BYTES)));
     }
 }
