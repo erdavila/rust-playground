@@ -1,9 +1,6 @@
 use std::{array, fmt::Display, str::FromStr};
 
-use crate::{
-    parse::{Parser, UncheckedCNPJParser},
-    CheckDigits, Error, CNPJ,
-};
+use crate::{parser::Parser, CheckDigits, Error, InvalidChar, CNPJ};
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct UncheckedCNPJ(pub(crate) [u8; Self::LENGTH]);
@@ -100,6 +97,23 @@ impl Display for UncheckedCNPJ {
             chars[10],
             chars[11],
         )
+    }
+}
+
+pub(crate) struct UncheckedCNPJParser;
+impl Parser<{ UncheckedCNPJ::LENGTH }> for UncheckedCNPJParser {
+    type Output = UncheckedCNPJ;
+
+    fn is_digit(char: char) -> bool {
+        char.is_ascii_alphanumeric()
+    }
+
+    fn invalid_char_error(invalid_char: InvalidChar) -> Error {
+        Error::InvalidChar(invalid_char)
+    }
+
+    fn to_output(bytes: [u8; UncheckedCNPJ::LENGTH]) -> Self::Output {
+        UncheckedCNPJ(bytes)
     }
 }
 

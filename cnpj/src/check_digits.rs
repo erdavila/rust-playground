@@ -1,9 +1,6 @@
 use std::{array, fmt::Display, str::FromStr};
 
-use crate::{
-    parse::{CheckDigitsParser, Parser},
-    Error, UncheckedCNPJ,
-};
+use crate::{parser::Parser, Error, InvalidChar, UncheckedCNPJ};
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct CheckDigits(pub(crate) [u8; Self::LENGTH]);
@@ -86,6 +83,23 @@ impl Display for CheckDigits {
         let chars = self.chars();
 
         write!(f, "{}{}", chars[0], chars[1])
+    }
+}
+
+pub(crate) struct CheckDigitsParser;
+impl Parser<{ CheckDigits::LENGTH }> for CheckDigitsParser {
+    type Output = CheckDigits;
+
+    fn is_digit(char: char) -> bool {
+        char.is_ascii_digit()
+    }
+
+    fn invalid_char_error(invalid_char: InvalidChar) -> Error {
+        Error::InvalidCheckDigitChar(invalid_char)
+    }
+
+    fn to_output(bytes: [u8; CheckDigits::LENGTH]) -> Self::Output {
+        CheckDigits(bytes)
     }
 }
 

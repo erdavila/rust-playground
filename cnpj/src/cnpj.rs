@@ -1,8 +1,7 @@
 use std::{fmt::Display, str::FromStr};
 
 use crate::{
-    parse::{CheckDigitsParser, Parser, UncheckedCNPJParser},
-    CheckDigits, Error, UncheckedCNPJ,
+    parser::Parser, CheckDigits, CheckDigitsParser, Error, UncheckedCNPJ, UncheckedCNPJParser,
 };
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
