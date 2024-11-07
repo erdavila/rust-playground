@@ -53,28 +53,28 @@ impl FromStr for UncheckedCPF {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        todo!()
+        Self::from_iter(s.chars())
     }
 }
 impl TryFrom<&str> for UncheckedCPF {
     type Error = Error;
 
     fn try_from(value: &str) -> Result<Self, Error> {
-        todo!()
+        Self::from_iter(value.chars())
     }
 }
 impl TryFrom<String> for UncheckedCPF {
     type Error = Error;
 
     fn try_from(value: String) -> Result<Self, Error> {
-        todo!()
+        Self::from_iter(value.chars())
     }
 }
 impl TryFrom<[char; Self::LENGTH]> for UncheckedCPF {
     type Error = Error;
 
     fn try_from(value: [char; Self::LENGTH]) -> Result<Self, Error> {
-        todo!()
+        Self::from_iter(value)
     }
 }
 impl Display for UncheckedCPF {
@@ -166,6 +166,30 @@ pub(crate) mod tests {
         assert_eq!(
             unchecked_cpf.chars(),
             ['1', '1', '1', '4', '4', '4', '7', '7', '7']
+        );
+    }
+
+    #[test]
+    fn from_str() {
+        for input in [FORMATTED_STR, RAW_STR] {
+            assert_eq!(input.parse(), Ok(UncheckedCPF(BYTES)));
+        }
+    }
+
+    #[test]
+    fn try_from() {
+        for input in [FORMATTED_STR, RAW_STR] {
+            assert_eq!(UncheckedCPF::try_from(input), Ok(UncheckedCPF(BYTES)));
+
+            assert_eq!(
+                UncheckedCPF::try_from(input.to_string()),
+                Ok(UncheckedCPF(BYTES))
+            );
+        }
+
+        assert_eq!(
+            UncheckedCPF::try_from(['1', '1', '1', '4', '4', '4', '7', '7', '7']),
+            Ok(UncheckedCPF(BYTES))
         );
     }
 }
