@@ -8,7 +8,12 @@ impl UncheckedCPF {
     pub const LENGTH: usize = 9;
 
     fn from_iter(iter: impl IntoIterator<Item = char>) -> Result<Self, Error> {
-        todo!()
+        let mut iter = iter.into_iter().enumerate();
+
+        let output = UncheckedCPFParser::parse(&mut iter)?;
+        UncheckedCPFParser::ensure_all_consumed(&mut iter)?;
+
+        Ok(output)
     }
 
     #[must_use]
@@ -74,15 +79,15 @@ impl Parser<{ UncheckedCPF::LENGTH }> for UncheckedCPFParser {
     type Output = UncheckedCPF;
 
     fn is_digit(char: char) -> bool {
-        todo!()
+        char.is_ascii_digit()
     }
 
     fn invalid_char_error(invalid_char: InvalidChar) -> Error {
-        todo!()
+        Error::InvalidChar(invalid_char)
     }
 
     fn to_output(bytes: [u8; UncheckedCPF::LENGTH]) -> Self::Output {
-        todo!()
+        UncheckedCPF(bytes)
     }
 }
 
@@ -90,11 +95,34 @@ impl Parser<{ UncheckedCPF::LENGTH }> for UncheckedCPFParser {
 pub(crate) mod tests {
     use super::*;
 
+    static FORMATTED_STR: &str = "111.444.777";
+    static RAW_STR: &str = "111444777";
     pub(crate) static BYTES: [u8; UncheckedCPF::LENGTH] =
         [b'1', b'1', b'1', b'4', b'4', b'4', b'7', b'7', b'7'];
 
     #[test]
-    fn test() {
-        //
+    fn from_iter() {
+        for input in [FORMATTED_STR, RAW_STR] {
+            assert_eq!(
+                UncheckedCPF::from_iter(input.chars()),
+                Ok(UncheckedCPF(BYTES)),
+                "{input}"
+            );
+        }
+
+        for input in ["111.444.77", "111.444.777-3"] {
+            assert_eq!(
+                UncheckedCPF::from_iter(input.chars()),
+                Err(Error::WrongNumberOfDigits)
+            );
+        }
+
+        assert_eq!(
+            UncheckedCPF::from_iter("111,444.777".chars()),
+            Err(Error::InvalidChar(InvalidChar {
+                char: ',',
+                index: 3
+            }))
+        );
     }
 }

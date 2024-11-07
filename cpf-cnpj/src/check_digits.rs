@@ -25,7 +25,7 @@ impl CheckDigits {
         self.0.map(Into::into)
     }
 
-    fn from_bytes<const LEN: usize>(
+    fn from_unchecked_bytes<const LEN: usize>(
         bytes: [u8; LEN],
         calculator_params: fn(u32) -> (u32, u32),
     ) -> CheckDigits {
@@ -56,12 +56,12 @@ impl CheckDigits {
 }
 impl From<UncheckedCPF> for CheckDigits {
     fn from(unchecked_cpf: UncheckedCPF) -> Self {
-        Self::from_bytes(unchecked_cpf.0, |i| (11, 10 + i))
+        Self::from_unchecked_bytes(unchecked_cpf.0, |i| (11, 10 + i))
     }
 }
 impl From<UncheckedCNPJ> for CheckDigits {
     fn from(unchecked_cnpj: UncheckedCNPJ) -> Self {
-        Self::from_bytes(unchecked_cnpj.0, |i| (9, 5 + i))
+        Self::from_unchecked_bytes(unchecked_cnpj.0, |i| (9, 5 + i))
     }
 }
 impl FromStr for CheckDigits {
