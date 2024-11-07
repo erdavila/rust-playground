@@ -42,11 +42,11 @@ impl UncheckedCPF {
 
     #[must_use]
     pub fn char(self, index: usize) -> char {
-        todo!()
+        self.0[index].into()
     }
 
     pub fn chars(self) -> [char; Self::LENGTH] {
-        todo!()
+        self.0.map(Into::into)
     }
 }
 impl FromStr for UncheckedCPF {
@@ -142,5 +142,30 @@ pub(crate) mod tests {
         let unchecked_cpf = UncheckedCPF(BYTES);
 
         assert_eq!(unchecked_cpf.with_check_digits(), CPF(cpf::tests::BYTES));
+    }
+
+    #[test]
+    fn char() {
+        let unchecked_cpf = UncheckedCPF(BYTES);
+
+        assert_eq!(unchecked_cpf.char(0), '1');
+        assert_eq!(unchecked_cpf.char(1), '1');
+        assert_eq!(unchecked_cpf.char(2), '1');
+        assert_eq!(unchecked_cpf.char(3), '4');
+        assert_eq!(unchecked_cpf.char(4), '4');
+        assert_eq!(unchecked_cpf.char(5), '4');
+        assert_eq!(unchecked_cpf.char(6), '7');
+        assert_eq!(unchecked_cpf.char(7), '7');
+        assert_eq!(unchecked_cpf.char(8), '7');
+    }
+
+    #[test]
+    fn chars() {
+        let unchecked_cpf = UncheckedCPF(BYTES);
+
+        assert_eq!(
+            unchecked_cpf.chars(),
+            ['1', '1', '1', '4', '4', '4', '7', '7', '7']
+        );
     }
 }
