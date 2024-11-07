@@ -1,6 +1,6 @@
 use std::{array, fmt::Display, str::FromStr};
 
-use crate::{parser::Parser, Error, InvalidChar, UncheckedCNPJ};
+use crate::{parser::Parser, Error, InvalidChar, UncheckedCNPJ, UncheckedCPF};
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct CheckDigits(pub(crate) [u8; Self::LENGTH]);
@@ -23,6 +23,11 @@ impl CheckDigits {
 
     pub fn chars(self) -> [char; Self::LENGTH] {
         self.0.map(Into::into)
+    }
+}
+impl From<UncheckedCPF> for CheckDigits {
+    fn from(value: UncheckedCPF) -> Self {
+        todo!()
     }
 }
 impl From<UncheckedCNPJ> for CheckDigits {

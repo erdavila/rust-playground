@@ -1,5 +1,5 @@
 use clap::{Parser, Subcommand};
-use cnpj::{Error, UncheckedCNPJ, CNPJ};
+use cpf_cnpj::{Error, UncheckedCNPJ, CNPJ};
 use colored::Colorize;
 
 #[derive(Parser)]
