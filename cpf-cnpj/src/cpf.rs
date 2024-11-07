@@ -84,7 +84,7 @@ impl TryFrom<[char; Self::LENGTH]> for CPF {
 }
 impl Display for CPF {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        write!(f, "{}-{}", self.without_check_digits(), self.check_digits())
     }
 }
 
@@ -191,5 +191,12 @@ pub(crate) mod tests {
         }
 
         assert_eq!(CPF::try_from(CHARS), Ok(CPF(BYTES)));
+    }
+
+    #[test]
+    fn display() {
+        let cpf = CPF(BYTES);
+
+        assert_eq!(cpf.to_string(), FORMATTED_STR);
     }
 }
