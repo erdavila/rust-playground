@@ -47,11 +47,11 @@ impl CPF {
 
     #[must_use]
     pub fn char(self, index: usize) -> char {
-        todo!()
+        self.0[index].into()
     }
 
     pub fn chars(self) -> [char; Self::LENGTH] {
-        todo!()
+        self.0.map(Into::into)
     }
 }
 impl FromStr for CPF {
@@ -99,6 +99,7 @@ pub(crate) mod tests {
     pub(crate) static BYTES: [u8; CPF::LENGTH] = [
         b'1', b'1', b'1', b'4', b'4', b'4', b'7', b'7', b'7', b'3', b'5',
     ];
+    static CHARS: [char; CPF::LENGTH] = ['1', '1', '1', '4', '4', '4', '7', '7', '7', '3', '5'];
 
     #[test]
     fn from_iter() {
@@ -148,5 +149,29 @@ pub(crate) mod tests {
         let cpf = CPF(BYTES);
 
         assert_eq!(cpf.check_digits(), CheckDigits(check_digits::tests::BYTES));
+    }
+
+    #[test]
+    fn char() {
+        let cpf = CPF(BYTES);
+
+        assert_eq!(cpf.char(0), '1');
+        assert_eq!(cpf.char(1), '1');
+        assert_eq!(cpf.char(2), '1');
+        assert_eq!(cpf.char(3), '4');
+        assert_eq!(cpf.char(4), '4');
+        assert_eq!(cpf.char(5), '4');
+        assert_eq!(cpf.char(6), '7');
+        assert_eq!(cpf.char(7), '7');
+        assert_eq!(cpf.char(8), '7');
+        assert_eq!(cpf.char(9), '3');
+        assert_eq!(cpf.char(10), '5');
+    }
+
+    #[test]
+    fn chars() {
+        let cpf = CPF(BYTES);
+
+        assert_eq!(cpf.chars(), CHARS);
     }
 }
