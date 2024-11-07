@@ -79,7 +79,21 @@ impl TryFrom<[char; Self::LENGTH]> for UncheckedCPF {
 }
 impl Display for UncheckedCPF {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        let chars = self.chars();
+
+        write!(
+            f,
+            "{}{}{}.{}{}{}.{}{}{}",
+            chars[0],
+            chars[1],
+            chars[2],
+            chars[3],
+            chars[4],
+            chars[5],
+            chars[6],
+            chars[7],
+            chars[8],
+        )
     }
 }
 
@@ -191,5 +205,12 @@ pub(crate) mod tests {
             UncheckedCPF::try_from(['1', '1', '1', '4', '4', '4', '7', '7', '7']),
             Ok(UncheckedCPF(BYTES))
         );
+    }
+
+    #[test]
+    fn display() {
+        let unchecked_cpf = UncheckedCPF(BYTES);
+
+        assert_eq!(unchecked_cpf.to_string(), "111.444.777");
     }
 }
