@@ -24,19 +24,18 @@ impl CheckDigits {
     pub fn chars(self) -> [char; Self::LENGTH] {
         self.0.map(Into::into)
     }
-}
-impl From<UncheckedCPF> for CheckDigits {
-    fn from(value: UncheckedCPF) -> Self {
-        todo!()
-    }
-}
-impl From<UncheckedCNPJ> for CheckDigits {
-    fn from(unchecked_cnpj: UncheckedCNPJ) -> Self {
-        #[expect(clippy::cast_possible_truncation)]
-        let mut calculators: [_; Self::LENGTH] =
-            array::from_fn(|i| CheckDigitCalculator::with_initial_weight(5 + i as u32));
 
-        for digit in unchecked_cnpj.0 {
+    fn from_bytes<const LEN: usize>(
+        bytes: [u8; LEN],
+        calculator_params: fn(u32) -> (u32, u32),
+    ) -> CheckDigits {
+        let mut calculators: [_; LEN] = array::from_fn(|i| {
+            #[expect(clippy::cast_possible_truncation)]
+            let (max_weight, initial_weight) = calculator_params(i as u32);
+            CheckDigitCalculator::with_max_and_initial_weight(max_weight, initial_weight)
+        });
+
+        for digit in bytes {
             for calculator in &mut calculators {
                 calculator.process_digit(digit);
             }
@@ -53,6 +52,16 @@ impl From<UncheckedCNPJ> for CheckDigits {
         }
 
         CheckDigits(bytes)
+    }
+}
+impl From<UncheckedCPF> for CheckDigits {
+    fn from(unchecked_cpf: UncheckedCPF) -> Self {
+        Self::from_bytes(unchecked_cpf.0, |i| (11, 10 + i))
+    }
+}
+impl From<UncheckedCNPJ> for CheckDigits {
+    fn from(unchecked_cnpj: UncheckedCNPJ) -> Self {
+        Self::from_bytes(unchecked_cnpj.0, |i| (9, 5 + i))
     }
 }
 impl FromStr for CheckDigits {
@@ -111,12 +120,14 @@ impl Parser<{ CheckDigits::LENGTH }> for CheckDigitsParser {
 struct CheckDigitCalculator {
     next_digit_weight: u32,
     accumulator: u32,
+    max_weight: u32,
 }
 impl CheckDigitCalculator {
-    fn with_initial_weight(weight: u32) -> Self {
+    fn with_max_and_initial_weight(max_weight: u32, initial_weight: u32) -> Self {
         CheckDigitCalculator {
-            next_digit_weight: weight,
+            next_digit_weight: initial_weight,
             accumulator: 0,
+            max_weight,
         }
     }
 
@@ -129,7 +140,7 @@ impl CheckDigitCalculator {
 
         self.accumulator += self.next_digit_weight * u32::from(value);
         if self.next_digit_weight == 2 {
-            self.next_digit_weight = 9;
+            self.next_digit_weight = self.max_weight;
         } else {
             self.next_digit_weight -= 1;
         }
@@ -194,7 +205,14 @@ pub(crate) mod tests {
     }
 
     #[test]
-    fn from() {
+    fn from_unchecked_cpf() {
+        let unchecked_cpf = UncheckedCPF(crate::unchecked_cpf::tests::BYTES);
+
+        assert_eq!(CheckDigits::from(unchecked_cpf), CheckDigits(BYTES));
+    }
+
+    #[test]
+    fn from_unchecked_cnpj() {
         let unchecked_cnpj = UncheckedCNPJ(crate::unchecked_cnpj::tests::BYTES);
 
         assert_eq!(CheckDigits::from(unchecked_cnpj), CheckDigits(BYTES));

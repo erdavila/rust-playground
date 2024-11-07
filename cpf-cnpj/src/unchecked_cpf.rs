@@ -90,6 +90,9 @@ impl Parser<{ UncheckedCPF::LENGTH }> for UncheckedCPFParser {
 pub(crate) mod tests {
     use super::*;
 
+    pub(crate) static BYTES: [u8; UncheckedCPF::LENGTH] =
+        [b'1', b'1', b'1', b'4', b'4', b'4', b'7', b'7', b'7'];
+
     #[test]
     fn test() {
         //
