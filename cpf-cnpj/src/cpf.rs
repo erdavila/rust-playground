@@ -33,12 +33,16 @@ impl CPF {
 
     #[must_use]
     pub fn without_check_digits(self) -> UncheckedCPF {
-        todo!()
+        let mut bytes = [b'\0'; UncheckedCPF::LENGTH];
+        bytes.copy_from_slice(&self.0[..UncheckedCPF::LENGTH]);
+        UncheckedCPF(bytes)
     }
 
     #[must_use]
     pub fn check_digits(self) -> CheckDigits {
-        todo!()
+        let mut bytes = [b'\0'; CheckDigits::LENGTH];
+        bytes.copy_from_slice(&self.0[UncheckedCPF::LENGTH..]);
+        CheckDigits(bytes)
     }
 
     #[must_use]
@@ -86,7 +90,7 @@ impl Display for CPF {
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use crate::InvalidChar;
+    use crate::{check_digits, unchecked_cpf, InvalidChar};
 
     use super::*;
 
@@ -127,5 +131,22 @@ pub(crate) mod tests {
         for input in ["111.444.777-05", "111.444.777-30"] {
             assert_eq!(CPF::from_iter(input.chars()), Err(Error::WrongCheckDigits));
         }
+    }
+
+    #[test]
+    fn without_check_digits() {
+        let cpf = CPF(BYTES);
+
+        assert_eq!(
+            cpf.without_check_digits(),
+            UncheckedCPF(unchecked_cpf::tests::BYTES)
+        );
+    }
+
+    #[test]
+    fn check_digits() {
+        let cpf = CPF(BYTES);
+
+        assert_eq!(cpf.check_digits(), CheckDigits(check_digits::tests::BYTES));
     }
 }
