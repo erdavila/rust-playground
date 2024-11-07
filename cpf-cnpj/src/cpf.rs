@@ -70,8 +70,12 @@ impl Display for CPF {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
+
+    pub(crate) static BYTES: [u8; CPF::LENGTH] = [
+        b'1', b'1', b'1', b'4', b'4', b'4', b'7', b'7', b'7', b'3', b'5',
+    ];
 
     #[test]
     fn test() {

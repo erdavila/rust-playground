@@ -1,4 +1,4 @@
-use std::{fmt::Display, str::FromStr};
+use std::{array, fmt::Display, str::FromStr};
 
 use crate::{parser::Parser, CheckDigits, Error, InvalidChar, CPF};
 
@@ -28,7 +28,16 @@ impl UncheckedCPF {
 
     #[must_use]
     pub fn with_check_digits(self) -> CPF {
-        todo!()
+        let check_digits = self.calculate_check_digits();
+        let bytes = array::from_fn(|i| {
+            if i < Self::LENGTH {
+                self.0[i]
+            } else {
+                check_digits.0[i - Self::LENGTH]
+            }
+        });
+
+        CPF(bytes)
     }
 
     #[must_use]
@@ -93,6 +102,8 @@ impl Parser<{ UncheckedCPF::LENGTH }> for UncheckedCPFParser {
 
 #[cfg(test)]
 pub(crate) mod tests {
+    use crate::cpf;
+
     use super::*;
 
     static FORMATTED_STR: &str = "111.444.777";
@@ -124,5 +135,12 @@ pub(crate) mod tests {
                 index: 3
             }))
         );
+    }
+
+    #[test]
+    fn with_check_digits() {
+        let unchecked_cpf = UncheckedCPF(BYTES);
+
+        assert_eq!(unchecked_cpf.with_check_digits(), CPF(cpf::tests::BYTES));
     }
 }
