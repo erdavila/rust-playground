@@ -1,6 +1,8 @@
 use std::{fmt::Display, str::FromStr};
 
-use crate::{CheckDigits, Error, UncheckedCPF};
+use crate::{
+    parser::Parser, CheckDigits, CheckDigitsParser, Error, UncheckedCPF, UncheckedCPFParser,
+};
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct CPF(pub(crate) [u8; Self::LENGTH]);
@@ -8,7 +10,20 @@ impl CPF {
     pub const LENGTH: usize = UncheckedCPF::LENGTH + CheckDigits::LENGTH;
 
     fn from_iter(iter: impl IntoIterator<Item = char>) -> Result<Self, Error> {
-        todo!()
+        let mut iter = iter.into_iter().enumerate();
+        let unchecked_cpf = UncheckedCPFParser::parse(&mut iter)?;
+        let check_digits = CheckDigitsParser::parse(&mut iter)?;
+        CheckDigitsParser::ensure_all_consumed(&mut iter)?;
+
+        if unchecked_cpf.calculate_check_digits() != check_digits {
+            return Err(Error::WrongCheckDigits);
+        }
+
+        let mut bytes = [b'\0'; Self::LENGTH];
+        bytes[..UncheckedCPF::LENGTH].copy_from_slice(&unchecked_cpf.0);
+        bytes[UncheckedCPF::LENGTH..].copy_from_slice(&check_digits.0);
+
+        Ok(CPF(bytes))
     }
 
     #[must_use]
@@ -71,14 +86,46 @@ impl Display for CPF {
 
 #[cfg(test)]
 pub(crate) mod tests {
+    use crate::InvalidChar;
+
     use super::*;
 
+    static FORMATTED_STR: &str = "111.444.777-35";
+    static RAW_STR: &str = "11144477735";
     pub(crate) static BYTES: [u8; CPF::LENGTH] = [
         b'1', b'1', b'1', b'4', b'4', b'4', b'7', b'7', b'7', b'3', b'5',
     ];
 
     #[test]
-    fn test() {
-        //
+    fn from_iter() {
+        for input in [FORMATTED_STR, RAW_STR] {
+            assert_eq!(CPF::from_iter(input.chars()), Ok(CPF(BYTES)));
+        }
+
+        for input in ["111.444.777-3", "111.444.777-350"] {
+            assert_eq!(
+                CPF::from_iter(input.chars()),
+                Err(Error::WrongNumberOfDigits)
+            );
+        }
+
+        assert_eq!(
+            CPF::from_iter("111,444.777-35".chars()),
+            Err(Error::InvalidChar(InvalidChar {
+                char: ',',
+                index: 3
+            }))
+        );
+        assert_eq!(
+            CPF::from_iter("111.444.777-f5".chars()),
+            Err(Error::InvalidCheckDigitChar(InvalidChar {
+                char: 'f',
+                index: 12
+            }))
+        );
+
+        for input in ["111.444.777-05", "111.444.777-30"] {
+            assert_eq!(CPF::from_iter(input.chars()), Err(Error::WrongCheckDigits));
+        }
     }
 }
