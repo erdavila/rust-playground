@@ -1,82 +1,8 @@
 use std::{array, fmt::Display, str::FromStr};
 
-use crate::{parser::Parser, CheckDigits, Error, InvalidChar, CNPJ};
+use crate::{parser::Parser, Error, InvalidChar, CNPJ};
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-pub struct UncheckedCNPJ(pub(crate) [u8; Self::LENGTH]);
-impl UncheckedCNPJ {
-    pub const LENGTH: usize = 12;
-
-    fn from_iter(iter: impl IntoIterator<Item = char>) -> Result<Self, Error> {
-        let mut iter = iter.into_iter().enumerate();
-
-        let output = UncheckedCNPJParser::parse(&mut iter)?;
-        UncheckedCNPJParser::ensure_all_consumed(&mut iter)?;
-
-        Ok(output)
-    }
-
-    #[must_use]
-    pub fn calculate_check_digits(self) -> CheckDigits {
-        CheckDigits::from(self)
-    }
-
-    #[must_use]
-    pub fn checked(self) -> CNPJ {
-        self.with_check_digits()
-    }
-
-    #[must_use]
-    pub fn with_check_digits(self) -> CNPJ {
-        let check_digits = self.calculate_check_digits();
-        let bytes = array::from_fn(|i| {
-            if i < Self::LENGTH {
-                self.0[i]
-            } else {
-                check_digits.0[i - Self::LENGTH]
-            }
-        });
-
-        CNPJ(bytes)
-    }
-
-    #[must_use]
-    pub fn char(self, index: usize) -> char {
-        self.0[index].into()
-    }
-
-    pub fn chars(self) -> [char; Self::LENGTH] {
-        self.0.map(Into::into)
-    }
-}
-impl FromStr for UncheckedCNPJ {
-    type Err = Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_iter(s.chars())
-    }
-}
-impl TryFrom<&str> for UncheckedCNPJ {
-    type Error = Error;
-
-    fn try_from(value: &str) -> Result<Self, Error> {
-        Self::from_iter(value.chars())
-    }
-}
-impl TryFrom<String> for UncheckedCNPJ {
-    type Error = Error;
-
-    fn try_from(value: String) -> Result<Self, Error> {
-        Self::from_iter(value.chars())
-    }
-}
-impl TryFrom<[char; Self::LENGTH]> for UncheckedCNPJ {
-    type Error = Error;
-
-    fn try_from(value: [char; Self::LENGTH]) -> Result<Self, Error> {
-        Self::from_iter(value)
-    }
-}
+unchecked_id!(UncheckedCNPJ, 12, CNPJ, UncheckedCNPJParser);
 impl Display for UncheckedCNPJ {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let chars = self.chars();

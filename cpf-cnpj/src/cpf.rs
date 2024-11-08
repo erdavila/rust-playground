@@ -1,96 +1,13 @@
 use std::{fmt::Display, str::FromStr};
 
-use crate::{
-    parser::Parser, CheckDigits, CheckDigitsParser, Error, UncheckedCPF, UncheckedCPFParser,
-};
+use crate::{UncheckedCPF, UncheckedCPFParser};
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-pub struct CPF(pub(crate) [u8; Self::LENGTH]);
-impl CPF {
-    pub const LENGTH: usize = UncheckedCPF::LENGTH + CheckDigits::LENGTH;
-
-    fn from_iter(iter: impl IntoIterator<Item = char>) -> Result<Self, Error> {
-        let mut iter = iter.into_iter().enumerate();
-        let unchecked_cpf = UncheckedCPFParser::parse(&mut iter)?;
-        let check_digits = CheckDigitsParser::parse(&mut iter)?;
-        CheckDigitsParser::ensure_all_consumed(&mut iter)?;
-
-        if unchecked_cpf.calculate_check_digits() != check_digits {
-            return Err(Error::WrongCheckDigits);
-        }
-
-        let mut bytes = [b'\0'; Self::LENGTH];
-        bytes[..UncheckedCPF::LENGTH].copy_from_slice(&unchecked_cpf.0);
-        bytes[UncheckedCPF::LENGTH..].copy_from_slice(&check_digits.0);
-
-        Ok(CPF(bytes))
-    }
-
-    #[must_use]
-    pub fn unchecked(self) -> UncheckedCPF {
-        self.without_check_digits()
-    }
-
-    #[must_use]
-    pub fn without_check_digits(self) -> UncheckedCPF {
-        let mut bytes = [b'\0'; UncheckedCPF::LENGTH];
-        bytes.copy_from_slice(&self.0[..UncheckedCPF::LENGTH]);
-        UncheckedCPF(bytes)
-    }
-
-    #[must_use]
-    pub fn check_digits(self) -> CheckDigits {
-        let mut bytes = [b'\0'; CheckDigits::LENGTH];
-        bytes.copy_from_slice(&self.0[UncheckedCPF::LENGTH..]);
-        CheckDigits(bytes)
-    }
-
-    #[must_use]
-    pub fn char(self, index: usize) -> char {
-        self.0[index].into()
-    }
-
-    pub fn chars(self) -> [char; Self::LENGTH] {
-        self.0.map(Into::into)
-    }
-}
-impl FromStr for CPF {
-    type Err = Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_iter(s.chars())
-    }
-}
-impl TryFrom<&str> for CPF {
-    type Error = Error;
-
-    fn try_from(value: &str) -> Result<Self, Error> {
-        Self::from_iter(value.chars())
-    }
-}
-impl TryFrom<String> for CPF {
-    type Error = Error;
-
-    fn try_from(value: String) -> Result<Self, Error> {
-        Self::from_iter(value.chars())
-    }
-}
-impl TryFrom<[char; Self::LENGTH]> for CPF {
-    type Error = Error;
-
-    fn try_from(value: [char; Self::LENGTH]) -> Result<Self, Error> {
-        Self::from_iter(value)
-    }
-}
-impl Display for CPF {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}-{}", self.without_check_digits(), self.check_digits())
-    }
-}
+checked_id!(CPF, UncheckedCPF, UncheckedCPFParser);
+from_str_and_try_from!(CPF);
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use crate::{check_digits, unchecked_cpf, InvalidChar};
+    use crate::{check_digits, unchecked_cpf, CheckDigits, Error, InvalidChar};
 
     use super::*;
 

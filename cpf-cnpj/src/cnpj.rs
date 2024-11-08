@@ -1,97 +1,13 @@
 use std::{fmt::Display, str::FromStr};
 
-use crate::{
-    parser::Parser, CheckDigits, CheckDigitsParser, Error, UncheckedCNPJ, UncheckedCNPJParser,
-};
+use crate::{UncheckedCNPJ, UncheckedCNPJParser};
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-pub struct CNPJ(pub(crate) [u8; Self::LENGTH]);
-impl CNPJ {
-    pub const LENGTH: usize = UncheckedCNPJ::LENGTH + CheckDigits::LENGTH;
-
-    fn from_iter(iter: impl IntoIterator<Item = char>) -> Result<Self, Error> {
-        let mut iter = iter.into_iter().enumerate();
-
-        let unchecked_cnpj = UncheckedCNPJParser::parse(&mut iter)?;
-        let check_digits = CheckDigitsParser::parse(&mut iter)?;
-        CheckDigitsParser::ensure_all_consumed(&mut iter)?;
-
-        if unchecked_cnpj.calculate_check_digits() != check_digits {
-            return Err(Error::WrongCheckDigits);
-        }
-
-        let mut bytes = [b'\0'; Self::LENGTH];
-        bytes[..UncheckedCNPJ::LENGTH].copy_from_slice(&unchecked_cnpj.0);
-        bytes[UncheckedCNPJ::LENGTH..].copy_from_slice(&check_digits.0);
-
-        Ok(CNPJ(bytes))
-    }
-
-    #[must_use]
-    pub fn unchecked(self) -> UncheckedCNPJ {
-        self.without_check_digits()
-    }
-
-    #[must_use]
-    pub fn without_check_digits(self) -> UncheckedCNPJ {
-        let mut bytes = [b'\0'; UncheckedCNPJ::LENGTH];
-        bytes.copy_from_slice(&self.0[..UncheckedCNPJ::LENGTH]);
-        UncheckedCNPJ(bytes)
-    }
-
-    #[must_use]
-    pub fn check_digits(self) -> CheckDigits {
-        let mut bytes = [b'\0'; CheckDigits::LENGTH];
-        bytes.copy_from_slice(&self.0[UncheckedCNPJ::LENGTH..]);
-        CheckDigits(bytes)
-    }
-
-    #[must_use]
-    pub fn char(self, index: usize) -> char {
-        self.0[index].into()
-    }
-
-    pub fn chars(self) -> [char; Self::LENGTH] {
-        self.0.map(Into::into)
-    }
-}
-impl FromStr for CNPJ {
-    type Err = Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_iter(s.chars())
-    }
-}
-impl TryFrom<&str> for CNPJ {
-    type Error = Error;
-
-    fn try_from(value: &str) -> Result<Self, Error> {
-        Self::from_iter(value.chars())
-    }
-}
-impl TryFrom<String> for CNPJ {
-    type Error = Error;
-
-    fn try_from(value: String) -> Result<Self, Error> {
-        Self::from_iter(value.chars())
-    }
-}
-impl TryFrom<[char; Self::LENGTH]> for CNPJ {
-    type Error = Error;
-
-    fn try_from(value: [char; Self::LENGTH]) -> Result<Self, Error> {
-        Self::from_iter(value)
-    }
-}
-impl Display for CNPJ {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}-{}", self.without_check_digits(), self.check_digits())
-    }
-}
+checked_id!(CNPJ, UncheckedCNPJ, UncheckedCNPJParser);
+from_str_and_try_from!(CNPJ);
 
 #[cfg(test)]
 mod tests {
-    use crate::{check_digits, unchecked_cnpj, InvalidChar};
+    use crate::{check_digits, unchecked_cnpj, CheckDigits, Error, InvalidChar};
 
     use super::*;
 

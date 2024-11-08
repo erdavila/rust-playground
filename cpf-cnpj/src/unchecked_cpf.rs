@@ -1,82 +1,8 @@
 use std::{array, fmt::Display, str::FromStr};
 
-use crate::{parser::Parser, CheckDigits, Error, InvalidChar, CPF};
+use crate::{parser::Parser, Error, InvalidChar, CPF};
 
-#[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
-pub struct UncheckedCPF(pub(crate) [u8; Self::LENGTH]);
-impl UncheckedCPF {
-    pub const LENGTH: usize = 9;
-
-    fn from_iter(iter: impl IntoIterator<Item = char>) -> Result<Self, Error> {
-        let mut iter = iter.into_iter().enumerate();
-
-        let output = UncheckedCPFParser::parse(&mut iter)?;
-        UncheckedCPFParser::ensure_all_consumed(&mut iter)?;
-
-        Ok(output)
-    }
-
-    #[must_use]
-    pub fn calculate_check_digits(self) -> CheckDigits {
-        CheckDigits::from(self)
-    }
-
-    #[must_use]
-    pub fn checked(self) -> CPF {
-        self.with_check_digits()
-    }
-
-    #[must_use]
-    pub fn with_check_digits(self) -> CPF {
-        let check_digits = self.calculate_check_digits();
-        let bytes = array::from_fn(|i| {
-            if i < Self::LENGTH {
-                self.0[i]
-            } else {
-                check_digits.0[i - Self::LENGTH]
-            }
-        });
-
-        CPF(bytes)
-    }
-
-    #[must_use]
-    pub fn char(self, index: usize) -> char {
-        self.0[index].into()
-    }
-
-    pub fn chars(self) -> [char; Self::LENGTH] {
-        self.0.map(Into::into)
-    }
-}
-impl FromStr for UncheckedCPF {
-    type Err = Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_iter(s.chars())
-    }
-}
-impl TryFrom<&str> for UncheckedCPF {
-    type Error = Error;
-
-    fn try_from(value: &str) -> Result<Self, Error> {
-        Self::from_iter(value.chars())
-    }
-}
-impl TryFrom<String> for UncheckedCPF {
-    type Error = Error;
-
-    fn try_from(value: String) -> Result<Self, Error> {
-        Self::from_iter(value.chars())
-    }
-}
-impl TryFrom<[char; Self::LENGTH]> for UncheckedCPF {
-    type Error = Error;
-
-    fn try_from(value: [char; Self::LENGTH]) -> Result<Self, Error> {
-        Self::from_iter(value)
-    }
-}
+unchecked_id!(UncheckedCPF, 9, CPF, UncheckedCPFParser);
 impl Display for UncheckedCPF {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let chars = self.chars();

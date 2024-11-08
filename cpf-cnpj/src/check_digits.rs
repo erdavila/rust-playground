@@ -7,23 +7,8 @@ pub struct CheckDigits(pub(crate) [u8; Self::LENGTH]);
 impl CheckDigits {
     pub const LENGTH: usize = 2;
 
-    fn from_iter(iter: impl IntoIterator<Item = char>) -> Result<Self, Error> {
-        let mut iter = iter.into_iter().enumerate();
-
-        let output = CheckDigitsParser::parse(&mut iter)?;
-        CheckDigitsParser::ensure_all_consumed(&mut iter)?;
-
-        Ok(output)
-    }
-
-    #[must_use]
-    pub fn char(self, index: usize) -> char {
-        self.0[index].into()
-    }
-
-    pub fn chars(self) -> [char; Self::LENGTH] {
-        self.0.map(Into::into)
-    }
+    from_iter!(CheckDigitsParser);
+    chars!();
 
     fn from_unchecked_bytes<const LEN: usize>(
         bytes: [u8; LEN],
@@ -64,34 +49,7 @@ impl From<UncheckedCNPJ> for CheckDigits {
         Self::from_unchecked_bytes(unchecked_cnpj.0, |i| (9, 5 + i))
     }
 }
-impl FromStr for CheckDigits {
-    type Err = Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Self::from_iter(s.chars())
-    }
-}
-impl TryFrom<&str> for CheckDigits {
-    type Error = Error;
-
-    fn try_from(value: &str) -> Result<Self, Self::Error> {
-        Self::from_iter(value.chars())
-    }
-}
-impl TryFrom<String> for CheckDigits {
-    type Error = Error;
-
-    fn try_from(value: String) -> Result<Self, Self::Error> {
-        Self::from_iter(value.chars())
-    }
-}
-impl TryFrom<[char; Self::LENGTH]> for CheckDigits {
-    type Error = Error;
-
-    fn try_from(value: [char; Self::LENGTH]) -> Result<Self, Self::Error> {
-        Self::from_iter(value)
-    }
-}
+from_str_and_try_from!(CheckDigits);
 impl Display for CheckDigits {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let chars = self.chars();

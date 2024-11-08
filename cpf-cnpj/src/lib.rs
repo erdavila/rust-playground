@@ -5,6 +5,8 @@ pub use error::*;
 pub use unchecked_cnpj::*;
 pub use unchecked_cpf::*;
 
+#[macro_use]
+mod impls;
 mod check_digits;
 mod cnpj;
 mod cpf;
