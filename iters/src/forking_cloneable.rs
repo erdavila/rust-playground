@@ -4,8 +4,8 @@ pub trait ForkingCloneable: Iterator + Sized
 where
     Self::Item: Clone,
 {
-    fn forking_cloneable(self) -> ForkingCloneableIter<Self> {
-        ForkingCloneableIter::new(self)
+    fn forking_cloneable(self) -> Iter<Self> {
+        Iter::new(self)
     }
 }
 
@@ -16,7 +16,7 @@ where
 {
 }
 
-pub struct ForkingCloneableIter<I>
+pub struct Iter<I>
 where
     I: Iterator,
     I::Item: Clone,
@@ -26,7 +26,7 @@ where
     state: Box<RefCell<State>>,
     shared_state: Rc<RefCell<SharedState<I>>>,
 }
-impl<I> ForkingCloneableIter<I>
+impl<I> Iter<I>
 where
     I: Iterator,
     I::Item: Clone,
@@ -42,13 +42,13 @@ where
             buffer: Buffer::new(),
         };
 
-        ForkingCloneableIter {
+        Iter {
             state: Box::new(RefCell::new(state)),
             shared_state: Rc::new(RefCell::new(shared_state)),
         }
     }
 }
-impl<I> Iterator for ForkingCloneableIter<I>
+impl<I> Iterator for Iter<I>
 where
     I: Iterator,
     I::Item: Clone,
@@ -91,7 +91,7 @@ where
         }
     }
 }
-impl<I> Clone for ForkingCloneableIter<I>
+impl<I> Clone for Iter<I>
 where
     I: Iterator,
     I::Item: Clone,
@@ -109,13 +109,13 @@ where
 
         let shared_state = Rc::clone(&self.shared_state);
 
-        ForkingCloneableIter {
+        Iter {
             state: clone_state,
             shared_state,
         }
     }
 }
-impl<I> Drop for ForkingCloneableIter<I>
+impl<I> Drop for Iter<I>
 where
     I: Iterator,
     I::Item: Clone,
@@ -141,7 +141,7 @@ where
         }
     }
 }
-impl<I> FusedIterator for ForkingCloneableIter<I>
+impl<I> FusedIterator for Iter<I>
 where
     I: Iterator,
     I::Item: Clone,
@@ -216,8 +216,8 @@ impl State {
             next.as_mut().unlink_prev();
 
             prev.as_mut().next = Some(next);
-            next.as_mut().prev = Some(prev)
-        };
+            next.as_mut().prev = Some(prev);
+        }
     }
 }
 

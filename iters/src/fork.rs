@@ -15,7 +15,7 @@ impl ForkId {
 }
 
 pub trait Fork: Iterator + Sized {
-    fn fork(self) -> (ForkIter<Self>, ForkIter<Self>) {
+    fn fork(self) -> (Iter<Self>, Iter<Self>) {
         let state = State {
             source: self,
             pending: VecDeque::new(),
@@ -25,11 +25,11 @@ pub trait Fork: Iterator + Sized {
         let state1 = Rc::new(RefCell::new(state));
         let state2 = Rc::clone(&state1);
 
-        let it1 = ForkIter {
+        let it1 = Iter {
             fork_id: ForkId::First,
             state: state1,
         };
-        let it2 = ForkIter {
+        let it2 = Iter {
             fork_id: ForkId::Second,
             state: state2,
         };
@@ -46,14 +46,14 @@ where
 }
 
 #[derive(Clone)]
-pub struct ForkIter<I>
+pub struct Iter<I>
 where
     I: Iterator,
 {
     fork_id: ForkId,
     state: Rc<RefCell<State<I>>>,
 }
-impl<I> Iterator for ForkIter<I>
+impl<I> Iterator for Iter<I>
 where
     I: Iterator,
     I::Item: Clone,
@@ -64,13 +64,13 @@ where
         self.state.borrow_mut().next(self.fork_id)
     }
 }
-impl<I> FusedIterator for ForkIter<I>
+impl<I> FusedIterator for Iter<I>
 where
     I: Iterator + FusedIterator,
     I::Item: Clone,
 {
 }
-impl<I> Drop for ForkIter<I>
+impl<I> Drop for Iter<I>
 where
     I: Iterator,
 {
@@ -85,7 +85,7 @@ where
         }
     }
 }
-impl<I> Debug for ForkIter<I>
+impl<I> Debug for Iter<I>
 where
     I: Iterator + Debug,
     I::Item: Debug,

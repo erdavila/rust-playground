@@ -1,20 +1,20 @@
 mod private {
     pub struct Output<E>
     where
-        E: PrivateEvaluator,
+        E: Evaluator,
     {
         pub(crate) value: bool,
         pub(crate) evaluation: Option<E>,
     }
 
-    pub trait PrivateEvaluator: Sized {
+    pub trait Evaluator: Sized {
         fn evaluate_count(self, count: usize) -> Output<Self>;
     }
 }
 
-use private::*;
+use private::Output;
 
-pub trait Evaluator: PrivateEvaluator {
+pub trait Evaluator: private::Evaluator {
     fn evaluate(mut self, it: &mut impl Iterator) -> bool {
         let mut count = 0;
 
@@ -60,7 +60,7 @@ macro_rules! comparison_evaluator {
             }
         }
 
-        impl PrivateEvaluator for $name {
+        impl private::Evaluator for $name {
             fn evaluate_count(self, count: usize) -> Output<Self> {
                 let value = count $op self.tested_count();
                 let value_can_change = count $op2 self.tested_count();
@@ -87,7 +87,7 @@ impl<E> Not<E> {
         Not(e)
     }
 }
-impl<E> PrivateEvaluator for Not<E>
+impl<E> private::Evaluator for Not<E>
 where
     E: Evaluator,
 {
@@ -117,7 +117,7 @@ macro_rules! binary_logical_evaluator {
             }
         }
 
-        impl<E1, E2> PrivateEvaluator for $name<E1, E2>
+        impl<E1, E2> private::Evaluator for $name<E1, E2>
         where
             E1: Evaluator,
             E2: Evaluator,

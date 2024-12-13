@@ -87,6 +87,7 @@ where
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("PartitionIter")
+            .field("partition_id", &self.partition_id)
             .field("state", &self.state)
             .finish()
     }
@@ -119,7 +120,7 @@ where
             match self.source.next() {
                 Some(value) => {
                     if PartitionId::from((self.predicate)(&value)) == partition_id {
-                        next = Some(value)
+                        next = Some(value);
                     } else {
                         debug_assert!(
                             self.pending_partition_id != partition_id || self.pending.is_empty()

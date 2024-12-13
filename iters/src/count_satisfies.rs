@@ -15,32 +15,40 @@ impl<I> CountSatisfies for I where I: Iterator {}
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub struct N;
 impl N {
+    #[must_use]
     pub fn eq(self, tested_count: usize) -> impl Evaluator {
         Eq::new(tested_count)
     }
 
+    #[must_use]
     pub fn ne(self, tested_count: usize) -> impl Evaluator {
         Not::new(Eq::new(tested_count))
     }
 
+    #[must_use]
     pub fn lt(self, tested_count: usize) -> impl Evaluator {
         Lt::new(tested_count)
     }
 
+    #[must_use]
     pub fn gt(self, tested_count: usize) -> impl Evaluator {
         Gt::new(tested_count)
     }
 
+    #[must_use]
     pub fn le(self, tested_count: usize) -> impl Evaluator {
         Not::new(Gt::new(tested_count))
     }
 
+    #[must_use]
     pub fn ge(self, tested_count: usize) -> impl Evaluator {
         Not::new(Lt::new(tested_count))
     }
 }
 
 #[macro_export]
+#[doc(hidden)]
+#[expect(clippy::module_name_repetitions)]
 macro_rules! __count_satisfies_condition_comparison {
     ($n:ident, ==, $compared:tt) => {
         $n.eq($compared)
@@ -63,6 +71,8 @@ macro_rules! __count_satisfies_condition_comparison {
 }
 
 #[macro_export]
+#[doc(hidden)]
+#[expect(clippy::module_name_repetitions)]
 macro_rules! __count_satisfies_condition_parse_or_rest {
     ($expr1:expr , $expr2:expr , && $n:ident $cmp:tt $compared:tt $($rest:tt)*) => {
         $crate::__count_satisfies_condition_parse_or_rest!(
@@ -94,6 +104,8 @@ macro_rules! __count_satisfies_condition_parse_or_rest {
 }
 
 #[macro_export]
+#[doc(hidden)]
+#[expect(clippy::module_name_repetitions)]
 macro_rules! __count_satisfies_condition_parse_rest {
     ($expr:expr , ) => {
         $expr
@@ -140,6 +152,8 @@ macro_rules! __count_satisfies_condition_parse_rest {
 }
 
 #[macro_export]
+#[doc(hidden)]
+#[expect(clippy::module_name_repetitions)]
 macro_rules! __count_satisfies_condition_parse {
     ($n:ident $cmp:tt $compared:tt $($rest:tt)*) => {
         $crate::__count_satisfies_condition_parse_rest!(
@@ -162,6 +176,7 @@ macro_rules! __count_satisfies_condition_parse {
 }
 
 #[macro_export]
+#[expect(clippy::module_name_repetitions)]
 macro_rules! count_satisfies_condition {
     (|$n:ident| { $($token:tt)+ }) => {
         |$n| $crate::__count_satisfies_condition_parse!($($token)+)
@@ -174,7 +189,7 @@ macro_rules! count_satisfies_condition {
 #[macro_export]
 macro_rules! count_satisfies {
     ($iterator:expr, |$n:ident| $($token:tt)+) => {
-        $crate::CountSatisfies::count_satisfies($iterator, $crate::count_satisfies_condition!(|$n| $($token)+))
+        $crate::count_satisfies::CountSatisfies::count_satisfies($iterator, $crate::count_satisfies_condition!(|$n| $($token)+))
     };
 }
 

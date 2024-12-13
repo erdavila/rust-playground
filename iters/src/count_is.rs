@@ -1,19 +1,19 @@
 use std::{cell::RefCell, ops::DerefMut};
 
-use crate::count_satisfies::evaluation::{Eq, Evaluator, Gt, Lt, Not};
+use crate::count_satisfies::evaluation::{Eq, Evaluator as _, Gt, Lt, Not};
 
 pub trait CountIs: Iterator + Sized {
-    fn count_is(self) -> CountIsEvaluator<Self> {
-        CountIsEvaluator(RefCell::new(self))
+    fn count_is(self) -> Evaluator<Self> {
+        Evaluator(RefCell::new(self))
     }
 }
 impl<I> CountIs for I where I: Iterator {}
 
 #[derive(Clone, Debug)]
-pub struct CountIsEvaluator<I>(RefCell<I>)
+pub struct Evaluator<I>(RefCell<I>)
 where
     I: Iterator;
-impl<I> PartialEq<usize> for CountIsEvaluator<I>
+impl<I> PartialEq<usize> for Evaluator<I>
 where
     I: Iterator,
 {
@@ -22,7 +22,7 @@ where
         e.evaluate(&mut *self.0.borrow_mut())
     }
 }
-impl<I> PartialOrd<usize> for CountIsEvaluator<I>
+impl<I> PartialOrd<usize> for Evaluator<I>
 where
     I: Iterator,
 {
