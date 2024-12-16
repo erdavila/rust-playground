@@ -18,6 +18,7 @@ members = [
     "iters",
     "ratatui-scrolling",
     "ref_count",
+    "same-elements",
     "shared_ownership",
     "syn-dump",
     "tailcall",
