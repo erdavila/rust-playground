@@ -3,47 +3,73 @@ use std::{
     hash::Hash,
 };
 
-macro_rules! same_elements {
-    ($a:ident, $b:ident, $map:expr, $namespace:ident) => {{
-        let a = $a;
-        let b = $b;
-        let mut map = $map;
-
-        for x in a {
-            map.entry(x)
-                .and_modify(|count| *count += 1)
-                .or_insert(0usize);
-        }
-
-        for y in b {
-            if let $namespace::Entry::Occupied(mut e) = map.entry(y) {
-                let count = e.get_mut();
+macro_rules! update_count {
+    ($namespace:ident :: $map_type:ident) => {
+        |counts: &mut $map_type<_, _>, key, delta| match counts.entry(key) {
+            $namespace::Entry::Occupied(mut occupied) => {
+                let count = occupied.get_mut();
+                *count += delta;
                 if *count == 0 {
-                    e.remove();
-                } else {
-                    *count -= 1;
+                    occupied.remove();
                 }
-            } else {
-                return false;
+            }
+            $namespace::Entry::Vacant(vacant) => {
+                vacant.insert(delta);
             }
         }
-
-        map.is_empty()
-    }};
+    };
 }
 
 pub fn same_elements_hash<T: Eq + Hash>(
     a: impl IntoIterator<Item = T>,
     b: impl IntoIterator<Item = T>,
 ) -> bool {
-    same_elements!(a, b, HashMap::new(), hash_map)
+    same_elements(
+        a,
+        b,
+        HashMap::new(),
+        update_count!(hash_map::HashMap),
+        HashMap::is_empty,
+    )
 }
 
 pub fn same_elements_ord<T: Ord>(
     a: impl IntoIterator<Item = T>,
     b: impl IntoIterator<Item = T>,
 ) -> bool {
-    same_elements!(a, b, BTreeMap::new(), btree_map)
+    same_elements(
+        a,
+        b,
+        BTreeMap::new(),
+        update_count!(btree_map::BTreeMap),
+        BTreeMap::is_empty,
+    )
+}
+
+fn same_elements<T: Eq, M>(
+    a: impl IntoIterator<Item = T>,
+    b: impl IntoIterator<Item = T>,
+    mut counts: M,
+    update_count: fn(&mut M, T, i32),
+    is_empty: fn(&M) -> bool,
+) -> bool {
+    let mut a = a.into_iter();
+    let mut b = b.into_iter();
+
+    loop {
+        match (a.next(), b.next()) {
+            (Some(x), Some(y)) => {
+                if x != y {
+                    update_count(&mut counts, x, 1);
+                    update_count(&mut counts, y, -1);
+                }
+            }
+            (None, None) => break,
+            _ => return false,
+        }
+    }
+
+    is_empty(&counts)
 }
 
 #[cfg(test)]
