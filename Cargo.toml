@@ -16,6 +16,7 @@ members = [
     "insertion_order_hash_map",
     "interlace",
     "iters",
+    "min-max-binary-heap",
     "ratatui-scrolling",
     "ref_count",
     "same-elements",
