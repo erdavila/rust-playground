@@ -1,6 +1,13 @@
 mod heap;
 
-use std::{cell::RefCell, collections::TryReserveError, fmt::Debug, marker::PhantomData, rc::Rc};
+use std::{
+    cell::{Ref, RefCell},
+    collections::TryReserveError,
+    fmt::{Debug, Display},
+    marker::PhantomData,
+    ops::Deref,
+    rc::Rc,
+};
 
 use heap::{Entry, Heap, HeapOrder, Max, Min};
 
@@ -72,13 +79,22 @@ where
     }
 
     #[must_use]
-    pub fn peek_min(&self) -> Option<&T> {
-        todo!()
+    pub fn peek_min(&self) -> Option<Peek<T>> {
+        self.peek::<Min>()
     }
 
     #[must_use]
-    pub fn peek_max(&self) -> Option<&T> {
-        todo!()
+    pub fn peek_max(&self) -> Option<Peek<T>> {
+        self.peek::<Max>()
+    }
+
+    fn peek<'a, O>(&'a self) -> Option<Peek<'a, T>>
+    where
+        O: HeapOrder + 'a,
+    {
+        let (heap, _) = O::select_heaps(&self.min_heap, &self.max_heap);
+        heap.peek()
+            .map(|entry| Peek(Ref::map(entry, |e| &e.element)))
     }
 
     pub fn peek_min_mut(&mut self) -> Option<PeekMut<T>> {
@@ -275,6 +291,23 @@ impl<T> Iterator for IntoIter<T> {
     }
 }
 
+pub struct Peek<'a, T>(Ref<'a, T>);
+impl<T> Deref for Peek<'_, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+impl<T> Display for Peek<'_, T>
+where
+    T: Display,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
 pub struct PeekMut<'a, T> {
     phantom: PhantomData<&'a T>,
 }
@@ -397,5 +430,44 @@ mod tests {
 
         assert_eq!(heap.pop_max(), None);
         assert_state!(heap);
+    }
+
+    #[test]
+    fn peek() {
+        let mut heap = MinMaxBinaryHeap::new();
+        // Current elements: []
+
+        assert!(heap.peek_min().is_none());
+        assert!(heap.peek_max().is_none());
+
+        heap.push(2);
+        // Current elements: [2]
+
+        assert_eq!(heap.peek_min().map(|n| *n), Some(2));
+        assert_eq!(heap.peek_max().map(|n| *n), Some(2));
+
+        heap.push(4);
+        // Current elements: [2, 4]
+
+        assert_eq!(heap.peek_min().map(|n| *n), Some(2));
+        assert_eq!(heap.peek_max().map(|n| *n), Some(4));
+
+        heap.push(3);
+        // Current elements: [2, 3, 4]
+
+        assert_eq!(heap.peek_min().map(|n| *n), Some(2));
+        assert_eq!(heap.peek_max().map(|n| *n), Some(4));
+
+        heap.push(1);
+        // Current elements: [1, 2, 3, 4]
+
+        assert_eq!(heap.peek_min().map(|n| *n), Some(1));
+        assert_eq!(heap.peek_max().map(|n| *n), Some(4));
+
+        heap.push(5);
+        // Current elements: [1, 2, 3, 4, 5]
+
+        assert_eq!(heap.peek_min().map(|n| *n), Some(1));
+        assert_eq!(heap.peek_max().map(|n| *n), Some(5));
     }
 }

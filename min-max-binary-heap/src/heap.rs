@@ -1,4 +1,8 @@
-use std::{cell::RefCell, marker::PhantomData, rc::Rc};
+use std::{
+    cell::{Ref, RefCell},
+    marker::PhantomData,
+    rc::Rc,
+};
 
 #[cfg(test)]
 use std::ops::Index;
@@ -43,6 +47,10 @@ where
             let entry = self.remove(0);
             Some(entry)
         }
+    }
+
+    pub(crate) fn peek(&self) -> Option<Ref<Entry<T>>> {
+        self.entries.first().map(|entry| entry.borrow())
     }
 
     pub(crate) fn remove(&mut self, index: usize) -> EntryRef<T> {
@@ -139,6 +147,11 @@ pub(crate) trait HeapOrder: Sized {
 
     fn set_heap_index<T>(entry: &mut Entry<T>, index: usize);
 
+    fn select_heaps<'a, T>(
+        min_heap: &'a Heap<T, Min>,
+        max_heap: &'a Heap<T, Max>,
+    ) -> (&'a Heap<T, Self>, &'a Heap<T, Self::Other>);
+
     fn select_heaps_mut<'a, T>(
         min_heap: &'a mut Heap<T, Min>,
         max_heap: &'a mut Heap<T, Max>,
@@ -162,6 +175,13 @@ impl HeapOrder for Min {
 
     fn set_heap_index<T>(entry: &mut Entry<T>, index: usize) {
         entry.min_heap_index = index;
+    }
+
+    fn select_heaps<'a, T>(
+        min_heap: &'a Heap<T, Min>,
+        max_heap: &'a Heap<T, Max>,
+    ) -> (&'a Heap<T, Self>, &'a Heap<T, Self::Other>) {
+        (min_heap, max_heap)
     }
 
     fn select_heaps_mut<'a, T>(
@@ -189,6 +209,13 @@ impl HeapOrder for Max {
 
     fn set_heap_index<T>(entry: &mut Entry<T>, index: usize) {
         entry.max_heap_index = index;
+    }
+
+    fn select_heaps<'a, T>(
+        min_heap: &'a Heap<T, Min>,
+        max_heap: &'a Heap<T, Max>,
+    ) -> (&'a Heap<T, Self>, &'a Heap<T, Self::Other>) {
+        (max_heap, min_heap)
     }
 
     fn select_heaps_mut<'a, T>(
