@@ -42,12 +42,14 @@ where
         Drain(self.max_heap.drain())
     }
 
-    pub fn drain_sorted_from_min(&mut self) -> DrainSorted<T> {
-        todo!()
+    pub fn drain_sorted_asc(&mut self) -> DrainSortedAsc<T> {
+        self.max_heap.clear();
+        DrainSortedAsc(&mut self.min_heap)
     }
 
-    pub fn drain_sorted_from_max(&mut self) -> DrainSorted<T> {
-        todo!()
+    pub fn drain_sorted_desc(&mut self) -> DrainSortedDesc<T> {
+        self.min_heap.clear();
+        DrainSortedDesc(&mut self.max_heap)
     }
 
     #[must_use]
@@ -307,9 +309,43 @@ impl<T> DoubleEndedIterator for Drain<'_, T> {
 impl<T> ExactSizeIterator for Drain<'_, T> {}
 impl<T> FusedIterator for Drain<'_, T> {}
 
-pub struct DrainSorted<'a, T> {
-    phantom: PhantomData<&'a T>,
+pub struct DrainSortedAsc<'a, T>(&'a mut Heap<T, Min>);
+impl<T> Iterator for DrainSortedAsc<'_, T>
+where
+    T: Ord,
+{
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.pop().map(Entry::ref_into_value)
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let size = self.0.len();
+        (size, Some(size))
+    }
 }
+impl<T> ExactSizeIterator for DrainSortedAsc<'_, T> where T: Ord {}
+impl<T> FusedIterator for DrainSortedAsc<'_, T> where T: Ord {}
+
+pub struct DrainSortedDesc<'a, T>(&'a mut Heap<T, Max>);
+impl<T> Iterator for DrainSortedDesc<'_, T>
+where
+    T: Ord,
+{
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.pop().map(Entry::ref_into_value)
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let size = self.0.len();
+        (size, Some(size))
+    }
+}
+impl<T> ExactSizeIterator for DrainSortedDesc<'_, T> where T: Ord {}
+impl<T> FusedIterator for DrainSortedDesc<'_, T> where T: Ord {}
 
 pub struct IntoIterSorted<T> {
     phantom: PhantomData<T>,
@@ -807,5 +843,29 @@ mod tests {
 
         assert_state!(heap);
         assert!(heap.is_empty());
+    }
+
+    #[test]
+    fn drain_sorted_asc() {
+        let values = [5, 1, 4, 2, 3];
+        let mut heap = MinMaxBinaryHeap::from_iter(values);
+
+        let drained: Vec<_> = heap.drain_sorted_asc().collect();
+
+        assert_state!(heap);
+        assert!(heap.is_empty());
+        assert_eq!(drained, [1, 2, 3, 4, 5]);
+    }
+
+    #[test]
+    fn drain_sorted_desc() {
+        let values = [5, 1, 4, 2, 3];
+        let mut heap = MinMaxBinaryHeap::from_iter(values);
+
+        let drained: Vec<_> = heap.drain_sorted_desc().collect();
+
+        assert_state!(heap);
+        assert!(heap.is_empty());
+        assert_eq!(drained, [5, 4, 3, 2, 1]);
     }
 }
