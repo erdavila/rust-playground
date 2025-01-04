@@ -181,6 +181,14 @@ where
         self.entries.iter()
     }
 }
+impl<T, O> IntoIterator for Heap<T, O> {
+    type Item = EntryRef<T>;
+    type IntoIter = std::vec::IntoIter<EntryRef<T>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.entries.into_iter()
+    }
+}
 #[cfg(test)]
 impl<T, O> Index<usize> for Heap<T, O>
 where

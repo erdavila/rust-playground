@@ -271,7 +271,7 @@ impl<T> IntoIterator for MinMaxBinaryHeap<T> {
     type IntoIter = IntoIter<T>;
 
     fn into_iter(self) -> Self::IntoIter {
-        todo!()
+        IntoIter(self.max_heap.into_iter())
     }
 }
 
@@ -321,14 +321,45 @@ impl<T> Default for Iter<'_, T> {
     }
 }
 
-pub struct IntoIter<T> {
-    phantom: PhantomData<T>,
-}
+pub struct IntoIter<T>(std::vec::IntoIter<EntryRef<T>>);
 impl<T> Iterator for IntoIter<T> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        todo!()
+        self.0.next().map(|entry| {
+            let Some(entry) = Rc::into_inner(entry) else {
+                unreachable!()
+            };
+            let entry = RefCell::into_inner(entry);
+            entry.element
+        })
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.0.size_hint()
+    }
+}
+impl<T> DoubleEndedIterator for IntoIter<T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.0.next_back().map(|entry| {
+            let Some(entry) = Rc::into_inner(entry) else {
+                unreachable!()
+            };
+            let entry = RefCell::into_inner(entry);
+            entry.element
+        })
+    }
+}
+impl<T> ExactSizeIterator for IntoIter<T> {}
+impl<T> FusedIterator for IntoIter<T> {}
+impl<T> Clone for IntoIter<T> {
+    fn clone(&self) -> Self {
+        IntoIter(self.0.clone())
+    }
+}
+impl<T> Default for IntoIter<T> {
+    fn default() -> Self {
+        IntoIter(std::vec::IntoIter::default())
     }
 }
 
@@ -667,6 +698,27 @@ mod tests {
         assert_eq!(first.as_ref().map(|n| **n), expected.iter().max().copied());
 
         let found: HashSet<_> = first.into_iter().chain(iter).map(|n| *n).collect();
+        assert_eq!(found, expected);
+    }
+
+    #[test]
+    fn into_iter() {
+        let expected: HashSet<_> = (1..=5).collect();
+
+        let heap = {
+            let mut h = MinMaxBinaryHeap::new();
+            for n in expected.iter() {
+                h.push(*n);
+            }
+            h
+        };
+
+        let mut iter = heap.into_iter();
+
+        let first: Option<i32> = iter.next();
+        assert_eq!(first, expected.iter().max().copied());
+
+        let found: HashSet<_> = first.into_iter().chain(iter).collect();
         assert_eq!(found, expected);
     }
 }
