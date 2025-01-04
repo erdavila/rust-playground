@@ -255,7 +255,18 @@ where
     where
         I: IntoIterator<Item = T>,
     {
-        todo!()
+        let iter = iter.into_iter();
+
+        let (min_size, max_size) = iter.size_hint();
+        let capacity = max_size.unwrap_or(min_size);
+
+        let mut heap = MinMaxBinaryHeap::with_capacity(capacity);
+
+        for value in iter {
+            heap.push(value);
+        }
+
+        heap
     }
 }
 impl<'a, T> IntoIterator for &'a MinMaxBinaryHeap<T>
@@ -744,5 +755,33 @@ mod tests {
 
         let found: HashSet<_> = first.into_iter().chain(iter).map(|n| *n).collect();
         assert_eq!(found, expected);
+    }
+
+    #[test]
+    fn from_iter() {
+        let values = 1..=5;
+
+        let heap = MinMaxBinaryHeap::from_iter(values.clone());
+
+        assert_state!(heap);
+        assert_eq!(heap.len(), values.clone().count());
+        assert_eq!(
+            heap.into_iter().collect::<HashSet<_>>(),
+            values.collect::<HashSet<_>>()
+        );
+    }
+
+    #[test]
+    fn from_iter_via_collect() {
+        let values = 1..=5;
+
+        let heap: MinMaxBinaryHeap<_> = values.clone().collect();
+
+        assert_state!(heap);
+        assert_eq!(heap.len(), values.clone().count());
+        assert_eq!(
+            heap.into_iter().collect::<HashSet<_>>(),
+            values.collect::<HashSet<_>>()
+        );
     }
 }
