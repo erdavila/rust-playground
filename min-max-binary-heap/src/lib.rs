@@ -1,14 +1,12 @@
+mod heap;
+
 use std::{cell::RefCell, collections::TryReserveError, fmt::Debug, marker::PhantomData, rc::Rc};
 
-pub struct MinMaxBinaryHeap<T> {
-    min_heap: Vec<Rc<RefCell<Entry<T>>>>,
-    max_heap: Vec<Rc<RefCell<Entry<T>>>>,
-}
+use heap::{Entry, Heap, Max, Min};
 
-struct Entry<T> {
-    element: T,
-    min_heap_index: usize,
-    max_heap_index: usize,
+pub struct MinMaxBinaryHeap<T> {
+    min_heap: Heap<T, Min>,
+    max_heap: Heap<T, Max>,
 }
 
 impl<T> MinMaxBinaryHeap<T>
@@ -68,8 +66,8 @@ where
     #[must_use]
     pub const fn new() -> Self {
         MinMaxBinaryHeap {
-            min_heap: Vec::new(),
-            max_heap: Vec::new(),
+            min_heap: Heap::new(),
+            max_heap: Heap::new(),
         }
     }
 
@@ -109,10 +107,7 @@ where
         }));
 
         self.min_heap.push(Rc::clone(&entry));
-        heap_up_min(index, &mut self.min_heap);
-
         self.max_heap.push(entry);
-        heap_up_max(index, &mut self.max_heap);
     }
 
     pub fn reserve(&mut self, additional: usize) {
@@ -224,56 +219,6 @@ impl<T> IntoIterator for MinMaxBinaryHeap<T> {
 
     fn into_iter(self) -> Self::IntoIter {
         todo!()
-    }
-}
-
-fn heap_up_min<T>(mut index: usize, min_heap: &mut [Rc<RefCell<Entry<T>>>])
-where
-    T: Ord,
-{
-    while index > 0 {
-        let parent_index = (index - 1) / 2;
-
-        let mut entry = min_heap[index].borrow_mut();
-        let mut parent_entry = min_heap[parent_index].borrow_mut();
-
-        if parent_entry.element <= entry.element {
-            break;
-        }
-
-        parent_entry.min_heap_index = index;
-        entry.min_heap_index = parent_index;
-
-        drop(entry);
-        drop(parent_entry);
-        min_heap.swap(index, parent_index);
-
-        index = parent_index;
-    }
-}
-
-fn heap_up_max<T>(mut index: usize, max_heap: &mut [Rc<RefCell<Entry<T>>>])
-where
-    T: Ord,
-{
-    while index > 0 {
-        let parent_index = (index - 1) / 2;
-
-        let mut entry = max_heap[index].borrow_mut();
-        let mut parent_entry = max_heap[parent_index].borrow_mut();
-
-        if parent_entry.element >= entry.element {
-            break;
-        }
-
-        entry.max_heap_index = parent_index;
-        parent_entry.max_heap_index = index;
-
-        drop(entry);
-        drop(parent_entry);
-        max_heap.swap(index, parent_index);
-
-        index = parent_index;
     }
 }
 
