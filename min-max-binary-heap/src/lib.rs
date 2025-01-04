@@ -62,12 +62,15 @@ where
 
     #[must_use]
     pub fn len(&self) -> usize {
-        todo!()
+        self.max_heap.len()
     }
 
     #[must_use]
     pub const fn new() -> Self {
-        todo!()
+        MinMaxBinaryHeap {
+            min_heap: Vec::new(),
+            max_heap: Vec::new(),
+        }
     }
 
     #[must_use]
@@ -96,8 +99,20 @@ where
         todo!()
     }
 
-    pub fn push(&mut self, value: T) {
-        todo!()
+    pub fn push(&mut self, element: T) {
+        let index = self.len();
+
+        let entry = Rc::new(RefCell::new(Entry {
+            element,
+            min_heap_index: index,
+            max_heap_index: index,
+        }));
+
+        self.min_heap.push(Rc::clone(&entry));
+        heap_up_min(index, &mut self.min_heap);
+
+        self.max_heap.push(entry);
+        heap_up_max(index, &mut self.max_heap);
     }
 
     pub fn reserve(&mut self, additional: usize) {
@@ -212,6 +227,56 @@ impl<T> IntoIterator for MinMaxBinaryHeap<T> {
     }
 }
 
+fn heap_up_min<T>(mut index: usize, min_heap: &mut [Rc<RefCell<Entry<T>>>])
+where
+    T: Ord,
+{
+    while index > 0 {
+        let parent_index = (index - 1) / 2;
+
+        let mut entry = min_heap[index].borrow_mut();
+        let mut parent_entry = min_heap[parent_index].borrow_mut();
+
+        if parent_entry.element <= entry.element {
+            break;
+        }
+
+        parent_entry.min_heap_index = index;
+        entry.min_heap_index = parent_index;
+
+        drop(entry);
+        drop(parent_entry);
+        min_heap.swap(index, parent_index);
+
+        index = parent_index;
+    }
+}
+
+fn heap_up_max<T>(mut index: usize, max_heap: &mut [Rc<RefCell<Entry<T>>>])
+where
+    T: Ord,
+{
+    while index > 0 {
+        let parent_index = (index - 1) / 2;
+
+        let mut entry = max_heap[index].borrow_mut();
+        let mut parent_entry = max_heap[parent_index].borrow_mut();
+
+        if parent_entry.element >= entry.element {
+            break;
+        }
+
+        entry.max_heap_index = parent_index;
+        parent_entry.max_heap_index = index;
+
+        drop(entry);
+        drop(parent_entry);
+        max_heap.swap(index, parent_index);
+
+        index = parent_index;
+    }
+}
+
 pub struct Drain<'a, T> {
     phantom: PhantomData<&'a T>,
 }
@@ -248,4 +313,55 @@ impl<T> Iterator for IntoIter<T> {
 
 pub struct PeekMut<'a, T> {
     phantom: PhantomData<&'a T>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    macro_rules! assert_state {
+        ($heap:ident) => {{
+            assert_eq!($heap.min_heap.len(), $heap.max_heap.len());
+
+            for i in 0..$heap.min_heap.len() {
+                let min_heap_entry = $heap.min_heap[i].borrow();
+                let max_heap_entry = $heap.max_heap[i].borrow();
+
+                assert_eq!(min_heap_entry.min_heap_index, i);
+                assert_eq!(max_heap_entry.max_heap_index, i);
+
+                if i > 0 {
+                    let parent = (i - 1) / 2;
+                    assert!($heap.min_heap[parent].borrow().element <= min_heap_entry.element);
+                    assert!($heap.max_heap[parent].borrow().element >= max_heap_entry.element);
+                }
+
+                let entry_rc = &$heap.min_heap[i];
+                assert!(Rc::ptr_eq(
+                    entry_rc,
+                    &$heap.max_heap[entry_rc.borrow().max_heap_index]
+                ));
+            }
+        }};
+    }
+
+    #[test]
+    fn push() {
+        let mut heap = MinMaxBinaryHeap::new();
+
+        heap.push(1);
+        assert_state!(heap);
+
+        heap.push(2);
+        assert_state!(heap);
+
+        heap.push(3);
+        assert_state!(heap);
+
+        heap.push(4);
+        assert_state!(heap);
+
+        heap.push(5);
+        assert_state!(heap);
+    }
 }
