@@ -23,7 +23,14 @@ where
     T: Ord,
 {
     pub fn append(&mut self, other: &mut Self) {
-        todo!()
+        let (shorter_heap, longer_heap) = if self.len() < other.len() {
+            (self, other)
+        } else {
+            (other, self)
+        };
+
+        longer_heap.min_heap.append(&mut shorter_heap.min_heap);
+        longer_heap.max_heap.append(&mut shorter_heap.max_heap);
     }
 
     #[must_use]
@@ -149,12 +156,10 @@ where
     }
 
     pub fn push(&mut self, element: T) {
-        let index = self.len();
-
         let entry = Rc::new(RefCell::new(Entry {
             element,
-            min_heap_index: index,
-            max_heap_index: index,
+            min_heap_index: 0,
+            max_heap_index: 0,
         }));
 
         self.min_heap.push(Rc::clone(&entry));
@@ -991,6 +996,22 @@ mod tests {
         assert_state!(heap);
         assert_eq!(
             heap.into_iter_sorted_asc().collect::<Vec<_>>(),
+            (0..10).collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn append() {
+        let mut src_heap = MinMaxBinaryHeap::from_iter([1, 3, 5, 7, 9]);
+        let mut dst_heap = MinMaxBinaryHeap::from_iter([0, 2, 4, 6, 8]);
+
+        dst_heap.append(&mut src_heap);
+
+        assert_state!(src_heap);
+        assert!(src_heap.is_empty());
+        assert_state!(dst_heap);
+        assert_eq!(
+            dst_heap.into_iter_sorted_asc().collect::<Vec<_>>(),
             (0..10).collect::<Vec<_>>()
         );
     }

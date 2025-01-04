@@ -44,7 +44,14 @@ where
         self.entries.len()
     }
 
+    pub(crate) fn append(&mut self, other: &mut Self) {
+        for entry in other.drain() {
+            self.push(entry);
+        }
+    }
+
     pub(crate) fn push(&mut self, entry: EntryRef<T>) {
+        O::set_heap_index(&mut entry.borrow_mut(), self.len());
         self.entries.push(entry);
         self.heap_up(self.entries.len() - 1);
     }
