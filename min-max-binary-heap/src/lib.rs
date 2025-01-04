@@ -258,12 +258,15 @@ where
         todo!()
     }
 }
-impl<'a, T> IntoIterator for &'a MinMaxBinaryHeap<T> {
+impl<'a, T> IntoIterator for &'a MinMaxBinaryHeap<T>
+where
+    T: Ord,
+{
     type Item = Ref<'a, T>;
     type IntoIter = Iter<'a, T>;
 
     fn into_iter(self) -> Self::IntoIter {
-        todo!()
+        Iter(self.max_heap.iter())
     }
 }
 impl<T> IntoIterator for MinMaxBinaryHeap<T> {
@@ -719,6 +722,27 @@ mod tests {
         assert_eq!(first, expected.iter().max().copied());
 
         let found: HashSet<_> = first.into_iter().chain(iter).collect();
+        assert_eq!(found, expected);
+    }
+
+    #[test]
+    fn into_iter_ref() {
+        let expected: HashSet<_> = (1..=5).collect();
+
+        let heap = {
+            let mut h = MinMaxBinaryHeap::new();
+            for n in expected.iter() {
+                h.push(*n);
+            }
+            h
+        };
+
+        let mut iter = (&heap).into_iter();
+
+        let first: Option<Ref<i32>> = iter.next();
+        assert_eq!(first.as_ref().map(|n| **n), expected.iter().max().copied());
+
+        let found: HashSet<_> = first.into_iter().chain(iter).map(|n| *n).collect();
         assert_eq!(found, expected);
     }
 }
