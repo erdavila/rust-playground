@@ -14,7 +14,7 @@ pub(crate) struct Entry<T> {
     pub max_heap_index: usize,
 }
 
-type EntryRef<T> = Rc<RefCell<Entry<T>>>;
+pub(crate) type EntryRef<T> = Rc<RefCell<Entry<T>>>;
 
 #[derive(Clone)]
 pub(crate) struct Heap<T, O> {
@@ -175,6 +175,10 @@ where
             entries: Vec::with_capacity(capacity),
             phantom: PhantomData,
         }
+    }
+
+    pub(crate) fn iter(&self) -> std::slice::Iter<'_, EntryRef<T>> {
+        self.entries.iter()
     }
 }
 #[cfg(test)]

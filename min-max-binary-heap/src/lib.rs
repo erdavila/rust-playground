@@ -4,13 +4,14 @@ use std::{
     cell::{Ref, RefCell, RefMut},
     collections::TryReserveError,
     fmt::{Debug, Display},
+    iter::FusedIterator,
     marker::PhantomData,
     ops::{Deref, DerefMut},
     ptr::NonNull,
     rc::Rc,
 };
 
-use heap::{Entry, Heap, HeapOrder, Max, Min};
+use heap::{Entry, EntryRef, Heap, HeapOrder, Max, Min};
 
 #[derive(Clone)]
 pub struct MinMaxBinaryHeap<T> {
@@ -65,7 +66,7 @@ where
 
     #[must_use]
     pub fn iter(&self) -> Iter<T> {
-        todo!()
+        Iter(self.max_heap.iter())
     }
 
     #[must_use]
@@ -258,7 +259,7 @@ where
     }
 }
 impl<'a, T> IntoIterator for &'a MinMaxBinaryHeap<T> {
-    type Item = &'a T;
+    type Item = Ref<'a, T>;
     type IntoIter = Iter<'a, T>;
 
     fn into_iter(self) -> Self::IntoIter {
@@ -286,14 +287,37 @@ pub struct IntoIterSorted<T> {
     phantom: PhantomData<T>,
 }
 
-pub struct Iter<'a, T> {
-    phantom: PhantomData<&'a T>,
-}
+pub struct Iter<'a, T>(std::slice::Iter<'a, EntryRef<T>>);
 impl<'a, T> Iterator for Iter<'a, T> {
-    type Item = &'a T;
+    type Item = Ref<'a, T>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        todo!()
+        self.0
+            .next()
+            .map(|entry| Ref::map(entry.borrow(), |e| &e.element))
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.0.size_hint()
+    }
+}
+impl<T> DoubleEndedIterator for Iter<'_, T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.0
+            .next_back()
+            .map(|entry| Ref::map(entry.borrow(), |e| &e.element))
+    }
+}
+impl<T> ExactSizeIterator for Iter<'_, T> {}
+impl<T> FusedIterator for Iter<'_, T> {}
+impl<T> Clone for Iter<'_, T> {
+    fn clone(&self) -> Self {
+        Iter(self.0.clone())
+    }
+}
+impl<T> Default for Iter<'_, T> {
+    fn default() -> Self {
+        Iter(std::slice::Iter::default())
     }
 }
 
@@ -398,6 +422,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashSet;
+
     use super::*;
 
     macro_rules! assert_state {
@@ -621,5 +647,26 @@ mod tests {
         assert_eq!(heap.len(), 1);
         assert_eq!(heap.peek_min().map(|n| *n), Some(2));
         assert_eq!(heap.peek_max().map(|n| *n), Some(2));
+    }
+
+    #[test]
+    fn iter() {
+        let expected: HashSet<_> = (1..=5).collect();
+
+        let heap = {
+            let mut h = MinMaxBinaryHeap::new();
+            for n in expected.iter() {
+                h.push(*n);
+            }
+            h
+        };
+
+        let mut iter = heap.iter();
+
+        let first: Option<Ref<i32>> = iter.next();
+        assert_eq!(first.as_ref().map(|n| **n), expected.iter().max().copied());
+
+        let found: HashSet<_> = first.into_iter().chain(iter).map(|n| *n).collect();
+        assert_eq!(found, expected);
     }
 }
