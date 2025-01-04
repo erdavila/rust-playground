@@ -171,11 +171,13 @@ where
         self.max_heap.reserve_exact(additional);
     }
 
-    pub fn retain<F>(&mut self, f: F)
+    pub fn retain<F>(&mut self, mut f: F)
     where
         F: FnMut(&T) -> bool,
     {
-        todo!()
+        for entry in self.max_heap.retain(move |e| f(&e.element)) {
+            self.min_heap.remove(entry.borrow().min_heap_index);
+        }
     }
 
     pub fn shrink_to(&mut self, min_capacity: usize) {
@@ -920,5 +922,50 @@ mod tests {
         let iter = heap.into_iter_sorted_desc();
 
         assert_eq!(iter.collect::<Vec<_>>(), [5, 4, 3, 2, 1]);
+    }
+
+    #[test]
+    fn retain() {
+        let values = 1..=10;
+        let mut heap = MinMaxBinaryHeap::from_iter(values.clone());
+        let predicate = |n: &_| n % 2 == 0;
+
+        heap.retain(predicate);
+
+        assert_state!(heap);
+        assert_eq!(
+            heap.into_iter().collect::<HashSet<_>>(),
+            values.filter(predicate).collect()
+        );
+    }
+
+    #[test]
+    fn retain_none() {
+        let values = 1..=10;
+        let mut heap = MinMaxBinaryHeap::from_iter(values.clone());
+        let predicate = |_: &_| false;
+
+        heap.retain(predicate);
+
+        assert_state!(heap);
+        assert_eq!(
+            heap.into_iter().collect::<HashSet<_>>(),
+            values.filter(predicate).collect()
+        );
+    }
+
+    #[test]
+    fn retain_all() {
+        let values = 1..=10;
+        let mut heap = MinMaxBinaryHeap::from_iter(values.clone());
+        let predicate = |_: &_| true;
+
+        heap.retain(predicate);
+
+        assert_state!(heap);
+        assert_eq!(
+            heap.into_iter().collect::<HashSet<_>>(),
+            values.filter(predicate).collect()
+        );
     }
 }

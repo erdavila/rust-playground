@@ -2,11 +2,9 @@ use std::{
     cell::{Ref, RefCell, RefMut},
     collections::TryReserveError,
     marker::PhantomData,
+    ops::Index,
     rc::Rc,
 };
-
-#[cfg(test)]
-use std::ops::Index;
 
 pub(crate) struct Entry<T> {
     pub element: T,
@@ -69,14 +67,30 @@ where
     }
 
     pub(crate) fn remove(&mut self, index: usize) -> EntryRef<T> {
-        let entry = self.entries.swap_remove(index);
-
+        let entry = unsafe { self.swap_remove(index) };
         if index < self.entries.len() {
-            O::set_heap_index(&mut self.entries[index].borrow_mut(), index);
             self.heap_up_and_down(index);
         }
-
         entry
+    }
+
+    unsafe fn swap_remove(&mut self, index: usize) -> EntryRef<T> {
+        let entry = self.entries.swap_remove(index);
+        if index < self.entries.len() {
+            O::set_heap_index(&mut self.entries[index].borrow_mut(), index);
+        }
+        entry
+    }
+
+    pub(crate) fn retain<F>(&mut self, f: F) -> Retain<T, O, F>
+    where
+        F: FnMut(&Entry<T>) -> bool,
+    {
+        Retain {
+            heap: self,
+            index: 0,
+            f,
+        }
     }
 
     pub(crate) fn heap_up_and_down(&mut self, index: usize) {
@@ -84,7 +98,7 @@ where
         self.heap_up(index);
     }
 
-    fn heap_up(&mut self, mut index: usize) {
+    pub(crate) fn heap_up(&mut self, mut index: usize) {
         while index > 0 {
             let parent_index = (index - 1) / 2;
 
@@ -202,7 +216,6 @@ impl<T, O> IntoIterator for Heap<T, O> {
         self.entries.into_iter()
     }
 }
-#[cfg(test)]
 impl<T, O> Index<usize> for Heap<T, O>
 where
     O: HeapOrder,
@@ -303,5 +316,81 @@ impl HeapOrder for Max {
         max_heap: &'a mut Heap<T, Max>,
     ) -> (&'a mut Heap<T, Max>, &'a mut Heap<T, Min>) {
         (max_heap, min_heap)
+    }
+}
+
+pub(crate) struct Retain<'a, T, O, F>
+where
+    T: Ord,
+    O: HeapOrder,
+    F: FnMut(&Entry<T>) -> bool,
+{
+    heap: &'a mut Heap<T, O>,
+    index: usize,
+    f: F,
+}
+impl<T, O, F> Iterator for Retain<'_, T, O, F>
+where
+    T: Ord,
+    O: HeapOrder,
+    F: FnMut(&Entry<T>) -> bool,
+{
+    type Item = EntryRef<T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        // valid_heap_in(0..self.index) == true
+        // valid_heap_in(0..=self.index) == ?
+        // self.index < self.heap.len() == ?
+
+        while self.index < self.heap.len() {
+            let entry = self.heap[self.index].borrow();
+            let retain = (self.f)(&entry);
+            drop(entry);
+
+            // valid_heap_in(0..self.index) == true
+            // valid_heap_in(0..=self.index) == ?
+            // self.index < self.heap.len() == true
+
+            if retain {
+                // The element at self.index is retained
+
+                self.heap.heap_up(self.index);
+                // valid_heap_in(0..self.index) == true
+                // valid_heap_in(0..=self.index) == true
+                // self.index < self.heap.len() == true
+
+                self.index += 1;
+                // valid_heap_in(0..self.index) == true
+                // valid_heap_in(0..=self.index) == ?
+                // self.index <= self.heap.len() == ?
+            } else {
+                // The element at self.index is replaced with the last element,
+                // or removed if it is already the last element.
+
+                let entry = unsafe { self.heap.swap_remove(self.index) };
+                // valid_heap_in(0..self.index) == true
+                // valid_heap_in(0..=self.index) == ?
+                // self.index < self.heap.len() == ?
+
+                return Some(entry);
+            }
+        }
+
+        // valid_heap_in(0..self.index) == true
+        // valid_heap_in(0..=self.index) == false
+        // self.index < self.heap.len() == false
+
+        None
+    }
+}
+impl<T, O, F> Drop for Retain<'_, T, O, F>
+where
+    T: Ord,
+    O: HeapOrder,
+    F: FnMut(&Entry<T>) -> bool,
+{
+    fn drop(&mut self) {
+        // Ensures evaluation of the remaining elements
+        for _ in self {}
     }
 }
