@@ -228,13 +228,13 @@ where
 }
 impl<'a, T> Extend<&'a T> for MinMaxBinaryHeap<T>
 where
-    T: 'a + Copy,
+    T: 'a + Copy + Ord,
 {
     fn extend<I>(&mut self, iter: I)
     where
         I: IntoIterator<Item = &'a T>,
     {
-        todo!()
+        self.extend(iter.into_iter().copied());
     }
 }
 impl<T> Extend<T> for MinMaxBinaryHeap<T>
@@ -245,7 +245,16 @@ where
     where
         I: IntoIterator<Item = T>,
     {
-        todo!()
+        let iter = iter.into_iter();
+
+        let (min_size, max_size) = iter.size_hint();
+        let capacity = max_size.unwrap_or(min_size);
+
+        self.reserve(capacity);
+
+        for value in iter {
+            self.push(value);
+        }
     }
 }
 impl<T> FromIterator<T> for MinMaxBinaryHeap<T>
@@ -256,17 +265,8 @@ where
     where
         I: IntoIterator<Item = T>,
     {
-        let iter = iter.into_iter();
-
-        let (min_size, max_size) = iter.size_hint();
-        let capacity = max_size.unwrap_or(min_size);
-
-        let mut heap = MinMaxBinaryHeap::with_capacity(capacity);
-
-        for value in iter {
-            heap.push(value);
-        }
-
+        let mut heap = MinMaxBinaryHeap::new();
+        heap.extend(iter);
         heap
     }
 }
@@ -966,6 +966,32 @@ mod tests {
         assert_eq!(
             heap.into_iter().collect::<HashSet<_>>(),
             values.filter(predicate).collect()
+        );
+    }
+
+    #[test]
+    fn extend() {
+        let mut heap = MinMaxBinaryHeap::from_iter([1, 3, 5, 7, 9]);
+
+        heap.extend([0, 2, 4, 6, 8]);
+
+        assert_state!(heap);
+        assert_eq!(
+            heap.into_iter_sorted_asc().collect::<Vec<_>>(),
+            (0..10).collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn extend_ref() {
+        let mut heap = MinMaxBinaryHeap::from_iter([1, 3, 5, 7, 9]);
+
+        heap.extend(&[0, 2, 4, 6, 8]);
+
+        assert_state!(heap);
+        assert_eq!(
+            heap.into_iter_sorted_asc().collect::<Vec<_>>(),
+            (0..10).collect::<Vec<_>>()
         );
     }
 }
