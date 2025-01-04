@@ -1,5 +1,5 @@
 use std::{
-    cell::{Ref, RefCell},
+    cell::{Ref, RefCell, RefMut},
     marker::PhantomData,
     rc::Rc,
 };
@@ -53,16 +53,24 @@ where
         self.entries.first().map(|entry| entry.borrow())
     }
 
+    pub(crate) fn peek_mut(&mut self) -> Option<RefMut<Entry<T>>> {
+        self.entries.first_mut().map(|entry| entry.borrow_mut())
+    }
+
     pub(crate) fn remove(&mut self, index: usize) -> EntryRef<T> {
         let entry = self.entries.swap_remove(index);
 
         if index < self.entries.len() {
             O::set_heap_index(&mut self.entries[index].borrow_mut(), index);
-            self.heap_down(index);
-            self.heap_up(index);
+            self.heap_up_and_down(index);
         }
 
         entry
+    }
+
+    pub(crate) fn heap_up_and_down(&mut self, index: usize) {
+        self.heap_down(index);
+        self.heap_up(index);
     }
 
     fn heap_up(&mut self, mut index: usize) {
