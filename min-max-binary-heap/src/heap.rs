@@ -13,6 +13,15 @@ pub(crate) struct Entry<T> {
     pub min_heap_index: usize,
     pub max_heap_index: usize,
 }
+impl<T> Entry<T> {
+    pub(crate) fn ref_into_value(entry_ref: EntryRef<T>) -> T {
+        let Some(entry) = Rc::into_inner(entry_ref) else {
+            unreachable!()
+        };
+        let entry = RefCell::into_inner(entry);
+        entry.element
+    }
+}
 
 pub(crate) type EntryRef<T> = Rc<RefCell<Entry<T>>>;
 
@@ -179,6 +188,10 @@ where
 
     pub(crate) fn iter(&self) -> std::slice::Iter<'_, EntryRef<T>> {
         self.entries.iter()
+    }
+
+    pub(crate) fn drain(&mut self) -> std::vec::Drain<'_, EntryRef<T>> {
+        self.entries.drain(..)
     }
 }
 impl<T, O> IntoIterator for Heap<T, O> {

@@ -38,7 +38,8 @@ where
     }
 
     pub fn drain(&mut self) -> Drain<T> {
-        todo!()
+        self.min_heap.drain();
+        Drain(self.max_heap.drain())
     }
 
     pub fn drain_sorted_from_min(&mut self) -> DrainSorted<T> {
@@ -139,11 +140,8 @@ where
             let other_heap_index = O::Other::get_heap_index(&entry.borrow());
             other_heap.remove(other_heap_index);
 
-            let Some(entry) = Rc::into_inner(entry) else {
-                unreachable!()
-            };
-            let entry = RefCell::into_inner(entry);
-            Some(entry.element)
+            let value = Entry::ref_into_value(entry);
+            Some(value)
         } else {
             None
         }
@@ -289,9 +287,25 @@ impl<T> IntoIterator for MinMaxBinaryHeap<T> {
     }
 }
 
-pub struct Drain<'a, T> {
-    phantom: PhantomData<&'a T>,
+pub struct Drain<'a, T>(std::vec::Drain<'a, EntryRef<T>>);
+impl<T> Iterator for Drain<'_, T> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.next().map(Entry::ref_into_value)
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.0.size_hint()
+    }
 }
+impl<T> DoubleEndedIterator for Drain<'_, T> {
+    fn next_back(&mut self) -> Option<Self::Item> {
+        self.0.next_back().map(Entry::ref_into_value)
+    }
+}
+impl<T> ExactSizeIterator for Drain<'_, T> {}
+impl<T> FusedIterator for Drain<'_, T> {}
 
 pub struct DrainSorted<'a, T> {
     phantom: PhantomData<&'a T>,
@@ -340,13 +354,7 @@ impl<T> Iterator for IntoIter<T> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.next().map(|entry| {
-            let Some(entry) = Rc::into_inner(entry) else {
-                unreachable!()
-            };
-            let entry = RefCell::into_inner(entry);
-            entry.element
-        })
+        self.0.next().map(Entry::ref_into_value)
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
@@ -355,13 +363,7 @@ impl<T> Iterator for IntoIter<T> {
 }
 impl<T> DoubleEndedIterator for IntoIter<T> {
     fn next_back(&mut self) -> Option<Self::Item> {
-        self.0.next_back().map(|entry| {
-            let Some(entry) = Rc::into_inner(entry) else {
-                unreachable!()
-            };
-            let entry = RefCell::into_inner(entry);
-            entry.element
-        })
+        self.0.next_back().map(Entry::ref_into_value)
     }
 }
 impl<T> ExactSizeIterator for IntoIter<T> {}
@@ -417,11 +419,7 @@ where
             min_max_binary_heap.max_heap.remove(entry.max_heap_index)
         };
 
-        let Some(entry) = Rc::into_inner(entry) else {
-            unreachable!()
-        };
-        let entry = RefCell::into_inner(entry);
-        entry.element
+        Entry::ref_into_value(entry)
     }
 }
 impl<T> Deref for PeekMut<'_, T>
@@ -783,5 +781,31 @@ mod tests {
             heap.into_iter().collect::<HashSet<_>>(),
             values.collect::<HashSet<_>>()
         );
+    }
+
+    #[test]
+    fn drain() {
+        let values = 1..=5;
+        let mut heap = MinMaxBinaryHeap::from_iter(values.clone());
+
+        let drained: HashSet<_> = heap.drain().collect();
+
+        assert_state!(heap);
+        assert!(heap.is_empty());
+        assert_eq!(drained, values.collect::<HashSet<_>>());
+    }
+
+    #[test]
+    fn drain_not_fully_iterated() {
+        let values = 1..=5;
+        let mut heap = MinMaxBinaryHeap::from_iter(values);
+
+        let mut drain = heap.drain();
+        assert_eq!(drain.next(), Some(5));
+        assert!(drain.next().is_some());
+        drop(drain);
+
+        assert_state!(heap);
+        assert!(heap.is_empty());
     }
 }
