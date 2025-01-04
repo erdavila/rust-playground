@@ -5,7 +5,6 @@ use std::{
     collections::TryReserveError,
     fmt::{Debug, Display},
     iter::FusedIterator,
-    marker::PhantomData,
     ops::{Deref, DerefMut},
     ptr::NonNull,
     rc::Rc,
@@ -53,13 +52,13 @@ where
     }
 
     #[must_use]
-    pub fn into_iter_sorted_from_min(self) -> IntoIterSorted<T> {
-        todo!()
+    pub fn into_iter_sorted_asc(self) -> IntoIterSortedAsc<T> {
+        IntoIterSortedAsc(self.min_heap)
     }
 
     #[must_use]
-    pub fn into_iter_sorted_from_max(self) -> IntoIterSorted<T> {
-        todo!()
+    pub fn into_iter_sorted_desc(self) -> IntoIterSortedDesc<T> {
+        IntoIterSortedDesc(self.max_heap)
     }
 
     #[must_use]
@@ -347,9 +346,43 @@ where
 impl<T> ExactSizeIterator for DrainSortedDesc<'_, T> where T: Ord {}
 impl<T> FusedIterator for DrainSortedDesc<'_, T> where T: Ord {}
 
-pub struct IntoIterSorted<T> {
-    phantom: PhantomData<T>,
+pub struct IntoIterSortedAsc<T>(Heap<T, Min>);
+impl<T> Iterator for IntoIterSortedAsc<T>
+where
+    T: Ord,
+{
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.pop().map(Entry::ref_into_value)
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let size = self.0.len();
+        (size, Some(size))
+    }
 }
+impl<T> ExactSizeIterator for IntoIterSortedAsc<T> where T: Ord {}
+impl<T> FusedIterator for IntoIterSortedAsc<T> where T: Ord {}
+
+pub struct IntoIterSortedDesc<T>(Heap<T, Max>);
+impl<T> Iterator for IntoIterSortedDesc<T>
+where
+    T: Ord,
+{
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.0.pop().map(Entry::ref_into_value)
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        let size = self.0.len();
+        (size, Some(size))
+    }
+}
+impl<T> ExactSizeIterator for IntoIterSortedDesc<T> where T: Ord {}
+impl<T> FusedIterator for IntoIterSortedDesc<T> where T: Ord {}
 
 pub struct Iter<'a, T>(std::slice::Iter<'a, EntryRef<T>>);
 impl<'a, T> Iterator for Iter<'a, T> {
@@ -867,5 +900,25 @@ mod tests {
         assert_state!(heap);
         assert!(heap.is_empty());
         assert_eq!(drained, [5, 4, 3, 2, 1]);
+    }
+
+    #[test]
+    fn into_iter_sorted_asc() {
+        let values = [5, 1, 4, 2, 3];
+        let heap = MinMaxBinaryHeap::from_iter(values);
+
+        let iter = heap.into_iter_sorted_asc();
+
+        assert_eq!(iter.collect::<Vec<_>>(), [1, 2, 3, 4, 5]);
+    }
+
+    #[test]
+    fn into_iter_sorted_desc() {
+        let values = [5, 1, 4, 2, 3];
+        let heap = MinMaxBinaryHeap::from_iter(values);
+
+        let iter = heap.into_iter_sorted_desc();
+
+        assert_eq!(iter.collect::<Vec<_>>(), [5, 4, 3, 2, 1]);
     }
 }
