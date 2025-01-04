@@ -1,5 +1,6 @@
 use std::{
     cell::{Ref, RefCell, RefMut},
+    collections::TryReserveError,
     marker::PhantomData,
     rc::Rc,
 };
@@ -15,6 +16,7 @@ pub(crate) struct Entry<T> {
 
 type EntryRef<T> = Rc<RefCell<Entry<T>>>;
 
+#[derive(Clone)]
 pub(crate) struct Heap<T, O> {
     entries: Vec<EntryRef<T>>,
     phantom: PhantomData<O>,
@@ -131,6 +133,49 @@ where
             index = child_index;
         }
     }
+
+    pub(crate) fn capacity(&self) -> usize {
+        self.entries.capacity()
+    }
+
+    pub(crate) fn clear(&mut self) {
+        self.entries.clear();
+    }
+
+    pub(crate) fn is_empty(&self) -> bool {
+        self.entries.is_empty()
+    }
+
+    pub(crate) fn reserve(&mut self, additional: usize) {
+        self.entries.reserve(additional);
+    }
+
+    pub(crate) fn reserve_exact(&mut self, additional: usize) {
+        self.entries.reserve_exact(additional);
+    }
+
+    pub(crate) fn shrink_to(&mut self, min_capacity: usize) {
+        self.entries.shrink_to(min_capacity);
+    }
+
+    pub(crate) fn shrink_to_fit(&mut self) {
+        self.entries.shrink_to_fit();
+    }
+
+    pub(crate) fn try_reserve(&mut self, additional: usize) -> Result<(), TryReserveError> {
+        self.entries.try_reserve(additional)
+    }
+
+    pub(crate) fn try_reserve_exact(&mut self, additional: usize) -> Result<(), TryReserveError> {
+        self.entries.try_reserve_exact(additional)
+    }
+
+    pub(crate) fn with_capacity(capacity: usize) -> Self {
+        Self {
+            entries: Vec::with_capacity(capacity),
+            phantom: PhantomData,
+        }
+    }
 }
 #[cfg(test)]
 impl<T, O> Index<usize> for Heap<T, O>
@@ -166,6 +211,7 @@ pub(crate) trait HeapOrder: Sized {
     ) -> (&'a mut Heap<T, Self>, &'a mut Heap<T, Self::Other>);
 }
 
+#[derive(Clone, Copy)]
 pub(crate) enum Min {}
 impl HeapOrder for Min {
     type Other = Max;
@@ -200,6 +246,7 @@ impl HeapOrder for Min {
     }
 }
 
+#[derive(Clone, Copy)]
 pub(crate) enum Max {}
 impl HeapOrder for Max {
     type Other = Min;

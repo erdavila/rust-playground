@@ -12,6 +12,7 @@ use std::{
 
 use heap::{Entry, Heap, HeapOrder, Max, Min};
 
+#[derive(Clone)]
 pub struct MinMaxBinaryHeap<T> {
     min_heap: Heap<T, Min>,
     max_heap: Heap<T, Max>,
@@ -27,11 +28,12 @@ where
 
     #[must_use]
     pub fn capacity(&self) -> usize {
-        todo!()
+        self.max_heap.capacity()
     }
 
     pub fn clear(&mut self) {
-        todo!()
+        self.min_heap.clear();
+        self.max_heap.clear();
     }
 
     pub fn drain(&mut self) -> Drain<T> {
@@ -58,7 +60,7 @@ where
 
     #[must_use]
     pub fn is_empty(&self) -> bool {
-        todo!()
+        self.max_heap.is_empty()
     }
 
     #[must_use]
@@ -160,11 +162,13 @@ where
     }
 
     pub fn reserve(&mut self, additional: usize) {
-        todo!()
+        self.min_heap.reserve(additional);
+        self.max_heap.reserve(additional);
     }
 
     pub fn reserve_exact(&mut self, additional: usize) {
-        todo!()
+        self.min_heap.reserve_exact(additional);
+        self.max_heap.reserve_exact(additional);
     }
 
     pub fn retain<F>(&mut self, f: F)
@@ -175,42 +179,41 @@ where
     }
 
     pub fn shrink_to(&mut self, min_capacity: usize) {
-        todo!()
+        self.min_heap.shrink_to(min_capacity);
+        self.max_heap.shrink_to(min_capacity);
     }
 
     pub fn shrink_to_fit(&mut self) {
-        todo!()
+        self.min_heap.shrink_to_fit();
+        self.max_heap.shrink_to_fit();
     }
 
     /// # Errors
     pub fn try_reserve(&mut self, additional: usize) -> Result<(), TryReserveError> {
-        todo!()
+        self.min_heap.try_reserve(additional)?;
+        self.max_heap.try_reserve(additional)
     }
 
     /// # Errors
     pub fn try_reserve_exact(&mut self, additional: usize) -> Result<(), TryReserveError> {
-        todo!()
+        self.min_heap.try_reserve_exact(additional)?;
+        self.max_heap.try_reserve_exact(additional)
     }
 
     #[must_use]
     pub fn with_capacity(capacity: usize) -> Self {
-        todo!()
-    }
-}
-impl<T> Clone for MinMaxBinaryHeap<T>
-where
-    T: Clone,
-{
-    fn clone(&self) -> Self {
-        todo!()
+        MinMaxBinaryHeap {
+            min_heap: Heap::with_capacity(capacity),
+            max_heap: Heap::with_capacity(capacity),
+        }
     }
 }
 impl<T> Debug for MinMaxBinaryHeap<T>
 where
-    T: Debug,
+    T: Debug + Ord,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        f.debug_list().entries(self.iter()).finish()
     }
 }
 impl<T> Default for MinMaxBinaryHeap<T>
@@ -218,7 +221,7 @@ where
     T: Ord,
 {
     fn default() -> Self {
-        todo!()
+        Self::new()
     }
 }
 impl<'a, T> Extend<&'a T> for MinMaxBinaryHeap<T>
