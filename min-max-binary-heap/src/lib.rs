@@ -329,6 +329,29 @@ where
     entry: Option<RefMut<'a, Entry<T>>>,
     min_max_binary_heap: NonNull<MinMaxBinaryHeap<T>>,
 }
+impl<T> PeekMut<'_, T>
+where
+    T: Ord,
+{
+    #[must_use]
+    pub fn pop(mut this: Self) -> T {
+        let Some(entry) = this.entry.take() else {
+            unreachable!()
+        };
+
+        let min_max_binary_heap = unsafe { this.min_max_binary_heap.as_mut() };
+        let entry = {
+            min_max_binary_heap.min_heap.remove(entry.min_heap_index);
+            min_max_binary_heap.max_heap.remove(entry.max_heap_index)
+        };
+
+        let Some(entry) = Rc::into_inner(entry) else {
+            unreachable!()
+        };
+        let entry = RefCell::into_inner(entry);
+        entry.element
+    }
+}
 impl<T> Deref for PeekMut<'_, T>
 where
     T: Ord,
@@ -352,20 +375,21 @@ where
     T: Ord,
 {
     fn drop(&mut self) {
-        let entry = self.entry.take().unwrap();
-        let min_heap_index = entry.min_heap_index;
-        let max_heap_index = entry.max_heap_index;
-        drop(entry); // Release the RefMut
+        if let Some(entry) = self.entry.take() {
+            let min_heap_index = entry.min_heap_index;
+            let max_heap_index = entry.max_heap_index;
+            drop(entry); // Release the RefMut
 
-        // At this point, the referenced value may have changed, so we need to re-heapify the heaps.
+            // At this point, the referenced value may have changed, so we need to re-heapify the heaps.
 
-        let min_max_binary_heap = unsafe { self.min_max_binary_heap.as_mut() };
-        min_max_binary_heap
-            .min_heap
-            .heap_up_and_down(min_heap_index);
-        min_max_binary_heap
-            .max_heap
-            .heap_up_and_down(max_heap_index);
+            let min_max_binary_heap = unsafe { self.min_max_binary_heap.as_mut() };
+            min_max_binary_heap
+                .min_heap
+                .heap_up_and_down(min_heap_index);
+            min_max_binary_heap
+                .max_heap
+                .heap_up_and_down(max_heap_index);
+        }
     }
 }
 
@@ -561,5 +585,38 @@ mod tests {
         assert_eq!(heap.len(), 3);
         assert_eq!(heap.peek_min().map(|n| *n), Some(1));
         assert_eq!(heap.peek_max().map(|n| *n), Some(3));
+    }
+
+    #[test]
+    fn peek_mut_pop() {
+        let mut heap = MinMaxBinaryHeap::new();
+        heap.push(1);
+        heap.push(2);
+        heap.push(3);
+        // Current elements: [1, 2, 3]
+
+        if let Some(peek_min) = heap.peek_min_mut() {
+            assert_eq!(PeekMut::pop(peek_min), 1);
+        } else {
+            panic!("peek_min_mut returned None");
+        }
+        // Current elements: [2, 3]
+
+        assert_state!(heap);
+        assert_eq!(heap.len(), 2);
+        assert_eq!(heap.peek_min().map(|n| *n), Some(2));
+        assert_eq!(heap.peek_max().map(|n| *n), Some(3));
+
+        if let Some(peek_max) = heap.peek_max_mut() {
+            assert_eq!(PeekMut::pop(peek_max), 3);
+        } else {
+            panic!("peek_max_mut returned None");
+        }
+        // Current elements: [2]
+
+        assert_state!(heap);
+        assert_eq!(heap.len(), 1);
+        assert_eq!(heap.peek_min().map(|n| *n), Some(2));
+        assert_eq!(heap.peek_max().map(|n| *n), Some(2));
     }
 }
