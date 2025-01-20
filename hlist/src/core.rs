@@ -1,4 +1,4 @@
-use crate::{get::Get, MapOver};
+use crate::{get::Get, ForEachOver, MapOver};
 
 /// The abstract representation of heterogeneous lists.
 pub trait HList {
@@ -107,6 +107,45 @@ pub trait HList {
         M: MapOver<Self>,
     {
         m.map_over(self)
+    }
+
+    /// Executes a handler on each element of the heterogeneous list.
+    ///
+    /// See [`ForEach`](crate::ForEach) for more information.
+    ///
+    /// # Example
+    /// ```
+    /// use hlist::{hlist, HList, ForEach};
+    ///
+    /// struct State {
+    ///     count: usize
+    /// }
+    /// let mut state = State { count: 0 };
+    ///
+    /// let hlist = hlist!(42usize, "xyz");
+    /// hlist.for_each({
+    ///     struct F<'a>(&'a mut State);
+    ///     impl ForEach<usize> for F<'_> {
+    ///         fn for_each(&mut self, value: usize) {
+    ///             self.0.count += value;
+    ///         }
+    ///     }
+    ///     impl ForEach<&'static str> for F<'_> {
+    ///         fn for_each(&mut self, value: &'static str) {
+    ///             self.0.count += value.len();
+    ///         }
+    ///     }
+    ///     F(&mut state)
+    /// });
+    ///
+    /// assert_eq!(state.count, 45);
+    /// ```
+    fn for_each<F>(self, mut f: F)
+    where
+        Self: Sized,
+        F: ForEachOver<Self>,
+    {
+        f.for_each_over(self);
     }
 }
 
