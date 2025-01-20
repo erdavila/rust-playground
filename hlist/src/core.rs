@@ -1,4 +1,8 @@
-use crate::{get::Get, ForEachOver, MapOver};
+use crate::{
+    get::Get,
+    get_by_type::{GetByType, Where},
+    ForEachOver, MapOver,
+};
 
 /// The abstract representation of heterogeneous lists.
 pub trait HList {
@@ -214,6 +218,66 @@ where
     /// Checks if the heterogeneous list is [`HNil`] in a `const` context.
     pub const fn is_empty(&self) -> bool {
         Self::LENGTH == 0
+    }
+
+    /// Gets a reference to an element given its type.
+    ///
+    /// The [`HList`] must contain exactly one element of type `A`.
+    ///
+    /// # Examples
+    /// ```
+    /// use hlist::hlist;
+    ///
+    /// let hlist = hlist!(123i32, "abc", true);
+    ///
+    /// let value: &i32 = hlist.get_by_type();
+    /// assert_eq!(value, &123);
+    ///
+    /// let value: &&str = hlist.get_by_type();
+    /// assert_eq!(value, &"abc");
+    ///
+    /// let value: &bool = hlist.get_by_type();
+    /// assert_eq!(value, &true);
+    /// ```
+    ///
+    /// ```
+    /// use hlist::hlist;
+    ///
+    /// let hlist = hlist!(123i32, "abc", true);
+    ///
+    /// assert_eq!(hlist.get_by_type::<i32, _>(), &123);
+    /// assert_eq!(hlist.get_by_type::<&str, _>(), &"abc");
+    /// assert_eq!(hlist.get_by_type::<bool, _>(), &true);
+    pub fn get_by_type<A, W>(&self) -> &A
+    where
+        Self: GetByType<A, W>,
+        W: Where,
+    {
+        GetByType::get_by_type(self)
+    }
+
+    /// Gets a mutable reference to an element given its type.
+    ///
+    /// The [`HList`] must contain exactly one element of type `A`.
+    ///
+    /// # Example
+    /// ```
+    /// use hlist::hlist;
+    ///
+    /// let mut hlist = hlist!(123i32, "abc", true);
+    ///
+    /// *hlist.get_by_type_mut() = 456;
+    /// *hlist.get_by_type_mut() = "def";
+    /// *hlist.get_by_type_mut() = false;
+    ///
+    /// assert_eq!(hlist, hlist!(456, "def", false));
+    /// ```
+    pub fn get_by_type_mut<A, W>(&mut self) -> &mut A
+    where
+        Self: GetByType<A, W>,
+        W: Where,
+    {
+        GetByType::get_by_type_mut(self)
     }
 }
 impl<H, T> HList for HCons<H, T>

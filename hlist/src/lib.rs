@@ -6,6 +6,7 @@
 mod core;
 mod for_each;
 mod get;
+mod get_by_type;
 mod into_tuple;
 mod macros;
 mod map;
