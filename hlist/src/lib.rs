@@ -7,8 +7,10 @@ mod core;
 mod get;
 mod into_tuple;
 mod macros;
+mod map;
 pub mod tuples;
 
 pub use core::*;
 pub use get::*;
 pub use into_tuple::*;
+pub use map::{Map, Over as MapOver};

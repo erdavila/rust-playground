@@ -1,4 +1,4 @@
-use crate::get::Get;
+use crate::{get::Get, MapOver};
 
 /// The abstract representation of heterogeneous lists.
 pub trait HList {
@@ -71,6 +71,42 @@ pub trait HList {
         Self: Get<N>,
     {
         <Self as Get<N>>::get_mut(self)
+    }
+
+    /// Maps the elements of the heterogeneous list.
+    ///
+    /// See [`Map`](crate::Map) for more information.
+    ///
+    /// # Example
+    /// ```
+    /// use hlist::{HList, hlist, Map};
+    ///
+    /// let hlist = hlist!(123i32, true);
+    ///
+    /// let hlist = hlist.map({
+    ///     struct M;
+    ///     impl Map<i32> for M {
+    ///         type Output = String;
+    ///         fn map(&mut self, value: i32) -> Self::Output {
+    ///             value.to_string()
+    ///         }
+    ///     }
+    ///     impl Map<bool> for M {
+    ///         type Output = bool;
+    ///         fn map(&mut self, value: bool) -> Self::Output {
+    ///             !value
+    ///         }
+    ///     }
+    ///     M
+    /// });
+    /// assert_eq!(hlist, hlist!(String::from("123"), false));
+    /// ```
+    fn map<M>(self, mut m: M) -> <M as MapOver<Self>>::Output
+    where
+        Self: Sized,
+        M: MapOver<Self>,
+    {
+        m.map_over(self)
     }
 }
 
