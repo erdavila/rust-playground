@@ -2,7 +2,7 @@
 //!
 //! Conversions are provided for tuples with up to 12 elements.
 
-use crate::{hcons, HCons, HList, HNil};
+use crate::HList;
 
 /// A trait for tuples.
 pub trait Tuple {
@@ -13,35 +13,17 @@ pub trait Tuple {
     fn into_hlist(self) -> Self::HList;
 }
 
-macro_rules! hlist {
-    () => {
-        HNil
-    };
-    ( $head:expr $( , $tail:expr )* ) => {
-        hcons($head, hlist!( $( $tail ),* ))
-    };
-}
-
-macro_rules! hlist_type {
-    () => {
-        HNil
-    };
-    ( $head:ty $( , $tail:ty )* ) => {
-        HCons<$head, hlist_type!( $( $tail ),* )>
-    };
-}
-
 macro_rules! impl_tuple_trait {
     ($( $type_arg:ident )* ;  $( $index:tt )*) => {
         impl< $( $type_arg ),*  > Tuple for ( $( $type_arg , )* ) {
-            type HList = hlist_type!( $( $type_arg ),* );
+            type HList = $crate::hlist_type!( $( $type_arg ),* );
 
             fn into_hlist(self) -> Self::HList {
-                hlist!( $( self.$index ),* )
+                $crate::hlist!( $( self.$index ),* )
             }
         }
 
-        impl< $( $type_arg ),* > From<( $( $type_arg , )* )> for hlist_type!( $( $type_arg ),* ) {
+        impl< $( $type_arg ),* > From<( $( $type_arg , )* )> for $crate::hlist_type!( $( $type_arg ),* ) {
             fn from(tuple: ( $( $type_arg , )* )) -> Self {
                 tuple.into_hlist()
             }
@@ -65,27 +47,26 @@ impl_tuple_trait!(A0 A1 A2 A3 A4 A5 A6 A7 A8 A9 A10 A11 ; 0 1 2 3 4 5 6 7 8 9 10
 
 #[cfg(test)]
 mod tests {
+    use crate::{hlist, hlist_type};
+
     use super::*;
 
     #[test]
     fn into_hlist() {
         let hlist = ().into_hlist();
-        assert_eq!(hlist, HNil);
+        assert_eq!(hlist, hlist!());
 
         let hlist = (123,).into_hlist();
-        assert_eq!(hlist, hcons(123, HNil));
+        assert_eq!(hlist, hlist!(123));
 
         let hlist = (123, "abc").into_hlist();
-        assert_eq!(hlist, hcons(123, hcons("abc", HNil)));
+        assert_eq!(hlist, hlist!(123, "abc"));
 
         let hlist = (123, "abc", true).into_hlist();
-        assert_eq!(hlist, hcons(123, hcons("abc", hcons(true, HNil))));
+        assert_eq!(hlist, hlist!(123, "abc", true));
 
         let hlist = (123, "abc", true, ['a', 'b']).into_hlist();
-        assert_eq!(
-            hlist,
-            hcons(123, hcons("abc", hcons(true, hcons(['a', 'b'], HNil))))
-        );
+        assert_eq!(hlist, hlist!(123, "abc", true, ['a', 'b']));
     }
 
     #[test]
