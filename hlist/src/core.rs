@@ -1,3 +1,5 @@
+use crate::get::Get;
+
 /// The abstract representation of heterogeneous lists.
 pub trait HList {
     /// The length of the heterogeneous list.
@@ -30,6 +32,46 @@ pub trait HList {
 
     /// Gets an [`HList`] with mutable references to the elements.
     fn as_mut(&mut self) -> Self::AsMut<'_>;
+
+    /// Gets a reference to the element at index `N`.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use hlist::{HList, hlist};
+    ///
+    /// let hlist = hlist!(123, "abc", true);
+    ///
+    /// assert_eq!(hlist.get::<0>(), &123);
+    /// assert_eq!(hlist.get::<1>(), &"abc");
+    /// assert_eq!(hlist.get::<2>(), &true);
+    /// ```
+    fn get<const N: usize>(&self) -> &<Self as Get<N>>::Output
+    where
+        Self: Get<N>,
+    {
+        <Self as Get<N>>::get(self)
+    }
+
+    /// Gets a mutable reference to the element at index `N`.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use hlist::{HList, hlist};
+    ///
+    /// let mut hlist = hlist!(123, "abc", true);
+    /// *hlist.get_mut::<0>() = 456;
+    /// *hlist.get_mut::<1>() = "def";
+    /// *hlist.get_mut::<2>() = false;
+    ///
+    /// assert_eq!(hlist, hlist!(456, "def", false));
+    fn get_mut<const N: usize>(&mut self) -> &mut <Self as Get<N>>::Output
+    where
+        Self: Get<N>,
+    {
+        <Self as Get<N>>::get_mut(self)
+    }
 }
 
 /// The empty [`HList`].
