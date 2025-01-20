@@ -3,6 +3,7 @@
 
 //! Provides heterogeneous lists.
 
+mod concat;
 mod core;
 mod for_each;
 mod get;
@@ -14,6 +15,7 @@ mod pop_back;
 mod push_back;
 pub mod tuples;
 
+pub use concat::*;
 pub use core::*;
 pub use for_each::{ForEach, Over as ForEachOver};
 pub use get::*;

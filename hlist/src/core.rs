@@ -1,4 +1,5 @@
 use crate::{
+    concat::Concat,
     get::Get,
     get_by_type::{GetByType, Where},
     pop_back::PopBack,
@@ -171,6 +172,27 @@ pub trait HList {
         Self: PushBack<A> + Sized,
     {
         PushBack::push_back(self, value)
+    }
+
+    /// Concatenates two heterogeneous lists.
+    ///
+    /// # Example
+    /// ```
+    /// use hlist::{HList, hlist};
+    ///
+    /// let hlist1 = hlist!(123, "abc");
+    /// let hlist2 = hlist!(true, ['a', 'b']);
+    ///
+    /// let hlist = hlist1.concat(hlist2);
+    ///
+    /// assert_eq!(hlist, hlist!(123, "abc", true, ['a', 'b']));
+    /// ```
+    fn concat<HL>(self, other: HL) -> <Self as Concat<HL>>::Output
+    where
+        HL: HList,
+        Self: Concat<HL> + Sized,
+    {
+        Concat::concat(self, other)
     }
 }
 
