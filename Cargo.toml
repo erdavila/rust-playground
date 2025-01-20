@@ -13,6 +13,7 @@ members = [
     "emulated_closures",
     "floating-point-explorer",
     "happy_number",
+    "hlist",
     "insertion_order_hash_map",
     "interlace",
     "iters",
