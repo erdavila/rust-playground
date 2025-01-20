@@ -4,6 +4,7 @@ use crate::{
     get_by_type::{GetByType, Where},
     pop_back::PopBack,
     push_back::PushBack,
+    rev::Rev,
     split::Split,
     ForEachOver, MapOver,
 };
@@ -217,6 +218,22 @@ pub trait HList {
         Self: Split<N> + Sized,
     {
         Split::split(self)
+    }
+
+    /// Reverses the order of the elements in the heterogeneous list.
+    ///
+    /// # Example
+    /// ```
+    /// use hlist::{HList, hlist};
+    ///
+    /// let hlist = hlist!(123, "abc", true);
+    /// assert_eq!(hlist.rev(), hlist!(true, "abc", 123));
+    /// ```
+    fn rev(self) -> <Self as Rev<HNil>>::Output
+    where
+        Self: Rev<HNil> + Sized,
+    {
+        Rev::rev(self, HNil)
     }
 }
 
