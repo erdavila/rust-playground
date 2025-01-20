@@ -10,6 +10,7 @@ mod get_by_type;
 mod into_tuple;
 mod macros;
 mod map;
+mod push_back;
 pub mod tuples;
 
 pub use core::*;
@@ -17,3 +18,4 @@ pub use for_each::{ForEach, Over as ForEachOver};
 pub use get::*;
 pub use into_tuple::*;
 pub use map::{Map, Over as MapOver};
+pub use push_back::*;

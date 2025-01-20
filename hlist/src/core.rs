@@ -1,6 +1,7 @@
 use crate::{
     get::Get,
     get_by_type::{GetByType, Where},
+    push_back::PushBack,
     ForEachOver, MapOver,
 };
 
@@ -150,6 +151,25 @@ pub trait HList {
         F: ForEachOver<Self>,
     {
         f.for_each_over(self);
+    }
+
+    /// Pushes a value to the end of the heterogeneous list.
+    ///
+    /// # Example
+    /// ```
+    /// use hlist::{HList, hlist, hnil};
+    ///
+    /// let hlist = hnil()
+    ///     .push_back(123)
+    ///     .push_back("abc")
+    ///     .push_back(true);
+    /// assert_eq!(hlist, hlist!(123, "abc", true));
+    /// ```
+    fn push_back<A>(self, value: A) -> <Self as PushBack<A>>::Output
+    where
+        Self: PushBack<A> + Sized,
+    {
+        PushBack::push_back(self, value)
     }
 }
 
