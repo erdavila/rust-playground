@@ -1,4 +1,4 @@
-//! Provides conversions of tuples to and from [`HList`]s.
+//! Provides the [`Tuple`] trait to convert tuples into [`HList`]s.
 //!
 //! Conversions are provided for tuples with up to 12 elements.
 
@@ -15,7 +15,7 @@ pub trait Tuple {
 
 macro_rules! impl_tuple_trait {
     ($( $type_arg:ident )* ;  $( $index:tt )*) => {
-        impl< $( $type_arg ),*  > Tuple for ( $( $type_arg , )* ) {
+        impl< $( $type_arg ),* > Tuple for ( $( $type_arg , )* ) {
             type HList = $crate::hlist_type!( $( $type_arg ),* );
 
             fn into_hlist(self) -> Self::HList {

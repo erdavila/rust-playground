@@ -4,7 +4,9 @@
 //! Provides heterogeneous lists.
 
 mod core;
+mod into_tuple;
 mod macros;
 pub mod tuples;
 
 pub use core::*;
+pub use into_tuple::*;
