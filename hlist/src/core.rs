@@ -1,6 +1,7 @@
 use crate::{
     get::Get,
     get_by_type::{GetByType, Where},
+    pop_back::PopBack,
     push_back::PushBack,
     ForEachOver, MapOver,
 };
@@ -298,6 +299,38 @@ where
         W: Where,
     {
         GetByType::get_by_type_mut(self)
+    }
+
+    /// Removes the last element from the list.
+    ///
+    /// # Example
+    /// ```
+    /// use hlist::hlist;
+    ///
+    /// let hlist = hlist!(123, "abc", true);
+    ///
+    /// let (value, hlist) = hlist.pop_back();
+    /// assert_eq!(value, true);
+    /// assert_eq!(hlist, hlist!(123, "abc"));
+    ///
+    /// let (value, hlist) = hlist.pop_back();
+    /// assert_eq!(value, "abc");
+    /// assert_eq!(hlist, hlist!(123));
+    ///
+    /// let (value, hlist) = hlist.pop_back();
+    /// assert_eq!(value, 123);
+    /// assert_eq!(hlist, hlist!());
+    /// ```
+    pub fn pop_back(
+        self,
+    ) -> (
+        <Self as PopBack>::Element,
+        <Self as PopBack>::ResultingHList,
+    )
+    where
+        Self: PopBack,
+    {
+        PopBack::pop_back(self)
     }
 }
 impl<H, T> HList for HCons<H, T>
