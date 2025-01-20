@@ -1,3 +1,5 @@
+use std::ops::Add;
+
 use crate::{HCons, HList, HNil};
 
 /// Trait for concatenating two [`HList`]s.
@@ -35,6 +37,28 @@ where
     }
 }
 
+impl<HL> Add<HL> for HNil
+where
+    HL: HList,
+{
+    type Output = <HNil as Concat<HL>>::Output;
+
+    fn add(self, rhs: HL) -> Self::Output {
+        Concat::concat(self, rhs)
+    }
+}
+impl<H, T, HL> Add<HL> for HCons<H, T>
+where
+    T: Concat<HL> + HList,
+    HL: HList,
+{
+    type Output = <HCons<H, T> as Concat<HL>>::Output;
+
+    fn add(self, rhs: HL) -> Self::Output {
+        Concat::concat(self, rhs)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::hlist;
@@ -66,6 +90,29 @@ mod tests {
         );
         assert_eq!(
             hlist!(123, "abc", true).concat(hlist!()),
+            hlist!(123, "abc", true)
+        );
+    }
+
+    #[test]
+    fn add() {
+        assert_eq!(hlist!() + hlist!(), hlist!());
+
+        assert_eq!(hlist!() + hlist!(123), hlist!(123));
+        assert_eq!(hlist!(123) + hlist!(), hlist!(123));
+
+        assert_eq!(hlist!() + hlist!(123, "abc"), hlist!(123, "abc"));
+        assert_eq!(hlist!(123) + hlist!("abc"), hlist!(123, "abc"));
+        assert_eq!(hlist!(123, "abc") + hlist!(), hlist!(123, "abc"));
+
+        assert_eq!(
+            hlist!() + hlist!(123, "abc", true),
+            hlist!(123, "abc", true)
+        );
+        assert_eq!(hlist!(123) + hlist!("abc", true), hlist!(123, "abc", true));
+        assert_eq!(hlist!(123, "abc") + hlist!(true), hlist!(123, "abc", true));
+        assert_eq!(
+            hlist!(123, "abc", true) + hlist!(),
             hlist!(123, "abc", true)
         );
     }
