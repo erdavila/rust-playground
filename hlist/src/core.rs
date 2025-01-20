@@ -3,6 +3,20 @@ pub trait HList {
     /// The length of the heterogeneous list.
     const LENGTH: usize;
 
+    /// The corresponding [`HList`] with references to the elements.
+    ///
+    /// It is the return type of [`HList::as_ref`].
+    type AsRef<'a>: HList
+    where
+        Self: 'a;
+
+    /// The corresponding [`HList`] with mutable references to the elements.
+    ///
+    /// It is the return type of [`HList::as_mut`].
+    type AsMut<'a>: HList
+    where
+        Self: 'a;
+
     /// Provides the length of the heterogeneous list.
     fn len(&self) -> usize;
 
@@ -10,6 +24,12 @@ pub trait HList {
     fn is_empty(&self) -> bool {
         Self::LENGTH == 0
     }
+
+    /// Gets an [`HList`] with references to the elements.
+    fn as_ref(&self) -> Self::AsRef<'_>;
+
+    /// Gets an [`HList`] with mutable references to the elements.
+    fn as_mut(&mut self) -> Self::AsMut<'_>;
 }
 
 /// The empty [`HList`].
@@ -31,8 +51,20 @@ impl HNil {
 impl HList for HNil {
     const LENGTH: usize = 0;
 
+    type AsRef<'a> = HNil;
+
+    type AsMut<'a> = HNil;
+
     fn len(&self) -> usize {
         Self::LENGTH
+    }
+
+    fn as_ref(&self) -> Self::AsRef<'_> {
+        HNil
+    }
+
+    fn as_mut(&mut self) -> Self::AsMut<'_> {
+        HNil
     }
 }
 
@@ -73,12 +105,26 @@ where
 {
     const LENGTH: usize = 1 + T::LENGTH;
 
+    type AsRef<'a>
+        = HCons<&'a H, T::AsRef<'a>>
+    where
+        Self: 'a;
+
+    type AsMut<'a>
+        = HCons<&'a mut H, T::AsMut<'a>>
+    where
+        Self: 'a;
+
     fn len(&self) -> usize {
         Self::LENGTH
     }
 
-    fn is_empty(&self) -> bool {
-        Self::LENGTH == 0
+    fn as_ref(&self) -> Self::AsRef<'_> {
+        HCons::new(&self.head, self.tail.as_ref())
+    }
+
+    fn as_mut(&mut self) -> Self::AsMut<'_> {
+        HCons::new(&mut self.head, self.tail.as_mut())
     }
 }
 
@@ -100,6 +146,8 @@ where
 
 #[cfg(test)]
 mod tests {
+    use crate::hlist;
+
     use super::*;
 
     #[test]
@@ -182,5 +230,28 @@ mod tests {
         let hlist = create(HCons::new(123, HCons::new("abc", HCons::new(true, HNil))));
         assert_eq!(hlist.len(), 3);
         assert!(!hlist.is_empty());
+    }
+
+    #[test]
+    fn as_ref() {
+        assert_eq!(hlist!().as_ref(), hlist!());
+        assert_eq!(hlist!(123).as_ref(), hlist!(&123));
+        assert_eq!(hlist!(123, "abc").as_ref(), hlist!(&123, &"abc"));
+        assert_eq!(
+            hlist!(123, "abc", true).as_ref(),
+            hlist!(&123, &"abc", &true)
+        );
+    }
+
+    #[test]
+    fn as_mut() {
+        let mut hlist = hlist!(123, "abc", true);
+
+        let hl = hlist.as_mut();
+        *hl.head = 456;
+        *hl.tail.head = "def";
+        *hl.tail.tail.head = false;
+
+        assert_eq!(hlist, hlist!(456, "def", false));
     }
 }
