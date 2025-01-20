@@ -4,6 +4,7 @@ use crate::{
     get_by_type::{GetByType, Where},
     pop_back::PopBack,
     push_back::PushBack,
+    split::Split,
     ForEachOver, MapOver,
 };
 
@@ -193,6 +194,29 @@ pub trait HList {
         Self: Concat<HL> + Sized,
     {
         Concat::concat(self, other)
+    }
+
+    /// Splits the heterogeneous list at index `N`.
+    ///
+    /// # Example
+    /// ```
+    /// use hlist::{HList, hlist};
+    ///
+    /// let hlist = hlist!(123, "abc", true, ['a', 'b']);
+    /// let (left, right) = hlist.split::<2>();
+    ///
+    /// assert_eq!(left, hlist!(123, "abc"));
+    /// assert_eq!(right, hlist!(true, ['a', 'b']));
+    fn split<const N: usize>(
+        self,
+    ) -> (
+        <Self as Split<N>>::LeftOutput,
+        <Self as Split<N>>::RightOutput,
+    )
+    where
+        Self: Split<N> + Sized,
+    {
+        Split::split(self)
     }
 }
 

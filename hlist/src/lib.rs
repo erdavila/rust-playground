@@ -13,6 +13,7 @@ mod macros;
 mod map;
 mod pop_back;
 mod push_back;
+mod split;
 pub mod tuples;
 
 pub use concat::*;
@@ -23,3 +24,4 @@ pub use into_tuple::*;
 pub use map::{Map, Over as MapOver};
 pub use pop_back::*;
 pub use push_back::*;
+pub use split::*;
