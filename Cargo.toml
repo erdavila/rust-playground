@@ -18,6 +18,7 @@ members = [
     "interlace",
     "iters",
     "min-max-binary-heap",
+    "multi-binary-heap",
     "ratatui-scrolling",
     "ref_count",
     "same-elements",

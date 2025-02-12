@@ -1,0 +1,7 @@
+[package]
+name = "multi-binary-heap"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+hlist = { version = "0.1.0", path = "../hlist" }
