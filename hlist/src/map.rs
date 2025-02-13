@@ -85,13 +85,13 @@ where
     type Output: HList;
 
     /// Maps over the `input` argument.
-    fn map_over(&mut self, input: Input) -> Self::Output;
+    fn map_over(this: &mut Self, input: Input) -> Self::Output;
 }
 
 impl<M> Over<HNil> for M {
     type Output = HNil;
 
-    fn map_over(&mut self, _: HNil) -> Self::Output {
+    fn map_over(_: &mut Self, _: HNil) -> Self::Output {
         HNil
     }
 }
@@ -103,9 +103,9 @@ where
 {
     type Output = HCons<<M as Map<H>>::Output, <M as Over<T>>::Output>;
 
-    fn map_over(&mut self, input: HCons<H, T>) -> Self::Output {
-        let head = self.map(input.head);
-        let tail = self.map_over(input.tail);
+    fn map_over(this: &mut Self, input: HCons<H, T>) -> Self::Output {
+        let head = Map::map(this, input.head);
+        let tail = Over::map_over(this, input.tail);
         HCons::new(head, tail)
     }
 }

@@ -115,7 +115,7 @@ pub trait HList {
         Self: Sized,
         M: MapOver<Self>,
     {
-        m.map_over(self)
+        MapOver::map_over(&mut m, self)
     }
 
     /// Executes a handler on each element of the heterogeneous list.
@@ -154,7 +154,7 @@ pub trait HList {
         Self: Sized,
         F: ForEachOver<Self>,
     {
-        f.for_each_over(self);
+        ForEachOver::for_each_over(&mut f, self);
     }
 
     /// Pushes a value to the end of the heterogeneous list.

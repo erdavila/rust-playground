@@ -43,11 +43,11 @@ where
     Input: HList,
 {
     /// Iterates over the `input` argument.
-    fn for_each_over(&mut self, input: Input);
+    fn for_each_over(this: &mut Self, input: Input);
 }
 
 impl<F> Over<HNil> for F {
-    fn for_each_over(&mut self, _: HNil) {}
+    fn for_each_over(_: &mut Self, _: HNil) {}
 }
 
 impl<H, T, F> Over<HCons<H, T>> for F
@@ -55,9 +55,9 @@ where
     T: HList,
     F: ForEach<H> + Over<T>,
 {
-    fn for_each_over(&mut self, input: HCons<H, T>) {
-        self.for_each(input.head);
-        self.for_each_over(input.tail);
+    fn for_each_over(this: &mut Self, input: HCons<H, T>) {
+        ForEach::for_each(this, input.head);
+        Over::for_each_over(this, input.tail);
     }
 }
 
