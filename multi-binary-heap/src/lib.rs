@@ -1,7 +1,12 @@
-mod heap;
+#![expect(private_bounds)]
 
-use heap::Heap;
-use hlist::{tuples::Tuple, HCons, HList, HNil};
+use heaps_build::{Facets, Heaps};
+use hlist::{tuples::Tuple, HList};
+use index_ref::Zero;
+
+mod heap;
+mod heaps_build;
+mod index_ref;
 
 pub trait Facet<T> {
     type Output<'a>: Ord
@@ -19,21 +24,29 @@ pub enum Priority {
     Max,
 }
 
-#[allow(private_bounds)]
-pub struct MultiBinaryHeap<T, Facets>
-where
-    Facets: Tuple,
-    Facets::HList: FacetsHList<T>,
-{
-    heaps: <Facets::HList as FacetsHList<T>>::HeapsHList,
+pub trait FacetsTuple<T>: Tuple {
+    type Heaps: HList;
 }
-#[allow(private_bounds)]
-impl<T, Facets> MultiBinaryHeap<T, Facets>
+
+impl<Tup, T> FacetsTuple<T> for Tup
 where
-    Facets: Tuple,
-    Facets::HList: FacetsHList<T>,
+    Tup: Tuple,
+    Tup::HList: Heaps<T, <Tup::HList as Facets<T>>::Indexes, Zero>,
 {
-    pub fn with_facets(facets: Facets) -> Self {
+    type Heaps = <Tup::HList as Heaps<T, <Tup::HList as Facets<T>>::Indexes, Zero>>::Type;
+}
+
+pub struct MultiBinaryHeap<T, Fs>
+where
+    Fs: FacetsTuple<T>,
+{
+    heaps: Fs::Heaps,
+}
+impl<T, Fs> MultiBinaryHeap<T, Fs>
+where
+    Fs: FacetsTuple<T>,
+{
+    pub fn with_facets(facets: Fs) -> Self {
         todo!()
     }
 
@@ -48,40 +61,80 @@ where
         todo!()
     }
 }
-#[allow(private_bounds)]
-impl<T, Facets> MultiBinaryHeap<T, Facets>
+impl<T, Fs> MultiBinaryHeap<T, Fs>
 where
-    Facets: Tuple + Default,
-    Facets::HList: FacetsHList<T>,
+    Fs: Default + FacetsTuple<T>,
 {
     #[must_use]
     pub fn new() -> Self {
         todo!()
     }
 }
-impl<T, Facets> Default for MultiBinaryHeap<T, Facets>
+impl<T, Fs> Default for MultiBinaryHeap<T, Fs>
 where
-    Facets: Tuple + Default,
-    Facets::HList: FacetsHList<T>,
+    Fs: Default + FacetsTuple<T>,
 {
     fn default() -> Self {
         MultiBinaryHeap::new()
     }
 }
 
-trait FacetsHList<T>: HList {
-    type HeapsHList: HList;
-}
-impl<T> FacetsHList<T> for HNil {
-    type HeapsHList = HNil;
-}
-impl<T, F: Facet<T>, Tail: FacetsHList<T>> FacetsHList<T> for HCons<F, Tail> {
-    type HeapsHList = HCons<Heap<T, F>, Tail::HeapsHList>;
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    pub(crate) struct Person {
+        name: String,
+        age: u8,
+    }
+
+    pub(crate) struct Name;
+    impl Facet<Person> for Name {
+        type Output<'a> = &'a str;
+
+        const PRIORITY: Priority = Priority::Min;
+
+        fn facet<'a>(&self, elem: &'a Person) -> Self::Output<'a> {
+            &elem.name
+        }
+    }
+    impl Default for Name {
+        fn default() -> Self {
+            Self
+        }
+    }
+
+    pub(crate) struct Youngest;
+    impl Facet<Person> for Youngest {
+        type Output<'a> = u8;
+
+        const PRIORITY: Priority = Priority::Min;
+
+        fn facet<'a>(&self, elem: &'a Person) -> Self::Output<'a> {
+            elem.age
+        }
+    }
+    impl Default for Youngest {
+        fn default() -> Self {
+            Self
+        }
+    }
+
+    pub(crate) struct Oldest;
+    impl Facet<Person> for Oldest {
+        type Output<'a> = u8;
+
+        const PRIORITY: Priority = Priority::Max;
+
+        fn facet<'a>(&self, elem: &'a Person) -> Self::Output<'a> {
+            elem.age
+        }
+    }
+    impl Default for Oldest {
+        fn default() -> Self {
+            Self
+        }
+    }
 
     #[test]
     fn push() {

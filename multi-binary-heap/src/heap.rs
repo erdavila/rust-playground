@@ -1,13 +1,17 @@
-use crate::Facet;
+#![expect(private_bounds)]
 
-pub(crate) struct Heap<T, F: Facet<T>> {
-    _phantom: std::marker::PhantomData<(T, F)>,
+use std::{cell::RefCell, rc::Rc};
+
+use crate::{heaps_build::Indexes, index_ref::IndexRef, Facet};
+
+struct Entry<T, I: Indexes> {
+    elem: T,
+    indexes: I,
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+type EntryRef<T, I> = Rc<RefCell<Entry<T, I>>>;
 
-    #[test]
-    fn test_name() {}
+pub struct Heap<T, F: Facet<T>, IR: IndexRef> {
+    entries: Vec<EntryRef<T, IR::Indexes>>,
+    facet: F,
 }
