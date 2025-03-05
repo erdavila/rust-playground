@@ -36,6 +36,7 @@ where
     type Heaps = <Tup::HList as Heaps<T, <Tup::HList as Facets<T>>::Indexes, Zero>>::Type;
 }
 
+#[derive(Clone, Debug)]
 pub struct MultiBinaryHeap<T, Fs>
 where
     Fs: FacetsTuple<T>,

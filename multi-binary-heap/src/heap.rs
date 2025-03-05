@@ -15,3 +15,13 @@ pub struct Heap<T, F: Facet<T>, IR: IndexRef> {
     entries: Vec<EntryRef<T, IR::Indexes>>,
     facet: F,
 }
+impl<T, F: Facet<T>, IR: IndexRef> Clone for Heap<T, F, IR>
+where
+    T: Clone,
+    F: Clone,
+{
+    fn clone(&self) -> Self {
+        // Should clone each T, instead of cloning the Rc<RefCell<Entry<T, ...>>>
+        todo!()
+    }
+}
