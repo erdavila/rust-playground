@@ -1,6 +1,6 @@
 #![expect(private_bounds)]
 
-use heaps_build::{Facets, Heaps};
+use heaps_build::{Facets, IntoHeaps};
 use hlist::{tuples::Tuple, HList};
 use index_ref::Zero;
 
@@ -26,14 +26,20 @@ pub enum Priority {
 
 pub trait FacetsTuple<T>: Tuple {
     type Heaps: HList;
+
+    fn into_heaps(self) -> Self::Heaps;
 }
 
 impl<Tup, T> FacetsTuple<T> for Tup
 where
     Tup: Tuple,
-    Tup::HList: Heaps<T, <Tup::HList as Facets<T>>::Indexes, Zero>,
+    Tup::HList: IntoHeaps<T, <Tup::HList as Facets<T>>::Indexes, Zero>,
 {
-    type Heaps = <Tup::HList as Heaps<T, <Tup::HList as Facets<T>>::Indexes, Zero>>::Type;
+    type Heaps = <Tup::HList as IntoHeaps<T, <Tup::HList as Facets<T>>::Indexes, Zero>>::Type;
+
+    fn into_heaps(self) -> Self::Heaps {
+        self.into_hlist().into_heaps()
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -48,7 +54,9 @@ where
     Fs: FacetsTuple<T>,
 {
     pub fn with_facets(facets: Fs) -> Self {
-        todo!()
+        MultiBinaryHeap {
+            heaps: facets.into_heaps(),
+        }
     }
 
     pub fn push(&mut self, elem: T) {
@@ -135,6 +143,16 @@ mod tests {
         fn default() -> Self {
             Self
         }
+    }
+
+    #[test]
+    fn with_facets() {
+        let mbh = MultiBinaryHeap::with_facets((Name, Youngest, Oldest));
+
+        assert_eq!(mbh.heaps.len(), 3);
+        assert!(mbh.heaps.get::<0>().entries.is_empty());
+        assert!(mbh.heaps.get::<1>().entries.is_empty());
+        assert!(mbh.heaps.get::<2>().entries.is_empty());
     }
 
     #[test]

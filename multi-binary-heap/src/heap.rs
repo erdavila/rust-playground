@@ -4,7 +4,7 @@ use std::{cell::RefCell, rc::Rc};
 
 use crate::{heaps_build::Indexes, index_ref::IndexRef, Facet};
 
-struct Entry<T, I: Indexes> {
+pub(crate) struct Entry<T, I: Indexes> {
     elem: T,
     indexes: I,
 }
@@ -12,8 +12,16 @@ struct Entry<T, I: Indexes> {
 type EntryRef<T, I> = Rc<RefCell<Entry<T, I>>>;
 
 pub struct Heap<T, F: Facet<T>, IR: IndexRef> {
-    entries: Vec<EntryRef<T, IR::Indexes>>,
-    facet: F,
+    pub(crate) entries: Vec<EntryRef<T, IR::Indexes>>,
+    pub(crate) facet: F,
+}
+impl<T, F: Facet<T>, IR: IndexRef> Heap<T, F, IR> {
+    pub fn new(facet: F) -> Self {
+        Self {
+            entries: Vec::new(),
+            facet,
+        }
+    }
 }
 impl<T, F: Facet<T>, IR: IndexRef> Clone for Heap<T, F, IR>
 where

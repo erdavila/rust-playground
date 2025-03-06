@@ -54,7 +54,7 @@ mod indexes {
 }
 pub(crate) use indexes::*;
 
-mod heaps {
+mod into_heaps {
     use hlist::{HCons, HList, HNil};
 
     use crate::{
@@ -65,24 +65,34 @@ mod heaps {
 
     use super::{Facets, Indexes};
 
-    pub trait Heaps<T, Idxs: Indexes, IdxNum: IndexNumber>: Facets<T> {
+    pub trait IntoHeaps<T, Idxs: Indexes, IdxNum: IndexNumber>: Facets<T> {
         type Type: HList;
+
+        fn into_heaps(self) -> Self::Type;
     }
 
-    impl<T, Idxs: Indexes, IdxNum: IndexNumber> Heaps<T, Idxs, IdxNum> for HNil {
+    impl<T, Idxs: Indexes, IdxNum: IndexNumber> IntoHeaps<T, Idxs, IdxNum> for HNil {
         type Type = HNil;
+
+        fn into_heaps(self) -> Self::Type {
+            HNil
+        }
     }
 
-    impl<T, Idxs: Indexes, IdxNum: IndexNumber, F, Tail> Heaps<T, Idxs, IdxNum> for HCons<F, Tail>
+    impl<T, Idxs: Indexes, IdxNum: IndexNumber, F, Tail> IntoHeaps<T, Idxs, IdxNum> for HCons<F, Tail>
     where
         F: Facet<T>,
-        Tail: Facets<T> + Heaps<T, Idxs, Succ<IdxNum>>,
+        Tail: Facets<T> + IntoHeaps<T, Idxs, Succ<IdxNum>>,
         IndexRefMaker<Idxs, IdxNum>: MakeIndexRef,
     {
         type Type = HCons<
             Heap<T, F, <IndexRefMaker<Idxs, IdxNum> as MakeIndexRef>::IndexRef>,
-            <Tail as Heaps<T, Idxs, Succ<IdxNum>>>::Type,
+            <Tail as IntoHeaps<T, Idxs, Succ<IdxNum>>>::Type,
         >;
+
+        fn into_heaps(self) -> Self::Type {
+            HCons::new(Heap::new(self.head), self.tail.into_heaps())
+        }
     }
 
     #[cfg(test)]
@@ -111,4 +121,4 @@ mod heaps {
         );
     }
 }
-pub(crate) use heaps::*;
+pub(crate) use into_heaps::*;
