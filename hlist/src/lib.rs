@@ -16,6 +16,7 @@ mod push_back;
 mod rev;
 mod split;
 pub mod tuples;
+mod zip;
 
 pub use concat::*;
 pub use core::*;
@@ -27,3 +28,4 @@ pub use pop_back::*;
 pub use push_back::*;
 pub use rev::*;
 pub use split::*;
+pub use zip::*;

@@ -6,7 +6,7 @@ use crate::{
     push_back::PushBack,
     rev::Rev,
     split::Split,
-    ForEachOver, MapOver,
+    ForEachOver, MapOver, Zip,
 };
 
 /// The abstract representation of heterogeneous lists.
@@ -234,6 +234,27 @@ pub trait HList {
         Self: Rev<HNil> + Sized,
     {
         Rev::rev(self, HNil)
+    }
+
+    /// Zips two heterogeneous lists.
+    ///
+    /// # Example
+    /// ```
+    /// use hlist::{HList, hlist};
+    ///
+    /// let hlist1 = hlist!(123, "abc");
+    /// let hlist2 = hlist!(true, ['a', 'b']);
+    ///
+    /// let hlist = hlist1.zip(hlist2);
+    ///
+    /// assert_eq!(hlist, hlist!((123, true), ("abc", ['a', 'b'])));
+    /// ```
+    fn zip<HL>(self, other: HL) -> <Self as Zip<HL>>::Output
+    where
+        HL: HList,
+        Self: Zip<HL> + Sized,
+    {
+        Zip::zip(self, other)
     }
 }
 
