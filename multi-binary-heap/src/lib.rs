@@ -1,12 +1,9 @@
 #![expect(private_bounds)]
 
-use heaps_build::{Facets, IntoHeaps};
-use hlist::{tuples::Tuple, HList};
-use index_ref::Zero;
+mod support;
 
-mod heap;
-mod heaps_build;
-mod index_ref;
+use hlist::tuples::Tuple;
+use support::{Facets, Indexes};
 
 pub trait Facet<T> {
     type Output<'a>: Ord
@@ -25,21 +22,34 @@ pub enum Priority {
 }
 
 pub trait FacetsTuple<T>: Tuple {
-    type Heaps: HList;
+    type Facets: Facets<T>;
+    type Indexes: Indexes;
 
-    fn into_heaps(self) -> Self::Heaps;
+    fn into_facets(self) -> Self::Facets;
 }
-
 impl<Tup, T> FacetsTuple<T> for Tup
 where
     Tup: Tuple,
-    Tup::HList: IntoHeaps<T, <Tup::HList as Facets<T>>::Indexes, Zero>,
+    Tup::HList: Facets<T>,
 {
-    type Heaps = <Tup::HList as IntoHeaps<T, <Tup::HList as Facets<T>>::Indexes, Zero>>::Type;
+    type Facets = Tup::HList;
+    type Indexes = <Tup::HList as Facets<T>>::Indexes;
 
-    fn into_heaps(self) -> Self::Heaps {
-        self.into_hlist().into_heaps()
+    fn into_facets(self) -> Self::Facets {
+        self.into_hlist()
     }
+}
+
+#[derive(Clone, Debug)]
+struct Entry<T, Idxs: Indexes> {
+    elem: T,
+    queue_indexes: Idxs,
+}
+
+#[derive(Clone, Debug)]
+struct Record<T, Idxs: Indexes> {
+    entry: Entry<T, Idxs>,
+    elem_indexes: Idxs,
 }
 
 #[derive(Clone, Debug)]
@@ -47,15 +57,17 @@ pub struct MultiBinaryHeap<T, Fs>
 where
     Fs: FacetsTuple<T>,
 {
-    heaps: Fs::Heaps,
+    facets: Fs::Facets,
+    records: Vec<Record<T, Fs::Indexes>>,
 }
 impl<T, Fs> MultiBinaryHeap<T, Fs>
 where
     Fs: FacetsTuple<T>,
 {
-    pub fn with_facets(facets: Fs) -> Self {
+    pub fn with_facets(facets_tuple: Fs) -> Self {
         MultiBinaryHeap {
-            heaps: facets.into_heaps(),
+            facets: facets_tuple.into_facets(),
+            records: Vec::new(),
         }
     }
 
@@ -67,6 +79,14 @@ where
     where
         F: Facet<T>,
     {
+        todo!()
+    }
+
+    pub fn len(&self) -> usize {
+        todo!()
+    }
+
+    pub fn is_empty(&self) -> bool {
         todo!()
     }
 }
@@ -92,12 +112,12 @@ where
 mod tests {
     use super::*;
 
-    pub(crate) struct Person {
+    struct Person {
         name: String,
         age: u8,
     }
 
-    pub(crate) struct Name;
+    struct Name;
     impl Facet<Person> for Name {
         type Output<'a> = &'a str;
 
@@ -113,7 +133,7 @@ mod tests {
         }
     }
 
-    pub(crate) struct Youngest;
+    struct Youngest;
     impl Facet<Person> for Youngest {
         type Output<'a> = u8;
 
@@ -129,7 +149,7 @@ mod tests {
         }
     }
 
-    pub(crate) struct Oldest;
+    struct Oldest;
     impl Facet<Person> for Oldest {
         type Output<'a> = u8;
 
@@ -149,10 +169,8 @@ mod tests {
     fn with_facets() {
         let mbh = MultiBinaryHeap::with_facets((Name, Youngest, Oldest));
 
-        assert_eq!(mbh.heaps.len(), 3);
-        assert!(mbh.heaps.get::<0>().entries.is_empty());
-        assert!(mbh.heaps.get::<1>().entries.is_empty());
-        assert!(mbh.heaps.get::<2>().entries.is_empty());
+        assert_eq!(mbh.facets.len(), 3);
+        assert!(mbh.records.is_empty());
     }
 
     #[test]
