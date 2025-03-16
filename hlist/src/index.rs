@@ -1,8 +1,12 @@
 //! Provides the [`Index`] trait and related types.
 //!
-//! See the [`HCons::get_index_by_type`] method for an example of how to use this trait.
+//! See the [`HCons`] methods [`get_index_by_type`], [`get_by_index`] and
+//! [`get_by_index_mut`] for examples of how to use this trait.
 //!
-//! [`HCons::get_index_by_type`]: crate::HCons::get_index_by_type
+//! [`HCons`]: crate::HCons
+//! [`get_index_by_type`]: crate::HCons::get_index_by_type
+//! [`get_by_index`]: crate::HCons::get_by_index
+//! [`get_by_index_mut`]: crate::HCons::get_by_index_mut
 
 use std::cmp::Ordering;
 

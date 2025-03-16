@@ -1,7 +1,9 @@
 use crate::{
     concat::Concat,
     get::Get,
+    get_by_index::GetByIndex,
     get_by_type::{GetByType, Where},
+    index::Index,
     pop_back::PopBack,
     push_back::PushBack,
     rev::Rev,
@@ -408,6 +410,50 @@ where
         W: Where,
     {
         GetByType::get_index_by_type(self)
+    }
+
+    /// Gets a reference to an element given its index.
+    ///
+    /// # Example
+    /// ```
+    /// use hlist::hlist;
+    /// use hlist::index::{Zero, Succ};
+    ///
+    /// let hlist = hlist!(123i32, "abc", true);
+    ///
+    /// assert_eq!(hlist.get_by_index(Zero), &123);
+    /// assert_eq!(hlist.get_by_index(Succ(Zero)), &"abc");
+    /// assert_eq!(hlist.get_by_index(Succ(Succ(Zero))), &true);
+    /// ```
+    pub fn get_by_index<I>(&self, _: I) -> &<Self as GetByIndex<I>>::Output
+    where
+        Self: GetByIndex<I>,
+        I: Index,
+    {
+        GetByIndex::get_by_index(self)
+    }
+
+    /// Gets a mutable reference to an element given its index.
+    ///
+    /// # Example
+    /// ```
+    /// use hlist::hlist;
+    /// use hlist::index::{Zero, Succ};
+    ///
+    /// let mut hlist = hlist!(123i32, "abc", true);
+    ///
+    /// *hlist.get_by_index_mut(Zero) = 456;
+    /// *hlist.get_by_index_mut(Succ(Zero)) = "def";
+    /// *hlist.get_by_index_mut(Succ(Succ(Zero))) = false;
+    ///
+    /// assert_eq!(hlist, hlist!(456, "def", false));
+    /// ```
+    pub fn get_by_index_mut<I>(&mut self, _: I) -> &mut <Self as GetByIndex<I>>::Output
+    where
+        Self: GetByIndex<I>,
+        I: Index,
+    {
+        GetByIndex::get_by_index_mut(self)
     }
 
     /// Removes the last element from the list.
