@@ -5,6 +5,7 @@
 
 mod concat;
 mod core;
+mod enumerate;
 mod for_each;
 mod get;
 mod get_by_index;
@@ -22,6 +23,7 @@ mod zip;
 
 pub use concat::*;
 pub use core::*;
+pub use enumerate::*;
 pub use for_each::{ForEach, Over as ForEachOver};
 pub use get::*;
 pub use get_by_index::*;
