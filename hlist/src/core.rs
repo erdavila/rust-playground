@@ -385,6 +385,31 @@ where
         GetByType::get_by_type_mut(self)
     }
 
+    /// Gets the index of the element of type `A`.
+    ///
+    /// # Example
+    /// ```
+    /// use hlist::hlist;
+    /// use hlist::index::{Zero, Succ};
+    ///
+    /// let hlist = hlist!(123i32, "abc", true);
+    ///
+    /// let i0 = hlist.get_index_by_type::<i32, _>();
+    /// let i1 = hlist.get_index_by_type::<&str, _>();
+    /// let i2 = hlist.get_index_by_type::<bool, _>();
+    ///
+    /// assert_eq!(i0, Zero);
+    /// assert_eq!(i1, Succ(Zero));
+    /// assert_eq!(i2, Succ(Succ(Zero)));
+    /// ```
+    pub fn get_index_by_type<A, W>(&self) -> <Self as GetByType<A, W>>::Index
+    where
+        Self: GetByType<A, W>,
+        W: Where,
+    {
+        GetByType::get_index_by_type(self)
+    }
+
     /// Removes the last element from the list.
     ///
     /// # Example

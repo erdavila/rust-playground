@@ -1,17 +1,26 @@
 use std::marker::PhantomData;
 
-use crate::{HCons, HList};
+use crate::{
+    index::{Index, Succ, Zero},
+    HCons, HList,
+};
 
-pub trait GetByType<A, Where: self::Where> {
+pub trait GetByType<A, W: Where>: HList {
+    type Index: Index;
+
     fn get_by_type(this: &Self) -> &A;
 
     fn get_by_type_mut(this: &mut Self) -> &mut A;
+
+    fn get_index_by_type(&self) -> Self::Index;
 }
 
 impl<A, T> GetByType<A, Here> for HCons<A, T>
 where
     T: HList,
 {
+    type Index = Zero;
+
     fn get_by_type(this: &Self) -> &A {
         &this.head
     }
@@ -19,19 +28,29 @@ where
     fn get_by_type_mut(this: &mut Self) -> &mut A {
         &mut this.head
     }
+
+    fn get_index_by_type(&self) -> Self::Index {
+        Zero
+    }
 }
 
 impl<A, H, T, W> GetByType<A, There<W>> for HCons<H, T>
 where
-    T: HList + GetByType<A, W>,
+    T: GetByType<A, W>,
     W: Where,
 {
+    type Index = Succ<<T as GetByType<A, W>>::Index>;
+
     fn get_by_type(this: &Self) -> &A {
         GetByType::get_by_type(&this.tail)
     }
 
     fn get_by_type_mut(this: &mut Self) -> &mut A {
         GetByType::get_by_type_mut(&mut this.tail)
+    }
+
+    fn get_index_by_type(&self) -> Self::Index {
+        Succ(self.tail.get_index_by_type())
     }
 }
 
@@ -45,7 +64,7 @@ impl<W: Where> Where for There<W> {}
 
 #[cfg(test)]
 mod tests {
-    use crate::hlist;
+    use crate::{hlist, index::Index};
 
     #[test]
     fn get_by_type() {
@@ -74,5 +93,18 @@ mod tests {
         *hlist.get_by_type_mut() = false;
 
         assert_eq!(hlist, hlist!(456, "def", false));
+    }
+
+    #[test]
+    fn get_index_by_type() {
+        let hlist = hlist!(123i32, "abc", true);
+
+        let i0 = hlist.get_index_by_type::<i32, _>();
+        let i1 = hlist.get_index_by_type::<&str, _>();
+        let i2 = hlist.get_index_by_type::<bool, _>();
+
+        assert_eq!(i0.value(), 0);
+        assert_eq!(i1.value(), 1);
+        assert_eq!(i2.value(), 2);
     }
 }
