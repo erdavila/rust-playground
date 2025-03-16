@@ -8,10 +8,10 @@
 //! [`get_by_index`]: crate::HCons::get_by_index
 //! [`get_by_index_mut`]: crate::HCons::get_by_index_mut
 
-use std::cmp::Ordering;
+use std::{cmp::Ordering, fmt::Debug, hash::Hash};
 
 /// A type that represents the index of a type or value in an [`HList`](crate::HList).
-pub trait Index {
+pub trait Index: Copy + Debug + Default + Hash + Ord {
     /// The numeric value of the index.
     const VALUE: usize;
 

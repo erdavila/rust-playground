@@ -1,9 +1,10 @@
 use crate::{
     concat::Concat,
+    enumerate::Enumerate,
     get::Get,
     get_by_index::GetByIndex,
     get_by_type::{GetByType, Where},
-    index::Index,
+    index::{Index, Zero},
     pop_back::PopBack,
     push_back::PushBack,
     rev::Rev,
@@ -157,6 +158,35 @@ pub trait HList {
         F: ForEachOver<Self>,
     {
         ForEachOver::for_each_over(&mut f, self);
+    }
+
+    /// Pairs each value with its corresponding [`Index`].
+    ///
+    /// # Example
+    /// ```
+    /// use hlist::{
+    ///     HList, hlist,
+    ///     index::{Zero, Succ}
+    /// };
+    ///
+    /// let hlist = hlist!(123i32, "abc", true);
+    ///
+    /// let output = hlist.enumerate();
+    ///
+    /// assert_eq!(
+    ///     output,
+    ///     hlist!(
+    ///         (Zero, 123i32),
+    ///         (Succ(Zero), "abc"),
+    ///         (Succ(Succ(Zero)), true),
+    ///     )
+    /// );
+    /// ```
+    fn enumerate(self) -> <Self as Enumerate>::Output<Zero>
+    where
+        Self: Enumerate + Sized,
+    {
+        Enumerate::enumerate(self, Zero)
     }
 
     /// Pushes a value to the end of the heterogeneous list.
