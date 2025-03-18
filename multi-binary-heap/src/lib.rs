@@ -110,8 +110,6 @@ where
 
 #[cfg(test)]
 mod tests {
-    use hlist::{index::Index, ForEach, GetByIndex, HList};
-
     use super::*;
 
     struct Person {
@@ -169,6 +167,8 @@ mod tests {
 
     macro_rules! assert_state {
         ($mbh:ident, $expected_len:literal) => {{
+            use hlist::HList;
+
             let expected_len = $expected_len;
 
             assert_eq!($mbh.records.len(), expected_len);
@@ -176,18 +176,20 @@ mod tests {
             assert_eq!($mbh.facets.len(), 3);
 
             $mbh.facets.as_ref().enumerate().for_each({
-                type Idxs = <(Name, Youngest, Oldest) as FacetsTuple<Person>>::Indexes;
-                struct FE<'a> {
+                // type Idxs = <(Name, Youngest, Oldest) as $crate::FacetsTuple<Person>>::Indexes;
+                struct FE<'a, Idxs: $crate::Indexes> {
                     records: &'a Vec<Record<Person, Idxs>>,
                 }
-                impl<I: Index, F: Facet<Person>> ForEach<(I, &F)> for FE<'_>
+                impl<I: hlist::index::Index, F: $crate::Facet<Person>, Idxs: Indexes>
+                    hlist::ForEach<(I, &F)> for FE<'_, Idxs>
                 where
-                    Idxs: GetByIndex<I, Output = usize>,
+                    Idxs: hlist::GetByIndex<I, Output = usize>,
                 {
                     fn for_each(&mut self, (facet_idx, facet): (I, &F)) {
                         // Check reciprocal indexes
                         for (i, rec) in self.records.iter().enumerate() {
-                            let queue_idx = rec.entry.queue_indexes.get_by_index(facet_idx);
+                            let z: &Idxs = &rec.entry.queue_indexes;
+                            let queue_idx = z.get_by_index(facet_idx);
                             let entry_idx = self.records[*queue_idx]
                                 .elem_indexes
                                 .get_by_index(facet_idx);
@@ -231,7 +233,59 @@ mod tests {
     fn with_facets() {
         let mbh = MultiBinaryHeap::with_facets((Name, Youngest, Oldest));
 
-        assert_state!(mbh, 0);
+        {
+            use hlist::HList;
+
+            let expected_len = 0;
+
+            assert_eq!(mbh.records.len(), expected_len);
+
+            assert_eq!(mbh.facets.len(), 3);
+            mbh.facets.as_ref().enumerate().for_each({
+                // type Idxs = <(Name, Youngest, Oldest) as crate::FacetsTuple<Person>>::Indexes;
+                struct FE<'a, T, Idxs: crate::Indexes> {
+                    records: &'a Vec<Record<T, Idxs>>,
+                }
+                impl<I: hlist::index::Index, F: crate::Facet<T>, T, Idxs: crate::Indexes + hlist::GetByIndex<I, Output = usize>>
+                    hlist::ForEach<(I, &F)> for FE<'_, T, Idxs>
+                {
+                    fn for_each(&mut self, (facet_idx, facet): (I, &F)) {
+                        for (i, rec) in self.records.iter().enumerate() {
+                            let z: &Idxs = &rec.entry.queue_indexes;
+                            let queue_idx = hlist::HCons::get_by_index(z, facet_idx); // ?!
+                            let queue_idx = rec.entry.queue_indexes.get_by_index(facet_idx);
+                            let entry_idx = self.records[*queue_idx]
+                                .elem_indexes
+                                .get_by_index(facet_idx);
+                            assert_eq!(i, *entry_idx);
+                        }
+                        for (child_i, child_rec) in self.records.iter().enumerate().skip(1) {
+                            let child_entry_idx = child_rec.elem_indexes.get_by_index(facet_idx);
+                            let child_elem = &self.records[*child_entry_idx].entry.elem;
+                            let child_facet = facet.facet(child_elem);
+                            let parent_i = (child_i - 1) / 2;
+                            let parent_rec = &self.records[parent_i];
+                            let parent_entry_idx = parent_rec.elem_indexes.get_by_index(facet_idx);
+                            let parent_elem = &self.records[*parent_entry_idx].entry.elem;
+                            let parent_facet = facet.facet(parent_elem);
+                            match F::PRIORITY {
+                                Priority::Min => assert!(parent_facet <= child_facet),
+                                Priority::Max => assert!(parent_facet >= child_facet),
+                            }
+                        }
+                    }
+                }
+                FE {
+                    records: &mbh.records,
+                }
+            });
+            assert_eq!(mbh.len(), expected_len);
+            if expected_len == 0 {
+                assert!(mbh.is_empty());
+            } else {
+                assert!(!mbh.is_empty());
+            }
+        };
     }
 
     #[test]
