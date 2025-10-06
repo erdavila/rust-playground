@@ -14,21 +14,27 @@ pub const MIN_WAVELENGTH: f64 = VIOLET_WAVELENGTH;
 pub const MAX_WAVELENGTH: f64 = RED_MAX_WAVELENGTH;
 
 #[derive(Debug, Clone, Copy)]
-pub struct UnfadedRange {
+pub struct FadingOptions {
     pub unfaded_lower_bound: f64,
     pub unfaded_upper_bound: f64,
+    pub factor_at_visibility_limits: f64,
 }
 
-pub const DEFAULT_UNFADED_RANGE: UnfadedRange = UnfadedRange {
-    unfaded_lower_bound: 420.0,
-    unfaded_upper_bound: 700.0,
-};
+impl Default for FadingOptions {
+    fn default() -> Self {
+        FadingOptions {
+            unfaded_lower_bound: 420.0,
+            unfaded_upper_bound: 700.0,
+            factor_at_visibility_limits: 0.3,
+        }
+    }
+}
 
 pub const DEFAULT_GAMMA: f64 = 0.8;
 
 #[derive(Debug, Clone)]
 pub struct Converter {
-    pub fading: Option<UnfadedRange>,
+    pub fading: Option<FadingOptions>,
     pub gamma: Option<f64>,
 }
 
@@ -50,13 +56,13 @@ impl Converter {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            fading: Some(DEFAULT_UNFADED_RANGE),
+            fading: Some(FadingOptions::default()),
             gamma: Some(DEFAULT_GAMMA),
         }
     }
 
     #[must_use]
-    pub fn with_fading(mut self, fading: Option<UnfadedRange>) -> Self {
+    pub fn with_fading(mut self, fading: Option<FadingOptions>) -> Self {
         self.fading = fading;
         self
     }
@@ -110,13 +116,13 @@ impl Converter {
                 remap(
                     wavelength,
                     MIN_WAVELENGTH..fading.unfaded_lower_bound,
-                    0.3..1.0,
+                    fading.factor_at_visibility_limits..1.0,
                 )
             } else if wavelength > fading.unfaded_upper_bound {
                 remap(
                     wavelength,
                     fading.unfaded_upper_bound..MAX_WAVELENGTH,
-                    1.0..0.3,
+                    1.0..fading.factor_at_visibility_limits,
                 )
             } else {
                 1.0
