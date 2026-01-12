@@ -1,6 +1,6 @@
 use std::{array, fmt::Display, str::FromStr};
 
-use crate::{parser::Parser, Error, InvalidChar, CNPJ};
+use crate::{CNPJ, Error, InvalidChar, parser::Parser};
 
 unchecked_id!(UncheckedCNPJ, 12, CNPJ, UncheckedCNPJParser);
 impl Display for UncheckedCNPJ {

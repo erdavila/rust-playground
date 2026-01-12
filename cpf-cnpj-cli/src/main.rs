@@ -2,7 +2,7 @@ use std::fmt::Display;
 
 use clap::{Parser, Subcommand};
 use colored::Colorize;
-use cpf_cnpj::{Error, UncheckedCNPJ, UncheckedCPF, CNPJ, CPF};
+use cpf_cnpj::{CNPJ, CPF, Error, UncheckedCNPJ, UncheckedCPF};
 
 #[derive(Parser)]
 struct Args {

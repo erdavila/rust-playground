@@ -1,6 +1,6 @@
 use std::{array, fmt::Display, str::FromStr};
 
-use crate::{parser::Parser, Error, InvalidChar, UncheckedCNPJ, UncheckedCPF};
+use crate::{Error, InvalidChar, UncheckedCNPJ, UncheckedCPF, parser::Parser};
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct CheckDigits(pub(crate) [u8; Self::LENGTH]);
@@ -108,7 +108,7 @@ impl CheckDigitCalculator {
         let rem = self.accumulator % 11;
         let value = if rem == 0 || rem == 1 { 0 } else { 11 - rem };
 
-        #[allow(clippy::cast_possible_truncation)]
+        #[expect(clippy::cast_possible_truncation)]
         let check_digit = value as u8 + b'0';
 
         check_digit

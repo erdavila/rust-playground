@@ -7,7 +7,7 @@ from_str_and_try_from!(CPF);
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use crate::{check_digits, unchecked_cpf, CheckDigits, Error, InvalidChar};
+    use crate::{CheckDigits, Error, InvalidChar, check_digits, unchecked_cpf};
 
     use super::*;
 

@@ -7,7 +7,7 @@ from_str_and_try_from!(CNPJ);
 
 #[cfg(test)]
 mod tests {
-    use crate::{check_digits, unchecked_cnpj, CheckDigits, Error, InvalidChar};
+    use crate::{CheckDigits, Error, InvalidChar, check_digits, unchecked_cnpj};
 
     use super::*;
 
@@ -93,7 +93,9 @@ mod tests {
 
         assert_eq!(
             cnpj.chars(),
-            ['1', '2', 'A', 'B', 'C', '3', '4', '5', '0', '1', 'D', 'E', '3', '5']
+            [
+                '1', '2', 'A', 'B', 'C', '3', '4', '5', '0', '1', 'D', 'E', '3', '5'
+            ]
         );
     }
 
@@ -113,7 +115,9 @@ mod tests {
         }
 
         assert_eq!(
-            CNPJ::try_from(['1', '2', 'A', 'b', 'C', '3', '4', '5', '0', '1', 'D', 'e', '3', '5']),
+            CNPJ::try_from([
+                '1', '2', 'A', 'b', 'C', '3', '4', '5', '0', '1', 'D', 'e', '3', '5'
+            ]),
             Ok(CNPJ(BYTES))
         );
     }

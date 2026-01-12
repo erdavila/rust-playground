@@ -74,7 +74,7 @@ macro_rules! checked_id {
             pub const LENGTH: usize = $unchecked::LENGTH + $crate::CheckDigits::LENGTH;
 
             fn from_iter(iter: impl IntoIterator<Item = char>) -> Result<Self, $crate::Error> {
-                use $crate::{check_digits::CheckDigitsParser, parser::Parser, Error};
+                use $crate::{Error, check_digits::CheckDigitsParser, parser::Parser};
 
                 let mut iter = iter.into_iter().enumerate();
                 let unchecked_cpf = $unchecked_parser::parse(&mut iter)?;

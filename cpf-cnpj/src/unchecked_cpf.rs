@@ -1,6 +1,6 @@
 use std::{array, fmt::Display, str::FromStr};
 
-use crate::{parser::Parser, Error, InvalidChar, CPF};
+use crate::{CPF, Error, InvalidChar, parser::Parser};
 
 unchecked_id!(UncheckedCPF, 9, CPF, UncheckedCPFParser);
 impl Display for UncheckedCPF {

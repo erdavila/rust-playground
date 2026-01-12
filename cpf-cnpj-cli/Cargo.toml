@@ -1,9 +1,13 @@
 [package]
 name = "cpf-cnpj-cli"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
 clap = { version = "4.5.20", features = ["derive"] }
 colored = "2"
 cpf-cnpj = { version = "0.1.0", path = "../cpf-cnpj" }
+
+
+[lints]
+workspace = true
