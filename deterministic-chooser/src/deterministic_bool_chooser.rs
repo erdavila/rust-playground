@@ -5,6 +5,7 @@ pub struct DeterministicBoolChooser {
 }
 
 impl DeterministicBoolChooser {
+    #[must_use]
     pub fn new(true_percentage: f64) -> Self {
         DeterministicBoolChooser {
             chooser: DeterministicChooser::new([
@@ -14,6 +15,7 @@ impl DeterministicBoolChooser {
         }
     }
 
+    #[must_use]
     pub fn stats(&self) -> Stats {
         let stats = self.chooser.stats();
         Stats {

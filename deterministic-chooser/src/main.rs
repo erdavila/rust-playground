@@ -1,7 +1,7 @@
 use std::fmt::{Debug, Display};
 
 use deterministic_chooser::{
-    deterministic_bool_chooser::DeterministicBoolChooser, DeterministicChooser,
+    DeterministicChooser, deterministic_bool_chooser::DeterministicBoolChooser,
 };
 
 fn main() {
@@ -34,10 +34,15 @@ fn test_deterministic_chooser<T: Clone + Display + Debug>(
         let chosen = generator.next().unwrap();
 
         let stats = generator.stats();
+        #[expect(clippy::cast_precision_loss)]
         let total_count = stats.iter().map(|(_, s)| s.count).sum::<usize>() as f64;
         let ratios: Vec<_> = stats
             .iter()
-            .map(|(_, s)| s.count as f64 / total_count)
+            .map(|(_, s)| {
+                #[expect(clippy::cast_precision_loss)]
+                let ratio = s.count as f64 / total_count;
+                ratio
+            })
             .collect();
         let distance = distance(&ratios, &normalized_weights);
         println!("{chosen} {distance} {ratios:?}");
@@ -63,6 +68,7 @@ fn test_deterministic_bool_generator(true_percentage: f64) {
         let b = generator.next().unwrap();
 
         let stats = generator.stats();
+        #[expect(clippy::cast_precision_loss)]
         let ratio = stats.trues as f64 / (stats.total as f64);
         let distance = (ratio - true_percentage).abs();
 

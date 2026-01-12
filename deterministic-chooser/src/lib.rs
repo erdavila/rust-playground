@@ -17,9 +17,10 @@ impl<T: Clone> DeterministicChooser<T> {
         DeterministicChooser { raw, values }
     }
 
+    #[must_use]
     pub fn stats(&self) -> Vec<(T, ItemStats)> {
         let values = self.values.iter().cloned();
-        let stats = self.raw.stats().iter().cloned();
+        let stats = self.raw.stats().iter().copied();
         values.zip(stats).collect()
     }
 }

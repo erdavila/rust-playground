@@ -4,6 +4,7 @@ pub struct RawDeterministicChooser {
 }
 
 impl RawDeterministicChooser {
+    #[expect(clippy::missing_panics_doc)]
     pub fn new(weights: impl IntoIterator<Item = f64>) -> Self {
         let stats: Vec<_> = weights
             .into_iter()
@@ -25,6 +26,7 @@ impl RawDeterministicChooser {
         }
     }
 
+    #[must_use]
     pub fn stats(&self) -> &Vec<ItemStats> {
         &self.stats
     }
@@ -52,7 +54,9 @@ impl Iterator for RawDeterministicChooser {
                     if i == j {
                         count += 1;
                     }
-                    count as f64
+                    #[expect(clippy::cast_precision_loss)]
+                    let count = count as f64;
+                    count
                 });
 
                 let similarity = self.cosine_similarity(counts.collect());
