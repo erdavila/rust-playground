@@ -1,13 +1,14 @@
-use std::ops::{Deref, DerefMut};
+use std::ops::DerefMut;
 
 use proc_macro::TokenStream;
-use quote::{format_ident, quote, ToTokens};
+use quote::{ToTokens, format_ident, quote};
 use syn::punctuated::Punctuated;
-use syn::visit_mut::{visit_expr_mut, VisitMut};
+use syn::token::{Gt, Lt, Paren};
+use syn::visit_mut::{VisitMut, visit_expr_mut};
 use syn::{
-    parse2, parse_macro_input, parse_str, AngleBracketedGenericArguments, Block, Expr, ExprCall,
-    ExprPath, FieldsUnnamed, FnArg, GenericArgument, Generics, ItemFn, Pat, Path, ReturnType,
-    Signature, Stmt, Token, Type, TypeTuple,
+    AngleBracketedGenericArguments, Block, Expr, ExprCall, ExprPath, FieldsUnnamed, FnArg,
+    GenericArgument, Generics, ItemFn, Pat, Path, ReturnType, Signature, Stmt, Token, Type,
+    TypeTuple, parse_macro_input, parse_str, parse2,
 };
 
 #[proc_macro_attribute]
@@ -87,23 +88,24 @@ fn transform(item_fn: ItemFn) -> ItemFn {
 fn get_outer_function_signature(signature: &Signature) -> Signature {
     let mut sig = signature.clone();
 
-    for fn_arg in sig.inputs.iter_mut() {
-        if let FnArg::Typed(typed) = fn_arg {
-            if let Pat::Ident(pat_ident) = typed.pat.deref_mut() {
-                pat_ident.mutability = None;
-            }
+    for fn_arg in &mut sig.inputs {
+        if let FnArg::Typed(typed) = fn_arg
+            && let Pat::Ident(pat_ident) = &mut *typed.pat
+        {
+            pat_ident.mutability = None;
         }
     }
 
     sig
 }
 
+#[expect(clippy::match_wildcard_for_single_variants)]
 fn get_args_names(signature: &Signature) -> Vec<String> {
     signature
         .inputs
         .iter()
         .map(|fn_arg| match fn_arg {
-            FnArg::Typed(pat_type) => match pat_type.pat.deref() {
+            FnArg::Typed(pat_type) => match &*pat_type.pat {
                 Pat::Ident(pat_ident) => pat_ident.ident.to_string(),
                 _ => todo!("at {}:{}", file!(), line!()),
             },
@@ -146,29 +148,29 @@ fn get_control_generics(continue_fields_types_names: &[String]) -> Generics {
 fn get_outer_function_return_type_generics(sig: &Signature) -> AngleBracketedGenericArguments {
     let mut outer_function_return_type_generics = AngleBracketedGenericArguments {
         colon2_token: None,
-        lt_token: Default::default(),
-        args: Default::default(),
-        gt_token: Default::default(),
+        lt_token: Lt::default(),
+        args: Punctuated::default(),
+        gt_token: Gt::default(),
     };
 
     let mut add_type = |ty: Type| {
         outer_function_return_type_generics
             .args
-            .push(GenericArgument::Type(ty))
+            .push(GenericArgument::Type(ty));
     };
 
     for fn_arg in &sig.inputs {
         match fn_arg {
             FnArg::Typed(pat_type) => add_type(pat_type.ty.as_ref().clone()),
             FnArg::Receiver(_) => todo!("at {}:{}", file!(), line!()),
-        };
+        }
     }
 
     match &sig.output {
         ReturnType::Type(_, r#type) => add_type(r#type.as_ref().clone()),
         ReturnType::Default => add_type(Type::Tuple(TypeTuple {
-            elems: Default::default(),
-            paren_token: Default::default(),
+            elems: Punctuated::default(),
+            paren_token: Paren::default(),
         })),
     }
 
@@ -181,16 +183,15 @@ struct RecursiveCall<'a> {
 }
 impl<'a> RecursiveCall<'a> {
     fn from(expr_call: &'a mut ExprCall, function_name: &str) -> Option<Self> {
-        if let Expr::Path(ExprPath { path, .. }) = expr_call.func.deref_mut() {
-            if path.leading_colon.is_none()
-                && path.segments.len() == 1
-                && path.segments.first().unwrap().ident == function_name
-            {
-                return Some(RecursiveCall {
-                    path,
-                    args: &mut expr_call.args,
-                });
-            }
+        if let Expr::Path(ExprPath { path, .. }) = &mut *expr_call.func
+            && path.leading_colon.is_none()
+            && path.segments.len() == 1
+            && path.segments.first().unwrap().ident == function_name
+        {
+            return Some(RecursiveCall {
+                path,
+                args: &mut expr_call.args,
+            });
         }
 
         None
@@ -201,7 +202,7 @@ fn handle_control_points(block: &mut Block, function_name: &str) {
     struct Visitor<'a> {
         function_name: &'a str,
     }
-    impl<'a> Visitor<'a> {
+    impl Visitor<'_> {
         fn turn_into_control_continue(&mut self, recursive_call: &mut RecursiveCall) {
             *recursive_call.path = parse_str2!("__tailcall::Control::Continue");
             for arg in &mut recursive_call.args.iter_mut() {
@@ -221,7 +222,7 @@ fn handle_control_points(block: &mut Block, function_name: &str) {
             *expr = Some(Box::new(Expr::Call(expr_call)));
         }
     }
-    impl<'a> VisitMut for Visitor<'a> {
+    impl VisitMut for Visitor<'_> {
         fn visit_expr_mut(&mut self, expr: &mut Expr) {
             match expr {
                 Expr::Return(expr_return) => {

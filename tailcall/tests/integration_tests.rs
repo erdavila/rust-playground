@@ -19,7 +19,7 @@ mod general {
                 return general(4, {
                     trace.push("3");
                     trace
-                })
+                });
             }
             4 => {
                 trace.push("4");
