@@ -1,6 +1,6 @@
 use emulated_closures::{
-    composition::Compose as _, emulated_fn, emulated_fn_mut, emulated_fn_once, EmulatedFn as _,
-    EmulatedFnMut as _, EmulatedFnOnce as _,
+    EmulatedFn as _, EmulatedFnMut as _, EmulatedFnOnce as _, composition::Compose as _,
+    emulated_fn, emulated_fn_mut, emulated_fn_once,
 };
 
 #[test]

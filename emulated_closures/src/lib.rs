@@ -25,7 +25,7 @@ macro_rules! emulated_fn_once {
         $body:expr
     ) => {
         {
-            #[allow(non_camel_case_types)]
+            #[expect(non_camel_case_types)]
             struct impl_EmulatedFnOnce<'lt> {
                 captures: ( $( $crate::__emulated_closures__fn_once_capture_type!( $($capture)* ) , )* ),
                 _phantom: std::marker::PhantomData<&'lt ()>,
@@ -59,7 +59,7 @@ macro_rules! emulated_fn_mut {
         $body:expr
     ) => {
         {
-            #[allow(non_camel_case_types)]
+            #[expect(non_camel_case_types)]
             struct impl_EmulatedFnMut<'lt> {
                 captures: ( $( $crate::__emulated_closures__fn_mut_capture_type!( $($capture)* ) , )* ),
                 _phantom: std::marker::PhantomData<&'lt ()>,
@@ -99,7 +99,7 @@ macro_rules! emulated_fn {
         $body:expr
     ) => {
         {
-            #[allow(non_camel_case_types)]
+            #[expect(non_camel_case_types)]
             struct impl_EmulatedFn<'lt> {
                 captures: ( $( $crate::__emulated_closures__fn_capture_type!( $($capture)* ) , )* ),
                 _phantom: std::marker::PhantomData<&'lt ()>,

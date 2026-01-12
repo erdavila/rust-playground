@@ -48,7 +48,7 @@ impl Object {
 }
 
 mod emulated_fn_once {
-    use emulated_closures::{emulated_fn_once, EmulatedFnOnce};
+    use emulated_closures::{EmulatedFnOnce, emulated_fn_once};
 
     use crate::{Object, Usage};
 
@@ -151,7 +151,7 @@ mod emulated_fn_once {
 }
 
 mod emulated_fn_mut {
-    use emulated_closures::{emulated_fn_mut, EmulatedFnMut};
+    use emulated_closures::{EmulatedFnMut, emulated_fn_mut};
 
     use crate::{Object, Usage};
 
@@ -248,7 +248,7 @@ mod emulated_fn_mut {
 }
 
 mod emulated_fn {
-    use emulated_closures::{emulated_fn, EmulatedFn};
+    use emulated_closures::{EmulatedFn, emulated_fn};
 
     use crate::{Object, Usage};
 
