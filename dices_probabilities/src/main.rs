@@ -1,9 +1,10 @@
 use std::ops::{Index, IndexMut};
 
-use term_table::{row::Row, table_cell::TableCell, Table, TableStyle};
+use term_table::{Table, TableStyle, row::Row, table_cell::TableCell};
 
 const DEFAULT_FACES: u8 = 6;
 
+#[expect(clippy::similar_names)]
 fn main() {
     let mut args = std::env::args();
     args.next();
@@ -13,17 +14,14 @@ fn main() {
         .expect("How many dices?")
         .parse()
         .expect("Invalid number");
-    if dices == 0 {
-        panic!("Number of dices cannot be zero");
-    }
+    assert!(dices != 0, "Number of dices cannot be zero");
 
-    let faces = args
-        .next()
-        .map(|str| str.parse::<u8>().expect("Invalid number"))
-        .unwrap_or(DEFAULT_FACES);
+    let faces = args.next().map_or(DEFAULT_FACES, |str| {
+        str.parse::<u8>().expect("Invalid number")
+    });
 
     let probabilities = Probabilities::generate(dices, faces);
-    let possibilities = (faces as u32).pow(dices as u32);
+    let possibilities = u32::from(faces).pow(u32::from(dices));
 
     let mut table = Table::new();
     table.style = TableStyle::extended();
@@ -45,7 +43,7 @@ fn main() {
             format!(
                 "{}:{possibilities} = {:.2}%",
                 x,
-                100.0 * x as f64 / possibilities as f64
+                100.0 * f64::from(x) / f64::from(possibilities)
             )
         };
 
@@ -93,8 +91,8 @@ struct Probabilities {
 }
 impl Probabilities {
     pub fn generate(dices: u8, faces: u8) -> Probabilities {
-        let min_value = dices as u32;
-        let max_value = dices as u32 * faces as u32;
+        let min_value = u32::from(dices);
+        let max_value = u32::from(dices) * u32::from(faces);
         let values_count = max_value - min_value + 1;
 
         let values = vec![0; values_count as usize];
@@ -112,16 +110,20 @@ impl Probabilities {
             self.values[total_value as usize] += 1;
         } else {
             for face in 1..=faces {
-                self.generate_impl(dices - 1, faces, total_value + face as u32);
+                self.generate_impl(dices - 1, faces, total_value + u32::from(face));
             }
         }
     }
 
     pub fn min_value(&self) -> u32 {
-        self.values.offset as u32
+        #[expect(clippy::cast_possible_truncation)]
+        let min_value = self.values.offset as u32;
+        min_value
     }
 
     pub fn max_value(&self) -> u32 {
-        (self.values.offset + self.values.vec.len() - 1) as u32
+        #[expect(clippy::cast_possible_truncation)]
+        let max_value = (self.values.offset + self.values.vec.len() - 1) as u32;
+        max_value
     }
 }
