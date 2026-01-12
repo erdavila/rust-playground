@@ -29,10 +29,10 @@ impl App {
     }
 
     pub(crate) fn select_first(&mut self) {
-        self.list_state.select(Some(0))
+        self.list_state.select(Some(0));
     }
 
     pub(crate) fn select_last(&mut self) {
-        self.list_state.select(Some(self.items_count - 1))
+        self.list_state.select(Some(self.items_count - 1));
     }
 }

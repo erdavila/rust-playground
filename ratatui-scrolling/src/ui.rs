@@ -1,15 +1,16 @@
 use ratatui::{
+    Frame,
     layout::{Constraint, Direction, Layout, Margin, Rect},
     style::{Style, Stylize},
     text::Line,
     widgets::{
         Block, Borders, List, Padding, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState,
     },
-    Frame,
 };
 
 use crate::app::App;
 
+#[expect(clippy::similar_names)]
 pub(crate) fn ui(frame: &mut Frame, app: &mut App) {
     let items: Vec<_> = (1..=app.items_count).map(|n| n.to_string()).collect();
 
@@ -54,6 +55,7 @@ pub(crate) fn ui(frame: &mut Frame, app: &mut App) {
         frame.render_stateful_widget(scrollbar, scrollbar_area, &mut scrollbar_state);
     }
 
+    #[expect(clippy::cast_possible_truncation)]
     let paragraph = Paragraph::new(items.into_iter().map(Line::from).collect::<Vec<_>>())
         .scroll((app.list_state.offset() as u16, 0))
         .block(
@@ -70,6 +72,7 @@ pub(crate) fn ui(frame: &mut Frame, app: &mut App) {
         ("Offset", app.list_state.offset()),
     ];
     for (i, (label, value)) in values.iter().enumerate() {
+        #[expect(clippy::cast_possible_truncation)]
         let value_area = Rect {
             y: i as u16 + 1,
             height: 1,
@@ -99,6 +102,5 @@ fn scrollbar_position_from_offset(
     offset: usize,
 ) -> Option<usize> {
     let max_offset = content_length.saturating_sub(viewport_content_length);
-    #[allow(clippy::unnecessary_lazy_evaluations)]
     (max_offset > 0).then(|| offset * (content_length - 1) / max_offset)
 }
