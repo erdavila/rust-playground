@@ -43,17 +43,17 @@ where
         self.max_heap.clear();
     }
 
-    pub fn drain(&mut self) -> Drain<T> {
+    pub fn drain(&mut self) -> Drain<'_, T> {
         self.min_heap.drain();
         Drain(self.max_heap.drain())
     }
 
-    pub fn drain_sorted_asc(&mut self) -> DrainSortedAsc<T> {
+    pub fn drain_sorted_asc(&mut self) -> DrainSortedAsc<'_, T> {
         self.max_heap.clear();
         DrainSortedAsc(&mut self.min_heap)
     }
 
-    pub fn drain_sorted_desc(&mut self) -> DrainSortedDesc<T> {
+    pub fn drain_sorted_desc(&mut self) -> DrainSortedDesc<'_, T> {
         self.min_heap.clear();
         DrainSortedDesc(&mut self.max_heap)
     }
@@ -74,7 +74,7 @@ where
     }
 
     #[must_use]
-    pub fn iter(&self) -> Iter<T> {
+    pub fn iter(&self) -> Iter<'_, T> {
         Iter(self.max_heap.iter())
     }
 
@@ -92,12 +92,12 @@ where
     }
 
     #[must_use]
-    pub fn peek_min(&self) -> Option<Peek<T>> {
+    pub fn peek_min(&self) -> Option<Peek<'_, T>> {
         self.peek::<Min>()
     }
 
     #[must_use]
-    pub fn peek_max(&self) -> Option<Peek<T>> {
+    pub fn peek_max(&self) -> Option<Peek<'_, T>> {
         self.peek::<Max>()
     }
 
@@ -110,11 +110,11 @@ where
             .map(|entry| Peek(Ref::map(entry, |e| &e.element)))
     }
 
-    pub fn peek_min_mut(&mut self) -> Option<PeekMut<T>> {
+    pub fn peek_min_mut(&mut self) -> Option<PeekMut<'_, T>> {
         self.peek_mut::<Min>()
     }
 
-    pub fn peek_max_mut(&mut self) -> Option<PeekMut<T>> {
+    pub fn peek_max_mut(&mut self) -> Option<PeekMut<'_, T>> {
         self.peek_mut::<Max>()
     }
 
@@ -144,14 +144,15 @@ where
         O: HeapOrder,
     {
         let (heap, other_heap) = O::select_heaps_mut(&mut self.min_heap, &mut self.max_heap);
-        if let Some(entry) = heap.pop() {
-            let other_heap_index = O::Other::get_heap_index(&entry.borrow());
-            other_heap.remove(other_heap_index);
+        match heap.pop() {
+            Some(entry) => {
+                let other_heap_index = O::Other::get_heap_index(&entry.borrow());
+                other_heap.remove(other_heap_index);
 
-            let value = Entry::ref_into_value(entry);
-            Some(value)
-        } else {
-            None
+                let value = Entry::ref_into_value(entry);
+                Some(value)
+            }
+            _ => None,
         }
     }
 
@@ -708,11 +709,14 @@ mod tests {
         heap.push(3);
         // Current elements: [1, 2, 3]
 
-        if let Some(mut peek_min) = heap.peek_min_mut() {
-            assert_eq!(*peek_min, 1);
-            *peek_min = 4;
-        } else {
-            panic!("peek_min_mut returned None");
+        match heap.peek_min_mut() {
+            Some(mut peek_min) => {
+                assert_eq!(*peek_min, 1);
+                *peek_min = 4;
+            }
+            _ => {
+                panic!("peek_min_mut returned None");
+            }
         }
         // Current elements: [2, 3, 4]
 
@@ -721,11 +725,14 @@ mod tests {
         assert_eq!(heap.peek_min().map(|n| *n), Some(2));
         assert_eq!(heap.peek_max().map(|n| *n), Some(4));
 
-        if let Some(mut peek_max) = heap.peek_max_mut() {
-            assert_eq!(*peek_max, 4);
-            *peek_max = 1;
-        } else {
-            panic!("peek_max_mut returned None");
+        match heap.peek_max_mut() {
+            Some(mut peek_max) => {
+                assert_eq!(*peek_max, 4);
+                *peek_max = 1;
+            }
+            _ => {
+                panic!("peek_max_mut returned None");
+            }
         }
         // Current elements: [1, 2, 3]
 
@@ -743,10 +750,13 @@ mod tests {
         heap.push(3);
         // Current elements: [1, 2, 3]
 
-        if let Some(peek_min) = heap.peek_min_mut() {
-            assert_eq!(PeekMut::pop(peek_min), 1);
-        } else {
-            panic!("peek_min_mut returned None");
+        match heap.peek_min_mut() {
+            Some(peek_min) => {
+                assert_eq!(PeekMut::pop(peek_min), 1);
+            }
+            _ => {
+                panic!("peek_min_mut returned None");
+            }
         }
         // Current elements: [2, 3]
 
@@ -755,10 +765,13 @@ mod tests {
         assert_eq!(heap.peek_min().map(|n| *n), Some(2));
         assert_eq!(heap.peek_max().map(|n| *n), Some(3));
 
-        if let Some(peek_max) = heap.peek_max_mut() {
-            assert_eq!(PeekMut::pop(peek_max), 3);
-        } else {
-            panic!("peek_max_mut returned None");
+        match heap.peek_max_mut() {
+            Some(peek_max) => {
+                assert_eq!(PeekMut::pop(peek_max), 3);
+            }
+            _ => {
+                panic!("peek_max_mut returned None");
+            }
         }
         // Current elements: [2]
 

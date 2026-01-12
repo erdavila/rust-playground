@@ -65,11 +65,11 @@ where
         }
     }
 
-    pub(crate) fn peek(&self) -> Option<Ref<Entry<T>>> {
+    pub(crate) fn peek(&self) -> Option<Ref<'_, Entry<T>>> {
         self.entries.first().map(|entry| entry.borrow())
     }
 
-    pub(crate) fn peek_mut(&mut self) -> Option<RefMut<Entry<T>>> {
+    pub(crate) fn peek_mut(&mut self) -> Option<RefMut<'_, Entry<T>>> {
         self.entries.first_mut().map(|entry| entry.borrow_mut())
     }
 
@@ -89,7 +89,7 @@ where
         entry
     }
 
-    pub(crate) fn retain<F>(&mut self, f: F) -> Retain<T, O, F>
+    pub(crate) fn retain<F>(&mut self, f: F) -> Retain<'_, T, O, F>
     where
         F: FnMut(&Entry<T>) -> bool,
     {
