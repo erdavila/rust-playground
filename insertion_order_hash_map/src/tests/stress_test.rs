@@ -1,10 +1,10 @@
-use rand::{rngs::ThreadRng, seq::IteratorRandom, Rng};
+use rand::{Rng, rngs::ThreadRng, seq::IteratorRandom};
 use std::collections::HashMap;
 use std::ops::Add;
 use std::time::{Duration, Instant};
 
-use crate::tests::consistency;
 use crate::InsertionOrderHashMap;
+use crate::tests::consistency;
 
 #[test]
 fn stress_test() {
@@ -55,8 +55,8 @@ impl StressTestData {
     }
 
     fn insert(&mut self) {
-        let key: Key = self.rng.gen();
-        let value: Value = self.rng.gen();
+        let key: Key = self.rng.r#gen();
+        let value: Value = self.rng.r#gen();
 
         let result = self.iohm.insert(key, value);
 

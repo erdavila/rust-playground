@@ -330,7 +330,7 @@ where
 fn get_vacant_entry<'a, K, V>(
     iohm: &'a mut InsertionOrderHashMap<K, V>,
     key: K,
-) -> VacantEntry<K, V>
+) -> VacantEntry<'a, K, V>
 where
     K: std::hash::Hash + Eq,
 {

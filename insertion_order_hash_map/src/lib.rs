@@ -6,7 +6,6 @@ use std::hash::Hash;
 use std::iter::FusedIterator;
 use std::marker::PhantomData;
 use std::mem;
-use std::ops::DerefMut;
 use std::ops::Index;
 use std::ptr::NonNull;
 
@@ -20,14 +19,17 @@ pub struct InsertionOrderHashMap<K, V> {
     order: Option<InsertionOrder<K, V>>,
 }
 impl<K, V> InsertionOrderHashMap<K, V> {
+    #[must_use]
     pub fn new() -> Self {
-        Self::with_underlying_map(Default::default())
+        Self::with_underlying_map(HashMap::default())
     }
 
+    #[must_use]
     pub fn with_capacity(capacity: usize) -> Self {
         Self::with_underlying_map(HashMap::with_capacity(capacity))
     }
 
+    #[must_use]
     pub fn capacity(&self) -> usize {
         self.nodes.capacity()
     }
@@ -36,38 +38,43 @@ impl<K, V> InsertionOrderHashMap<K, V> {
         InsertionOrderHashMap { nodes, order: None }
     }
 
-    pub fn keys(&self) -> Keys<K, V> {
+    #[must_use]
+    pub fn keys(&self) -> Keys<'_, K, V> {
         self.visiting_iterator(|node| &node.key)
     }
 
+    #[must_use]
     pub fn into_keys(self) -> IntoKeys<K, V> {
         self.consuming_iterator(|node| node.key)
     }
 
-    pub fn values(&self) -> Values<K, V> {
+    #[must_use]
+    pub fn values(&self) -> Values<'_, K, V> {
         self.visiting_iterator(|node| &node.value)
     }
 
-    pub fn values_mut(&mut self) -> ValuesMut<K, V> {
+    pub fn values_mut(&mut self) -> ValuesMut<'_, K, V> {
         self.visiting_iterator_mut(|node| &mut node.value)
     }
 
+    #[must_use]
     pub fn into_values(self) -> IntoValues<K, V> {
         self.consuming_iterator(|node| node.value)
     }
 
-    pub fn iter(&self) -> Iter<K, V> {
+    #[must_use]
+    pub fn iter(&self) -> Iter<'_, K, V> {
         self.visiting_iterator(|node| (&node.key, &node.value))
     }
 
-    pub fn iter_mut(&mut self) -> IterMut<K, V> {
+    pub fn iter_mut(&mut self) -> IterMut<'_, K, V> {
         self.visiting_iterator_mut(|node| (&node.key, &mut node.value))
     }
 
     fn visiting_iterator<'a, O>(
         &'a self,
         visit: VisitingFunction<'a, K, V, O>,
-    ) -> VisitingIterator<K, V, O> {
+    ) -> VisitingIterator<'a, K, V, O> {
         VisitingIterator {
             next_node: self.order.as_ref().map(|order| order.first),
             visit,
@@ -78,7 +85,7 @@ impl<K, V> InsertionOrderHashMap<K, V> {
     fn visiting_iterator_mut<'a, O>(
         &'a self,
         visit: VisitingFunctionMut<'a, K, V, O>,
-    ) -> VisitingIteratorMut<K, V, O> {
+    ) -> VisitingIteratorMut<'a, K, V, O> {
         VisitingIteratorMut {
             next_node: self.order.as_ref().map(|order| order.first),
             visit,
@@ -91,8 +98,7 @@ impl<K, V> InsertionOrderHashMap<K, V> {
         consume: ConsumingFunction<K, V, O>,
     ) -> ConsumingIterator<K, V, O> {
         let mut iohm = Box::new(self);
-        let iohm_ref: &mut InsertionOrderHashMap<_, _> =
-            unsafe { mem::transmute(iohm.deref_mut()) };
+        let iohm_ref: &mut InsertionOrderHashMap<_, _> = unsafe { mem::transmute(&mut *iohm) };
 
         ConsumingIterator {
             iohm,
@@ -100,15 +106,17 @@ impl<K, V> InsertionOrderHashMap<K, V> {
         }
     }
 
+    #[must_use]
     pub fn len(&self) -> usize {
         self.nodes.len()
     }
 
+    #[must_use]
     pub fn is_empty(&self) -> bool {
         self.nodes.is_empty()
     }
 
-    pub fn drain(&mut self) -> Drain<K, V> {
+    pub fn drain(&mut self) -> Drain<'_, K, V> {
         Drain {
             it: InternalConsumingIterator::new(self, |node| (node.key, node.value)),
             phantom: PhantomData,
@@ -147,6 +155,7 @@ where
         self.nodes.reserve(additional);
     }
 
+    #[expect(clippy::missing_errors_doc)]
     pub fn try_reserve(&mut self, additional: usize) -> Result<(), TryReserveError> {
         self.nodes.try_reserve(additional)
     }
@@ -159,10 +168,10 @@ where
         self.nodes.shrink_to(min_capacity);
     }
 
-    pub fn entry(&mut self, key: K) -> Entry<K, V> {
-        let self_ref = unsafe { &mut *(self as *mut Self) };
+    pub fn entry(&mut self, key: K) -> Entry<'_, K, V> {
+        let self_ref = unsafe { &mut *std::ptr::from_mut::<Self>(self) };
 
-        match self.nodes.get_mut(&KeyWrapper(&key)) {
+        match self.nodes.get_mut(&KeyWrapper(&raw const key)) {
             Some(node) => Entry::Occupied(OccupiedEntry {
                 node,
                 iohm: self_ref,
@@ -192,6 +201,7 @@ where
         self.nodes.get(q).map(|node| (&node.key, &node.value))
     }
 
+    #[must_use]
     pub fn first_key_value(&self) -> Option<(&K, &V)> {
         self.end_node_key_value(|order| order.first)
     }
@@ -204,6 +214,7 @@ where
         self.pop_end_node(|order| order.first)
     }
 
+    #[must_use]
     pub fn last_key_value(&self) -> Option<(&K, &V)> {
         self.end_node_key_value(|order| order.last)
     }
@@ -228,7 +239,7 @@ where
         &mut self,
         get_end_node: GetEndNode<K, V>,
     ) -> Option<OccupiedEntry<'_, K, V>> {
-        let self_ref = unsafe { &mut *(self as *mut Self) };
+        let self_ref = unsafe { &mut *std::ptr::from_mut::<Self>(self) };
         self.order.as_mut().map(|order| {
             let mut node = get_end_node(order);
             let node = unsafe { node.as_mut() };
@@ -270,17 +281,14 @@ where
     }
 
     pub fn insert(&mut self, key: K, value: V) -> Option<V> {
-        match self.nodes.get_mut(&KeyWrapper(&key)) {
-            Some(node) => {
-                let previous_value = node.replace_value(value);
-                Some(previous_value)
-            }
-            None => {
-                let vacant_entry = VacantEntry { key, iohm: self };
-                vacant_entry.insert(value);
+        if let Some(node) = self.nodes.get_mut(&KeyWrapper(&raw const key)) {
+            let previous_value = node.replace_value(value);
+            Some(previous_value)
+        } else {
+            let vacant_entry = VacantEntry { key, iohm: self };
+            vacant_entry.insert(value);
 
-                None
-            }
+            None
         }
     }
 
@@ -298,7 +306,7 @@ where
         Q: Hash + Eq + ?Sized,
     {
         let q = BorrowWrapper::from_ref(k);
-        let self_ref = unsafe { &mut *(self as *mut Self) };
+        let self_ref = unsafe { &mut *std::ptr::from_mut::<Self>(self) };
         match self.nodes.get_mut(q) {
             Some(node) => {
                 let occupied_entry = OccupiedEntry {
@@ -325,7 +333,7 @@ where
 {
     fn clone(&self) -> Self {
         let cloned = self.iter().map(|(k, v)| (k.clone(), v.clone()));
-        Self::from_iter(cloned)
+        cloned.collect()
     }
 }
 
@@ -542,7 +550,7 @@ impl<'a, K, V, O: 'a> Iterator for VisitingIteratorMut<'a, K, V, O> {
 
     fn next(&mut self) -> Option<Self::Item> {
         match &self.next_node {
-            Some(mut node) => {
+            &Some(mut node) => {
                 let node = unsafe { node.as_mut() };
                 self.next_node = node.next;
                 self.len -= 1;
@@ -585,11 +593,11 @@ impl<K, V, O> InternalConsumingIterator<K, V, O> {
     }
 
     fn iohm(&self) -> &InsertionOrderHashMap<K, V> {
-        return unsafe { self.iohm.as_ref() };
+        unsafe { self.iohm.as_ref() }
     }
 
     fn iohm_mut(&mut self) -> &mut InsertionOrderHashMap<K, V> {
-        return unsafe { self.iohm.as_mut() };
+        unsafe { self.iohm.as_mut() }
     }
 }
 impl<K: Hash + Eq, V, O> Iterator for InternalConsumingIterator<K, V, O> {
@@ -622,7 +630,7 @@ impl<K: Hash + Eq, V, O> ExactSizeIterator for InternalConsumingIterator<K, V, O
 impl<K: Hash + Eq, V, O> FusedIterator for InternalConsumingIterator<K, V, O> {}
 
 pub struct ConsumingIterator<K, V, O> {
-    #[allow(dead_code)]
+    #[expect(dead_code)]
     iohm: Box<InsertionOrderHashMap<K, V>>,
     it: InternalConsumingIterator<K, V, O>,
 }
@@ -711,6 +719,7 @@ where
         }
     }
 
+    #[must_use]
     pub fn and_modify<F: FnOnce(&mut V)>(self, f: F) -> Self {
         match self {
             Self::Occupied(mut occupied_entry) => {
@@ -742,10 +751,12 @@ pub struct OccupiedEntry<'a, K, V> {
     iohm: &'a mut InsertionOrderHashMap<K, V>,
 }
 impl<'a, K, V> OccupiedEntry<'a, K, V> {
+    #[must_use]
     pub fn key(&self) -> &K {
         &self.node.key
     }
 
+    #[must_use]
     pub fn remove_entry(self) -> (K, V)
     where
         K: Hash + Eq,
@@ -754,6 +765,7 @@ impl<'a, K, V> OccupiedEntry<'a, K, V> {
         (node.key, node.value)
     }
 
+    #[must_use]
     pub fn get(&self) -> &V {
         &self.node.value
     }
@@ -762,6 +774,7 @@ impl<'a, K, V> OccupiedEntry<'a, K, V> {
         &mut self.node.value
     }
 
+    #[must_use]
     pub fn into_mut(self) -> &'a mut V {
         &mut self.node.value
     }
@@ -770,6 +783,7 @@ impl<'a, K, V> OccupiedEntry<'a, K, V> {
         self.node.replace_value(value)
     }
 
+    #[must_use]
     pub fn remove(self) -> V
     where
         K: Hash + Eq,
@@ -802,7 +816,7 @@ impl<'a, K, V> VacantEntry<'a, K, V> {
             next: None,
         });
 
-        let entry = self.iohm.nodes.entry(KeyWrapper(&node.key));
+        let entry = self.iohm.nodes.entry(KeyWrapper(&raw const node.key));
         let node = entry.or_insert(node);
         node.link(&mut self.iohm.order);
 
@@ -815,7 +829,7 @@ impl<'a, K, V> VacantEntry<'a, K, V> {
 struct BorrowWrapper<T: ?Sized>(T);
 impl<T: ?Sized> BorrowWrapper<T> {
     fn from_ref(r: &T) -> &Self {
-        unsafe { &*(r as *const T as *const BorrowWrapper<T>) }
+        unsafe { &*(std::ptr::from_ref::<T>(r) as *const BorrowWrapper<T>) }
     }
 }
 
