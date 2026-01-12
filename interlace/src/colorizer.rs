@@ -10,7 +10,7 @@ pub struct Colorizer<'a> {
     number_of_colors: usize,
 }
 
-impl<'a> Colorizer<'a> {
+impl Colorizer<'_> {
     pub fn colorize(grid: &mut Grid, interlace: &Interlace) -> usize {
         let mut colorizer = Colorizer {
             grid,
@@ -81,6 +81,7 @@ impl Direction {
     }
 
     fn through(&self, segment: Segment) -> Option<Direction> {
+        #[expect(clippy::match_same_arms)]
         let direction = match (self, segment) {
             (Direction::Left, Segment::Horizontal) => Direction::Left,
             (Direction::Left, Segment::UpAndRight) => Direction::Up,
@@ -106,7 +107,7 @@ struct Cursor<'a> {
     direction: Direction,
     grid: &'a mut Grid,
 }
-impl<'a> Cursor<'a> {
+impl Cursor<'_> {
     fn advance(&mut self) -> Option<&mut Cell> {
         const STEPS: u8 = 2;
 
@@ -126,9 +127,8 @@ impl<'a> Cursor<'a> {
 
         let cell = self.grid.get_mut(self.position);
 
-        let cell = match cell {
-            Some(cell) => cell,
-            None => return AdvanceResult::NotFound,
+        let Some(cell) = cell else {
+            return AdvanceResult::NotFound;
         };
 
         if let Some(next_direction) = self.direction.through(cell.segment) {

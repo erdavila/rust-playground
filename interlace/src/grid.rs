@@ -67,16 +67,17 @@ impl Grid {
             .map(|cell| cell.as_mut().expect("Cell is not initialized"))
     }
 
+    #[expect(clippy::cast_sign_loss)]
     fn internal_position(&self, position: Position) -> InternalPosition {
         let table_id = TableId::from(self.n1, position.row, position.col);
         let index = match table_id {
             TableId::Big => {
-                let row = (self.n1 as i8 + position.row - position.col + 1) / 2;
+                let row = (self.n1.cast_signed() + position.row - position.col + 1) / 2;
                 let col = position.row - row;
                 (row as usize, col as usize)
             }
             TableId::Small => {
-                let row = (self.n1 as i8 + position.row - position.col) / 2;
+                let row = (self.n1.cast_signed() + position.row - position.col) / 2;
                 let col = position.row - row - 1;
                 (row as usize, col as usize)
             }
@@ -99,7 +100,7 @@ impl Grid {
         }
     }
 
-    pub fn rows_iter(&self) -> RowsIter {
+    pub fn rows_iter(&self) -> RowsIter<'_> {
         RowsIter {
             grid: self,
             next_row_index: 0,
@@ -112,13 +113,14 @@ struct InternalPosition {
     index: (usize, usize),
 }
 
+#[derive(Clone, Copy)]
 enum TableId {
     Big,
     Small,
 }
 impl TableId {
     fn from(n1: u8, row: i8, col: i8) -> Self {
-        let n1_is_even = n1 % 2 == 0;
+        let n1_is_even = n1.is_multiple_of(2);
         let row_col_sum_is_even = (row + col) % 2 == 0;
 
         if n1_is_even == row_col_sum_is_even {
@@ -185,8 +187,8 @@ impl<'a> Iterator for RowIter<'a> {
             self.next_col_index += 1;
 
             Some(self.grid.get(Position {
-                row: self.row_index as i8,
-                col: col_index as i8,
+                row: self.row_index.cast_signed(),
+                col: col_index.cast_signed(),
             }))
         } else {
             None

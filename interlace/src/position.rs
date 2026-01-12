@@ -8,8 +8,8 @@ pub struct Position {
 }
 
 impl Position {
-    pub fn iter(&self, direction: PositionDelta) -> impl Iterator<Item = Position> {
-        iter::successors(Some(*self), move |p| Some(*p + direction))
+    pub fn iter(self, direction: PositionDelta) -> impl Iterator<Item = Position> + use<> {
+        iter::successors(Some(self), move |p| Some(*p + direction))
     }
 }
 

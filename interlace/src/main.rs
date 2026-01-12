@@ -129,10 +129,11 @@ fn print_grid(grid: &Grid) {
 
             let (color_code_begin, color_code_end) = match color_number {
                 Some(color_number) => {
-                    assert!(color_number < 7, "Only 7 colors are supported");
                     fn color_code(number: usize) -> String {
-                        format!("\x1b[{}m", number)
+                        format!("\x1b[{number}m")
                     }
+
+                    assert!(color_number < 7, "Only 7 colors are supported");
 
                     let begin = color_code(31 + color_number);
                     let end = color_code(0);
@@ -141,7 +142,7 @@ fn print_grid(grid: &Grid) {
                 None => (String::new(), String::new()),
             };
 
-            print!("{}{}{} ", color_code_begin, char, color_code_end);
+            print!("{color_code_begin}{char}{color_code_end} ");
         }
         println!("{}", Segment::Vertical);
     }

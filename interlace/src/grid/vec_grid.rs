@@ -10,8 +10,8 @@ impl<T> VecGrid<T> {
     where
         T: Clone,
     {
-        let initial_row = Vec::from_iter(iter::repeat(initial_value).take(cols));
-        let content = Vec::from_iter(iter::repeat(initial_row).take(rows));
+        let initial_row = iter::repeat_n(initial_value, cols).collect::<Vec<_>>();
+        let content = iter::repeat_n(initial_row, rows).collect::<Vec<_>>();
         VecGrid { content }
     }
 

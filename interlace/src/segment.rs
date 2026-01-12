@@ -11,7 +11,7 @@ pub enum Segment {
 }
 
 impl Segment {
-    pub fn char(&self) -> char {
+    pub fn char(self) -> char {
         match self {
             Self::Horizontal => '━',
             Self::Vertical => '┃',

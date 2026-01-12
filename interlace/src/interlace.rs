@@ -12,7 +12,7 @@ impl Interlace {
 
     pub fn left_corner(&self) -> Position {
         Position {
-            row: (self.n1 + 1) as i8,
+            row: (self.n1 + 1).cast_signed(),
             col: 0,
         }
     }
@@ -20,21 +20,21 @@ impl Interlace {
     pub fn top_corner(&self) -> Position {
         Position {
             row: 0,
-            col: (self.n1 + 1) as i8,
+            col: (self.n1 + 1).cast_signed(),
         }
     }
 
     pub fn right_corner(&self) -> Position {
         Position {
-            row: (self.n2 + 1) as i8,
-            col: (self.n1 + self.n2 + 2) as i8,
+            row: (self.n2 + 1).cast_signed(),
+            col: (self.n1 + self.n2 + 2).cast_signed(),
         }
     }
 
     pub fn bottom_corner(&self) -> Position {
         Position {
-            row: (self.n1 + self.n2 + 2) as i8,
-            col: (self.n2 + 1) as i8,
+            row: (self.n1 + self.n2 + 2).cast_signed(),
+            col: (self.n2 + 1).cast_signed(),
         }
     }
 }
