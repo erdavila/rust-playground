@@ -47,7 +47,7 @@ where
                     consumed += 1;
                 }
             }
-        };
+        }
 
         consumed.partial_cmp(other)
     }

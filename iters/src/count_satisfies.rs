@@ -48,7 +48,6 @@ impl N {
 
 #[macro_export]
 #[doc(hidden)]
-#[expect(clippy::module_name_repetitions)]
 macro_rules! __count_satisfies_condition_comparison {
     ($n:ident, ==, $compared:tt) => {
         $n.eq($compared)
@@ -72,7 +71,6 @@ macro_rules! __count_satisfies_condition_comparison {
 
 #[macro_export]
 #[doc(hidden)]
-#[expect(clippy::module_name_repetitions)]
 macro_rules! __count_satisfies_condition_parse_or_rest {
     ($expr1:expr , $expr2:expr , && $n:ident $cmp:tt $compared:tt $($rest:tt)*) => {
         $crate::__count_satisfies_condition_parse_or_rest!(
@@ -105,7 +103,6 @@ macro_rules! __count_satisfies_condition_parse_or_rest {
 
 #[macro_export]
 #[doc(hidden)]
-#[expect(clippy::module_name_repetitions)]
 macro_rules! __count_satisfies_condition_parse_rest {
     ($expr:expr , ) => {
         $expr
@@ -153,7 +150,6 @@ macro_rules! __count_satisfies_condition_parse_rest {
 
 #[macro_export]
 #[doc(hidden)]
-#[expect(clippy::module_name_repetitions)]
 macro_rules! __count_satisfies_condition_parse {
     ($n:ident $cmp:tt $compared:tt $($rest:tt)*) => {
         $crate::__count_satisfies_condition_parse_rest!(
@@ -176,7 +172,6 @@ macro_rules! __count_satisfies_condition_parse {
 }
 
 #[macro_export]
-#[expect(clippy::module_name_repetitions)]
 macro_rules! count_satisfies_condition {
     (|$n:ident| { $($token:tt)+ }) => {
         |$n| $crate::__count_satisfies_condition_parse!($($token)+)

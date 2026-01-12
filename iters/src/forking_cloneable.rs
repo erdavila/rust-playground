@@ -157,25 +157,25 @@ struct State {
 impl State {
     fn advance(&mut self) {
         self.next_item_number += 1;
-        if let Some(mut next) = self.next {
-            if self.next_item_number > unsafe { next.as_ref().next_item_number } {
-                if let Some(mut prev) = self.prev {
-                    unsafe {
-                        Self::link(prev.as_mut(), next.as_mut());
-                    }
-                } else {
-                    self.unlink_next();
+        if let Some(mut next) = self.next
+            && self.next_item_number > unsafe { next.as_ref().next_item_number }
+        {
+            if let Some(mut prev) = self.prev {
+                unsafe {
+                    Self::link(prev.as_mut(), next.as_mut());
                 }
-
-                while let Some(next_next) = unsafe { next.as_ref().next } {
-                    if self.next_item_number <= unsafe { next_next.as_ref().next_item_number } {
-                        break;
-                    }
-                    next = next_next;
-                }
-
-                unsafe { next.as_mut().insert_next(self) };
+            } else {
+                self.unlink_next();
             }
+
+            while let Some(next_next) = unsafe { next.as_ref().next } {
+                if self.next_item_number <= unsafe { next_next.as_ref().next_item_number } {
+                    break;
+                }
+                next = next_next;
+            }
+
+            unsafe { next.as_mut().insert_next(self) };
         }
     }
 
