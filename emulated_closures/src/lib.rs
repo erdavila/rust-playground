@@ -134,6 +134,7 @@ macro_rules! emulated_fn {
     };
 }
 
+#[doc(hidden)]
 #[macro_export]
 macro_rules! __emulated_closures__fn_once_capture_type {
     ($expr:expr => &mut $ty:ty) => { &'lt mut $ty };
@@ -142,6 +143,7 @@ macro_rules! __emulated_closures__fn_once_capture_type {
     ($expr:expr => $ty:ty) => { $ty };
 }
 
+#[doc(hidden)]
 #[macro_export]
 macro_rules! __emulated_closures__fn_mut_capture_type {
     ($expr:expr => &mut $ty:ty) => { &'lt mut $ty };
@@ -149,12 +151,14 @@ macro_rules! __emulated_closures__fn_mut_capture_type {
     ($expr:expr => move $ty:ty) => { $ty };
 }
 
+#[doc(hidden)]
 #[macro_export]
 macro_rules! __emulated_closures__fn_capture_type {
     ($expr:expr => & $ty:ty) => { &'lt $ty };
     ($expr:expr => move $ty:ty) => { $ty };
 }
 
+#[doc(hidden)]
 #[macro_export]
 macro_rules! __emulated_closures__capture_expr {
     ($expr:expr => $($tt:tt)*) => {
