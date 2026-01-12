@@ -1,4 +1,4 @@
-use crate::{accept_fn, accept_fn_mut, accept_fn_once, Object};
+use crate::{Object, accept_fn, accept_fn_mut, accept_fn_once};
 
 pub fn test() {
     test_fn();

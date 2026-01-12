@@ -1,4 +1,5 @@
 struct Object;
+#[expect(clippy::unused_self)]
 impl Object {
     fn access(&self) {}
     fn mutate(&mut self) {}
