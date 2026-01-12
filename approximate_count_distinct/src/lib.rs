@@ -1,6 +1,7 @@
 //! Implementation of Distinct Elements in Streams: An Algorithm for the (Text) Book
 //!
-//! URL: https://arxiv.org/pdf/2301.10191.pdf
+//! URL: <https://arxiv.org/pdf/2301.10191.pdf>
+#![expect(clippy::missing_panics_doc)]
 
 use rand::rngs::ThreadRng;
 use rand::{self, Rng};
@@ -17,11 +18,13 @@ impl<T> ApproximateCountDistinct<T>
 where
     T: Eq + Hash,
 {
+    #[must_use]
     pub fn with_max_set_size(max_set_size: usize) -> Self {
         let params = Params::with_max_set_size(max_set_size);
         Self::with_params(params)
     }
 
+    #[must_use]
     pub fn with_params(params: Params) -> Self {
         Self {
             seen: HashSet::new(),
@@ -52,10 +55,14 @@ where
         }
     }
 
+    #[must_use]
     pub fn approximate_count_distinct(&self) -> f64 {
-        self.seen.len() as f64 / self.params.factor
+        #[expect(clippy::cast_precision_loss)]
+        let len = self.seen.len() as f64;
+        len / self.params.factor
     }
 
+    #[must_use]
     pub fn params(&self) -> Params {
         self.params
     }
@@ -69,6 +76,7 @@ pub struct Params {
 }
 
 impl Params {
+    #[must_use]
     pub fn with_max_set_size(max_set_size: usize) -> Self {
         Params {
             factor: 1.0,
@@ -77,20 +85,24 @@ impl Params {
         }
     }
 
+    #[must_use]
     pub fn with_unlimited_set_size() -> Self {
         Self::with_max_set_size(usize::MAX)
     }
 
+    #[must_use]
     pub fn set_max_set_size(mut self, max_set_size: usize) -> Self {
         assert!(max_set_size > 0, "max_set_size must be greater than zero");
         self.max_set_size = max_set_size;
         self
     }
 
+    #[must_use]
     pub fn max_set_size(&self) -> usize {
         self.max_set_size
     }
 
+    #[must_use]
     pub fn set_factor(mut self, factor: f64) -> Self {
         assert!(factor > 0.0, "factor must be greater than zero");
         assert!(factor <= 1.0, "factor must be less than or equal to one");
@@ -98,10 +110,12 @@ impl Params {
         self
     }
 
+    #[must_use]
     pub fn factor(&self) -> f64 {
         self.factor
     }
 
+    #[must_use]
     pub fn set_factor_adjustment(mut self, factor_adjustment: f64) -> Self {
         assert!(
             factor_adjustment > 0.0,
@@ -115,6 +129,7 @@ impl Params {
         self
     }
 
+    #[must_use]
     pub fn factor_adjustment(&self) -> f64 {
         self.factor_adjustment
     }
@@ -126,7 +141,7 @@ struct Probability {
 
 impl Probability {
     fn of(&mut self, p: f64) -> bool {
-        let x: f64 = self.rng.gen();
+        let x: f64 = self.rng.r#gen();
         x < p
     }
 }

@@ -15,9 +15,10 @@ fn main() {
 }
 
 fn test_with_params(params: Params) {
+    const N: u32 = 100;
+
     println!("params = {params:?}");
 
-    const N: u32 = 100;
     let counts: Vec<_> = (0..N)
         .map(|_| {
             let mut counter = ApproximateCountDistinct::with_params(params);
@@ -26,9 +27,10 @@ fn test_with_params(params: Params) {
         })
         .collect();
 
+    #[expect(clippy::cast_precision_loss)]
     let average = counts.iter().sum::<f64>() / (counts.len() as f64);
 
     // println!("  counts: {counts:?}");
-    println!("  average: {}", average);
+    println!("  average: {average}");
     println!();
 }
