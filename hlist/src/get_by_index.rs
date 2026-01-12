@@ -1,6 +1,6 @@
 use crate::{
-    index::{Index, Succ, Zero},
     HCons, HList,
+    index::{Index, Succ, Zero},
 };
 
 /// Trait for getting a value from its [`Index`].

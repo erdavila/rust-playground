@@ -1,8 +1,8 @@
 use std::marker::PhantomData;
 
 use crate::{
-    index::{Index, Succ, Zero},
     HCons, HList,
+    index::{Index, Succ, Zero},
 };
 
 pub trait GetByType<A, W: Where>: HList {

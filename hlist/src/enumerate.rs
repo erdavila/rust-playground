@@ -1,6 +1,6 @@
 use crate::{
-    index::{Index, Succ},
     HCons, HList, HNil,
+    index::{Index, Succ},
 };
 
 /// Trait that implements the pairing of values in with their corresponding [`Index`]es.

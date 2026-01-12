@@ -44,7 +44,7 @@ macro_rules! hlist_type {
 mod tests {
     use std::any::TypeId;
 
-    use crate::{hcons, hnil, HCons, HNil};
+    use crate::{HCons, HNil, hcons, hnil};
 
     #[test]
     fn hlist() {

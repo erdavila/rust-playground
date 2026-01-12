@@ -1,4 +1,5 @@
 use crate::{
+    ForEachOver, MapOver, Zip,
     concat::Concat,
     enumerate::Enumerate,
     get::Get,
@@ -9,7 +10,6 @@ use crate::{
     push_back::PushBack,
     rev::Rev,
     split::Split,
-    ForEachOver, MapOver, Zip,
 };
 
 /// The abstract representation of heterogeneous lists.

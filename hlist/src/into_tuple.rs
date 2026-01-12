@@ -1,4 +1,4 @@
-use crate::{hlist_type, tuples::Tuple, HList};
+use crate::{HList, hlist_type, tuples::Tuple};
 
 /// A trait implemented by [`HList`]s to be converted into tuples.
 pub trait IntoTuple: HList {
@@ -10,7 +10,7 @@ pub trait IntoTuple: HList {
 }
 
 macro_rules! impl_into_tuple_trait {
-    ($( $type_arg:ident )* ; $tuple_closure:expr ) => {
+    ($( $type_arg:ident )* ; $tuple_closure:expr_2021 ) => {
         impl< $( $type_arg ,)* > IntoTuple for hlist_type!( $( $type_arg ),* ) {
             type Tuple = ( $( $type_arg ,)* );
 
