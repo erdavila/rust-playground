@@ -30,7 +30,8 @@ impl<T> SharedMovableOwnership<T> {
         SharedMovableOwnership(Rc::new(RefCell::new(Some(value))))
     }
 
-    pub fn get_ref(&self) -> Option<Ref<T>> {
+    #[must_use]
+    pub fn get_ref(&self) -> Option<Ref<'_, T>> {
         let refcell_ref = self.refcell().borrow();
         refcell_ref.is_some().then(|| {
             Ref(cell::Ref::map(refcell_ref, |option| {
@@ -39,7 +40,7 @@ impl<T> SharedMovableOwnership<T> {
         })
     }
 
-    pub fn get_mut(&mut self) -> Option<RefMut<T>> {
+    pub fn get_mut(&mut self) -> Option<RefMut<'_, T>> {
         let refcell_refmut = self.refcell().borrow_mut();
         refcell_refmut.is_some().then(|| {
             RefMut(cell::RefMut::map(refcell_refmut, |option| {
@@ -48,11 +49,12 @@ impl<T> SharedMovableOwnership<T> {
         })
     }
 
+    #[must_use]
     pub fn r#move(self) -> Option<T> {
         self.refcell().borrow_mut().take()
     }
 
-    pub fn try_get_ref(&self) -> Result<Option<Ref<T>>, AlreadyMutablyBorrowed> {
+    pub fn try_get_ref(&self) -> Result<Option<Ref<'_, T>>, AlreadyMutablyBorrowed> {
         self.refcell()
             .try_borrow()
             .map(|refcell_ref| {
@@ -65,7 +67,7 @@ impl<T> SharedMovableOwnership<T> {
             .map_err(|_| AlreadyMutablyBorrowed)
     }
 
-    pub fn try_get_mut(&mut self) -> Result<Option<RefMut<T>>, AlreadyMutablyBorrowed> {
+    pub fn try_get_mut(&mut self) -> Result<Option<RefMut<'_, T>>, AlreadyMutablyBorrowed> {
         self.refcell()
             .try_borrow_mut()
             .map(|refcell_refmut| {

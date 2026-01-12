@@ -1,8 +1,8 @@
 use std::{cell::RefCell, rc::Rc};
 
 use crate::{
-    refs::{Ref, RefMut},
     AlreadyMutablyBorrowed,
+    refs::{Ref, RefMut},
 };
 
 pub struct SharedMutableOwnership<T>(Rc<RefCell<T>>);
@@ -18,22 +18,23 @@ impl<T> SharedMutableOwnership<T> {
         SharedMutableOwnership(Rc::new(RefCell::new(value)))
     }
 
-    pub fn get_ref(&self) -> Ref<T> {
+    #[must_use]
+    pub fn get_ref(&self) -> Ref<'_, T> {
         Ref(self.refcell().borrow())
     }
 
-    pub fn get_mut(&mut self) -> RefMut<T> {
+    pub fn get_mut(&mut self) -> RefMut<'_, T> {
         RefMut(self.refcell().borrow_mut())
     }
 
-    pub fn try_get_ref(&self) -> Result<Ref<T>, AlreadyMutablyBorrowed> {
+    pub fn try_get_ref(&self) -> Result<Ref<'_, T>, AlreadyMutablyBorrowed> {
         self.refcell()
             .try_borrow()
             .map(Ref)
             .map_err(|_| AlreadyMutablyBorrowed)
     }
 
-    pub fn try_get_mut(&mut self) -> Result<RefMut<T>, AlreadyMutablyBorrowed> {
+    pub fn try_get_mut(&mut self) -> Result<RefMut<'_, T>, AlreadyMutablyBorrowed> {
         self.refcell()
             .try_borrow_mut()
             .map(RefMut)

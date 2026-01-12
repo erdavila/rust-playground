@@ -1,3 +1,5 @@
+#![expect(clippy::missing_errors_doc, clippy::missing_panics_doc)]
+
 mod refs;
 mod shared_movable_ownership;
 mod shared_mutable_ownership;

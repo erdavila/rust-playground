@@ -13,6 +13,7 @@ impl<T> SharedOwnership<T> {
         SharedOwnership(Rc::new(value))
     }
 
+    #[must_use]
     pub fn get_ref(&self) -> &T {
         &self.0
     }

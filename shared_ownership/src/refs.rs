@@ -5,26 +5,26 @@ use std::{
 
 pub struct Ref<'a, T>(pub(crate) cell::Ref<'a, T>);
 
-impl<'a, T> Deref for Ref<'a, T> {
+impl<T> Deref for Ref<'_, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        self.0.deref()
+        &self.0
     }
 }
 
 pub struct RefMut<'a, T>(pub(crate) cell::RefMut<'a, T>);
 
-impl<'a, T> Deref for RefMut<'a, T> {
+impl<T> Deref for RefMut<'_, T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        self.0.deref()
+        &self.0
     }
 }
 
-impl<'a, T> DerefMut for RefMut<'a, T> {
+impl<T> DerefMut for RefMut<'_, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        self.0.deref_mut()
+        &mut self.0
     }
 }
