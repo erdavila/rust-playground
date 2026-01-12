@@ -31,8 +31,7 @@ fn process_args() -> (u32, Base) {
 
     let base = args
         .next()
-        .map(|x| x.parse().expect("Invalid base argument"))
-        .unwrap_or(10);
+        .map_or(10, |x| x.parse().expect("Invalid base argument"));
 
     (max, Base(base))
 }
@@ -89,7 +88,7 @@ impl<'a> Evaluator<'a> {
                     "{} = ",
                     squares
                         .iter()
-                        .map(|sq| sq.to_string())
+                        .map(ToString::to_string)
                         .collect::<Vec<_>>()
                         .join(" + ")
                 );
@@ -121,13 +120,14 @@ impl<'a> Evaluator<'a> {
     }
 }
 
+#[derive(Clone, Copy)]
 enum Conclusion {
     DefinitionOfHappiness,
     FromPreviousSolution(Solution),
     Loop,
 }
 impl Conclusion {
-    fn is_happy(&self) -> bool {
+    fn is_happy(self) -> bool {
         match self {
             Conclusion::DefinitionOfHappiness => true,
             Conclusion::FromPreviousSolution(solution) => solution.is_happy,
@@ -135,7 +135,7 @@ impl Conclusion {
         }
     }
 
-    fn reason(&self) -> String {
+    fn reason(self) -> String {
         match self {
             Conclusion::DefinitionOfHappiness => String::from("definition of happiness"),
             Conclusion::FromPreviousSolution(solution) => {
@@ -176,6 +176,7 @@ impl Base {
 trait Digits {
     type Output: Iterator<Item = Self>;
 
+    #[cfg(test)]
     fn digits_10(&self) -> Self::Output {
         self.digits(Base(10))
     }
