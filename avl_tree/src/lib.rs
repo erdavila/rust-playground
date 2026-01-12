@@ -11,20 +11,24 @@ pub struct AVLTree<K, V> {
 }
 
 impl<K, V> AVLTree<K, V> {
+    #[must_use]
     pub fn new() -> Self {
         AVLTree { root: None }
     }
 
+    #[must_use]
     pub fn new_map() -> Self {
         Self::new()
     }
 
-    pub fn iter(&self) -> Iter<K, V> {
-        Iter::new(&self.root)
+    #[must_use]
+    pub fn iter(&self) -> Iter<'_, K, V> {
+        Iter::new(to_node_ref_option(&self.root))
     }
 
-    pub fn breadth_iter(&self) -> BreadthIter<K, V> {
-        BreadthIter::new(&self.root)
+    #[must_use]
+    pub fn breadth_iter(&self) -> BreadthIter<'_, K, V> {
+        BreadthIter::new(to_node_ref_option(&self.root))
     }
 }
 
@@ -47,6 +51,7 @@ impl<K: Ord, V> AVLTree<K, V> {
 }
 
 impl<E> AVLTreeSet<E> {
+    #[must_use]
     pub fn new_set() -> Self {
         Self::new()
     }
@@ -69,6 +74,14 @@ impl<K, V> IntoIterator for AVLTree<K, V> {
 
     fn into_iter(self) -> Self::IntoIter {
         IntoIter::new(self.root)
+    }
+}
+
+impl<'a, K, V> IntoIterator for &'a AVLTree<K, V> {
+    type Item = (&'a K, &'a V);
+    type IntoIter = Iter<'a, K, V>;
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter()
     }
 }
 
@@ -99,16 +112,16 @@ pub struct Iter<'a, K, V> {
 }
 
 impl<'a, K, V> Iter<'a, K, V> {
-    fn new(root: &'a Option<Box<Node<K, V>>>) -> Self {
+    fn new(root: Option<&'a Node<K, V>>) -> Self {
         let mut iter = Iter { stack: Vec::new() };
         iter.expand_to_stack(root);
         iter
     }
 
-    fn expand_to_stack(&mut self, mut node_option: &'a Option<Box<Node<K, V>>>) {
+    fn expand_to_stack(&mut self, mut node_option: Option<&'a Node<K, V>>) {
         while let Some(node) = node_option {
             self.stack.push(node);
-            node_option = &node.left;
+            node_option = to_node_ref_option(&node.left);
         }
     }
 }
@@ -119,7 +132,7 @@ impl<'a, K: 'a, V: 'a> Iterator for Iter<'a, K, V> {
     fn next(&mut self) -> Option<Self::Item> {
         match self.stack.pop() {
             Some(node) => {
-                self.expand_to_stack(&node.right);
+                self.expand_to_stack(to_node_ref_option(&node.right));
                 Some((&node.key, &node.value))
             }
             None => None,
@@ -132,7 +145,7 @@ pub struct BreadthIter<'a, K, V> {
 }
 
 impl<'a, K, V> BreadthIter<'a, K, V> {
-    fn new(root: &'a Option<Box<Node<K, V>>>) -> Self {
+    fn new(root: Option<&'a Node<K, V>>) -> Self {
         let mut iter = BreadthIter {
             queue: VecDeque::new(),
         };
@@ -140,7 +153,7 @@ impl<'a, K, V> BreadthIter<'a, K, V> {
         iter
     }
 
-    fn push_to_queue(&mut self, option: &'a Option<Box<Node<K, V>>>) {
+    fn push_to_queue(&mut self, option: Option<&'a Node<K, V>>) {
         if let Some(node) = option {
             self.queue.push_back(node);
         }
@@ -152,8 +165,8 @@ impl<'a, K: 'a, V: 'a> Iterator for BreadthIter<'a, K, V> {
 
     fn next(&mut self) -> Option<Self::Item> {
         if let Some(node) = self.queue.pop_front() {
-            self.push_to_queue(&node.left);
-            self.push_to_queue(&node.right);
+            self.push_to_queue(to_node_ref_option(&node.left));
+            self.push_to_queue(to_node_ref_option(&node.right));
             Some((&node.key, &node.value))
         } else {
             None
@@ -194,6 +207,11 @@ impl<K, V> Iterator for IntoIter<K, V> {
     }
 }
 
+#[expect(clippy::ref_option)]
+fn to_node_ref_option<K, V>(opt: &Option<Box<Node<K, V>>>) -> Option<&Node<K, V>> {
+    opt.as_ref().map(std::convert::AsRef::as_ref)
+}
+
 mod algo {
     use std::cmp::Ordering;
     use std::mem;
@@ -203,8 +221,8 @@ mod algo {
     type NodeBoxOption<K, V> = Option<Box<Node<K, V>>>;
 
     pub(crate) fn set<K: Ord, V>(node: &mut NodeBoxOption<K, V>, key: K, value: V) -> Option<V> {
-        match node {
-            Some(node) => match key.cmp(&node.key) {
+        if let Some(node) = node {
+            match key.cmp(&node.key) {
                 Ordering::Equal => {
                     let previous_value = mem::replace(&mut node.value, value);
                     Some(previous_value)
@@ -219,18 +237,17 @@ mod algo {
                     right_heavy_rebalance(node);
                     result
                 }
-            },
-            None => {
-                *node = Some(Box::new(Node {
-                    key,
-                    value,
-                    left: None,
-                    right: None,
-                    height: 1,
-                }));
-
-                None
             }
+        } else {
+            *node = Some(Box::new(Node {
+                key,
+                value,
+                left: None,
+                right: None,
+                height: 1,
+            }));
+
+            None
         }
     }
 
@@ -301,33 +318,27 @@ mod algo {
 
     fn unset_max<K, V>(node_option: &mut NodeBoxOption<K, V>) -> (K, V) {
         let node = node_option.as_mut().unwrap();
-        match node.right {
-            Some(_) => {
-                let key_value = unset_max(&mut node.right);
-                left_heavy_rebalance(node);
-                key_value
-            }
-            None => {
-                let left_option = node.left.take();
-                let node = mem::replace(node_option, left_option).unwrap();
-                (node.key, node.value)
-            }
+        if node.right.is_some() {
+            let key_value = unset_max(&mut node.right);
+            left_heavy_rebalance(node);
+            key_value
+        } else {
+            let left_option = node.left.take();
+            let node = mem::replace(node_option, left_option).unwrap();
+            (node.key, node.value)
         }
     }
 
     fn unset_min<K, V>(node_option: &mut NodeBoxOption<K, V>) -> (K, V) {
         let node = node_option.as_mut().unwrap();
-        match node.left {
-            Some(_) => {
-                let key_value = unset_max(&mut node.left);
-                right_heavy_rebalance(node);
-                key_value
-            }
-            None => {
-                let right_option = node.right.take();
-                let node = mem::replace(node_option, right_option).unwrap();
-                (node.key, node.value)
-            }
+        if node.left.is_some() {
+            let key_value = unset_max(&mut node.left);
+            right_heavy_rebalance(node);
+            key_value
+        } else {
+            let right_option = node.right.take();
+            let node = mem::replace(node_option, right_option).unwrap();
+            (node.key, node.value)
         }
     }
 
@@ -444,7 +455,7 @@ mod algo {
     }
 
     impl RotationDirection {
-        fn opposite(&self) -> RotationDirection {
+        fn opposite(self) -> RotationDirection {
             match self {
                 Self::Left => Self::Right,
                 Self::Right => Self::Left,
