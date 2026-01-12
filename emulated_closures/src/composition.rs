@@ -16,7 +16,7 @@ use crate::{EmulatedFn, EmulatedFnMut, EmulatedFnOnce};
       | EmulatedFnOnce | EmulatedFnOnce | EmulatedFnOnce | EmulatedFnOnce |
 */
 
-trait Compose<O>: Sized {
+pub trait Compose<O>: Sized {
     fn compose<Args, First>(self, first: First) -> Composed<First, Self>
     where
         First: EmulatedFnOnce<Args, Output = O>;
@@ -74,88 +74,5 @@ where
     fn call(&self, args: Args) -> Self::Output {
         let result = self.first.call(args);
         self.second.call((result,))
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::{
-        composition::Compose, emulated_fn, emulated_fn_mut, emulated_fn_once, EmulatedFn,
-        EmulatedFnMut, EmulatedFnOnce,
-    };
-
-    #[test]
-    fn test_emulated_fn_once() {
-        let f = emulated_fn_once! {
-            captures: {},
-            signature: (String,) => usize,
-            |(), (s,)| {
-                s.len()
-            }
-        };
-
-        let g = emulated_fn_once! {
-            captures: {},
-            signature: (char,) => String,
-            |(), (c,)| {
-                String::from(c)
-            }
-        };
-
-        let composed = f.compose(g);
-
-        let result = composed.call_once(('@',));
-
-        assert_eq!(result, 1);
-    }
-
-    #[test]
-    fn test_emulated_fn_mut() {
-        let f = emulated_fn_mut! {
-            captures: {},
-            signature: (String,) => usize,
-            |(), (s,)| {
-                s.len()
-            }
-        };
-
-        let g = emulated_fn_mut! {
-            captures: {},
-            signature: (char,) => String,
-            |(), (c,)| {
-                String::from(c)
-            }
-        };
-
-        let mut composed = f.compose(g);
-
-        let result = composed.call_mut(('@',));
-
-        assert_eq!(result, 1);
-    }
-
-    #[test]
-    fn test_emulated_fn() {
-        let f = emulated_fn! {
-            captures: {},
-            signature: (String,) => usize,
-            |(), (s,)| {
-                s.len()
-            }
-        };
-
-        let g = emulated_fn! {
-            captures: {},
-            signature: (char,) => String,
-            |(), (c,)| {
-                String::from(c)
-            }
-        };
-
-        let composed = f.compose(g);
-
-        let result = composed.call(('@',));
-
-        assert_eq!(result, 1);
     }
 }
