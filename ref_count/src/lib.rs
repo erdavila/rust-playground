@@ -1,7 +1,7 @@
 use std::borrow::Borrow;
 use std::cell::Cell;
 use std::hash::Hash;
-use std::mem::{self, forget, MaybeUninit};
+use std::mem::{self, MaybeUninit, forget};
 use std::ops::Deref;
 use std::ptr::NonNull;
 
@@ -19,6 +19,7 @@ impl<T> RefCount<T> {
         RefCount { control }
     }
 
+    #[expect(clippy::missing_errors_doc)]
     pub fn try_unwrap(mut this: Self) -> Result<T, Self> {
         if Self::strong_count(&this) == 1 {
             let control = this.control_mut();
@@ -34,12 +35,14 @@ impl<T> RefCount<T> {
         }
     }
 
+    #[must_use]
     pub fn into_raw(this: Self) -> *const T {
         let ptr = this.control().value.get_ptr();
         forget(this);
         ptr
     }
 
+    #[must_use]
     pub fn as_ptr(this: &Self) -> *const T {
         this.control().value.get_ptr()
     }
@@ -47,10 +50,11 @@ impl<T> RefCount<T> {
     /// # Safety
     pub unsafe fn from_raw(ptr: *const T) -> Self {
         RefCount {
-            control: Control::ptr_from_raw(ptr),
+            control: unsafe { Control::ptr_from_raw(ptr) },
         }
     }
 
+    #[must_use]
     pub fn downgrade(this: &Self) -> WeakRef<T> {
         this.control().weak_count.inc();
         WeakRef {
@@ -58,10 +62,12 @@ impl<T> RefCount<T> {
         }
     }
 
+    #[must_use]
     pub fn weak_count(this: &Self) -> usize {
         this.control().weak_count.get()
     }
 
+    #[must_use]
     pub fn strong_count(this: &Self) -> usize {
         this.control().strong_count.get()
     }
@@ -74,6 +80,7 @@ impl<T> RefCount<T> {
         }
     }
 
+    #[must_use]
     pub fn ptr_eq(this: &Self, other: &Self) -> bool {
         this.control().value.get_ptr() == other.control().value.get_ptr()
     }
@@ -192,7 +199,7 @@ struct Control<T> {
 impl<T> Control<T> {
     unsafe fn ptr_from_raw(ptr: *const T) -> NonNull<Self> {
         let offset = mem::offset_of!(Self, value.value);
-        let control_ptr = (ptr as *const u8).sub(offset) as *mut Self;
+        let control_ptr = unsafe { ptr.cast::<u8>().sub(offset) as *mut Self };
         NonNull::new(control_ptr).unwrap()
     }
 }
@@ -284,6 +291,7 @@ impl<T> ValueHolder<T> {
         assert!(self.initialized);
     }
     #[cfg(not(test))]
+    #[expect(clippy::unused_self)]
     fn assert_initialized(&self) {}
 
     #[cfg(test)]
@@ -291,6 +299,7 @@ impl<T> ValueHolder<T> {
         self.initialized = value;
     }
     #[cfg(not(test))]
+    #[expect(clippy::unused_self)]
     fn set_initialized(&mut self, _: bool) {}
 }
 
@@ -299,6 +308,7 @@ pub struct WeakRef<T> {
 }
 
 impl<T> WeakRef<T> {
+    #[must_use]
     pub fn new() -> Self {
         let control = move_to_heap(Control {
             value: ValueHolder::empty(),
@@ -312,23 +322,26 @@ impl<T> WeakRef<T> {
         unsafe { self.control.as_ref() }
     }
 
+    #[must_use]
     pub fn as_ptr(&self) -> *const T {
         self.control().value.get_ptr()
     }
 
+    #[must_use]
     pub fn into_raw(self) -> *const T {
         let ptr = self.control().value.get_ptr();
         forget(self);
         ptr
     }
 
-    /// # Safety
+    #[expect(clippy::missing_safety_doc)]
     pub unsafe fn from_raw(ptr: *const T) -> Self {
         WeakRef {
-            control: Control::ptr_from_raw(ptr),
+            control: unsafe { Control::ptr_from_raw(ptr) },
         }
     }
 
+    #[must_use]
     pub fn upgrade(&self) -> Option<RefCount<T>> {
         if self.strong_count() > 0 {
             self.control().strong_count.inc();
@@ -340,14 +353,17 @@ impl<T> WeakRef<T> {
         }
     }
 
+    #[must_use]
     pub fn strong_count(&self) -> usize {
         self.control().strong_count.get()
     }
 
+    #[must_use]
     pub fn weak_count(&self) -> usize {
         self.control().weak_count.get()
     }
 
+    #[must_use]
     pub fn ptr_eq(&self, other: &Self) -> bool {
         self.control().value.get_ptr() == other.control().value.get_ptr()
     }
