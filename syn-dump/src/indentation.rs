@@ -14,7 +14,7 @@ impl Indentation {
         }
     }
 
-    pub fn next(&self) -> Self {
+    pub fn next(self) -> Self {
         Indentation {
             level: self.level + 1,
             single_size: self.single_size,
@@ -37,6 +37,6 @@ impl Display for Indentation {
             }
         };
 
-        write!(f, "{}", padding)
+        write!(f, "{padding}")
     }
 }

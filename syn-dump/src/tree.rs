@@ -40,6 +40,7 @@ enum Value {
     Set(Set),
     List(List),
 }
+#[expect(clippy::needless_pass_by_value)]
 impl Value {
     fn singleton<S: ToString>(s: S) -> Value {
         Value::Singleton(s.to_string())
@@ -120,7 +121,7 @@ impl<T: ToValue> ToValue for Option<T> {
 }
 impl<T: ToValue> ToValue for Vec<T> {
     fn to_value(&self) -> Value {
-        Value::list(self.iter().map(|x| x.to_value()).collect())
+        Value::list(self.iter().map(ToValue::to_value).collect())
     }
 }
 impl<A: ToValue, B: ToValue> ToValue for (A, B) {
@@ -188,19 +189,20 @@ fn dump_sequence(
     })
 }
 
+#[derive(Clone, Copy)]
 enum Delimiter {
     CurlyBraces,
     SquareBrackets,
 }
 impl Delimiter {
-    fn open(&self) -> char {
+    fn open(self) -> char {
         match self {
             Self::CurlyBraces => '{',
             Self::SquareBrackets => '[',
         }
     }
 
-    fn close(&self) -> char {
+    fn close(self) -> char {
         match self {
             Self::CurlyBraces => '}',
             Self::SquareBrackets => ']',
@@ -655,7 +657,7 @@ impl ToValue for Punct {
 
 impl<T: ToValue, P> ToValue for Punctuated<T, P> {
     fn to_value(&self) -> Value {
-        Value::r#struct("Punctuated", self.iter().map(|x| x.to_value()).collect())
+        Value::r#struct("Punctuated", self.iter().map(ToValue::to_value).collect())
     }
 }
 
@@ -746,5 +748,5 @@ to_value_enum!(WherePredicate, _);
 //-------------------------------------------------------------------------------------
 
 fn quoted(arg: &str) -> String {
-    format!("\"{}\"", arg)
+    format!("\"{arg}\"")
 }

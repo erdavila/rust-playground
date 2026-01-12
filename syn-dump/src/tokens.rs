@@ -374,9 +374,9 @@ impl Dump for Group {
             x => todo!("at {}:{}: {:?}", file!(), line!(), x),
         };
 
-        write!(w, "{}", open)?;
+        write!(w, "{open}")?;
         self.stream().dump(w, indentation)?;
-        write!(w, "{}", close)
+        write!(w, "{close}")
     }
 }
 
@@ -454,13 +454,13 @@ impl Dump for LitBool {
 
 impl Dump for Literal {
     fn dump(&self, w: &mut impl Write, _indentation: Indentation) -> io::Result<()> {
-        write!(w, "{}", self)
+        write!(w, "{self}")
     }
 }
 
 impl Dump for LitInt {
     fn dump(&self, w: &mut impl Write, _indentation: Indentation) -> io::Result<()> {
-        write!(w, "{}", self)
+        write!(w, "{self}")
     }
 }
 

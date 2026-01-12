@@ -1,5 +1,7 @@
+use std::fmt::Write as _;
+
 use proc_macro::TokenStream;
-use syn::{parse_macro_input, AttributeArgs, Error, Item, Lit, Meta, NestedMeta, Result};
+use syn::{AttributeArgs, Error, Item, Lit, Meta, NestedMeta, Result, parse_macro_input};
 
 mod indentation;
 mod tokens;
@@ -47,8 +49,8 @@ impl Args {
     fn from(attr_args: AttributeArgs) -> Result<Self> {
         let mut args = Args {
             name: None,
-            prefix: "".to_string(),
-            suffix: "".to_string(),
+            prefix: String::new(),
+            suffix: String::new(),
             path: None,
             tokens: true,
             tree: true,
@@ -120,7 +122,11 @@ impl Args {
             ));
         };
 
-        file_path.push_str(&format!("{}{}{}", self.prefix, name_base, self.suffix));
+        let _ = write!(
+            &mut file_path,
+            "{}{}{}",
+            self.prefix, name_base, self.suffix
+        );
 
         Ok(file_path)
     }
