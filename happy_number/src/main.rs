@@ -231,19 +231,19 @@ mod tests {
 
     #[test]
     fn base_fmt() {
-        assert_eq!(Base(2).fmt(0), "0".to_owned());
-        assert_eq!(Base(2).fmt(1), "1".to_owned());
-        assert_eq!(Base(2).fmt(2), "10".to_owned());
-        assert_eq!(Base(2).fmt(3), "11".to_owned());
-        assert_eq!(Base(2).fmt(4), "100".to_owned());
+        assert_eq!(Base(2).fmt(0), "0[0]".to_owned());
+        assert_eq!(Base(2).fmt(1), "1[1]".to_owned());
+        assert_eq!(Base(2).fmt(2), "2[10]".to_owned());
+        assert_eq!(Base(2).fmt(3), "3[11]".to_owned());
+        assert_eq!(Base(2).fmt(4), "4[100]".to_owned());
 
-        assert_eq!(Base(5).fmt(0), "0".to_owned());
-        assert_eq!(Base(5).fmt(4), "4".to_owned());
-        assert_eq!(Base(5).fmt(5), "10".to_owned());
-        assert_eq!(Base(5).fmt(6), "11".to_owned());
-        assert_eq!(Base(5).fmt(9), "14".to_owned());
-        assert_eq!(Base(5).fmt(10), "20".to_owned());
-        assert_eq!(Base(5).fmt(11), "21".to_owned());
+        assert_eq!(Base(5).fmt(0), "0[0]".to_owned());
+        assert_eq!(Base(5).fmt(4), "4[4]".to_owned());
+        assert_eq!(Base(5).fmt(5), "5[10]".to_owned());
+        assert_eq!(Base(5).fmt(6), "6[11]".to_owned());
+        assert_eq!(Base(5).fmt(9), "9[14]".to_owned());
+        assert_eq!(Base(5).fmt(10), "10[20]".to_owned());
+        assert_eq!(Base(5).fmt(11), "11[21]".to_owned());
 
         assert_eq!(Base(10).fmt(0), "0".to_owned());
         assert_eq!(Base(10).fmt(1), "1".to_owned());
