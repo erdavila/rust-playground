@@ -23,7 +23,7 @@ where
 
     fn next_from_inner(&mut self) -> Option<(VecDeque<char>, Colorizer)> {
         self.inner.next().map(|(s, colorizer)| {
-            let chars = VecDeque::from_iter(s.chars());
+            let chars = s.chars().collect::<VecDeque<_>>();
             (chars, colorizer)
         })
     }

@@ -12,7 +12,6 @@ pub enum WrappedFloatingPointNumber {
 pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug)]
-#[allow(clippy::enum_variant_names)]
 pub enum Error {
     InvalidArgumentsCount {
         found: usize,
@@ -77,14 +76,14 @@ impl From<ParseFloatError> for Error {
 }
 
 pub fn parse() -> Result<Option<WrappedFloatingPointNumber>> {
+    const EXPECTED_ARGUMENTS_COUNT: usize = 2;
+
     let args: Vec<_> = env::args().skip(1).collect();
 
     if args.contains(&"-h".to_string()) || args.contains(&"--help".to_string()) {
         print_help();
         return Ok(None);
     }
-
-    const EXPECTED_ARGUMENTS_COUNT: usize = 2;
 
     if args.len() != EXPECTED_ARGUMENTS_COUNT {
         return Err(Error::InvalidArgumentsCount {
@@ -103,7 +102,7 @@ pub fn parse() -> Result<Option<WrappedFloatingPointNumber>> {
             Ok(Some(WrappedFloatingPointNumber::DoublePrecision(n)))
         }
         other => {
-            println!("OTHER! {}", other);
+            println!("OTHER! {other}");
             Err(Error::InvalidPrecision)
         }
     }
@@ -118,19 +117,20 @@ fn parse_value<N: FloatingPointNumber>(arg: &str) -> Result<N> {
         parse_decimal_bytes,
         parse_composed,
     ] {
-        match f(arg)? {
-            Some(n) => return Ok(n),
-            None => continue,
+        if let Some(n) = f(arg)? {
+            return Ok(n);
         }
     }
 
     Err(Error::UnrecognizedNumberFormat)
 }
 
+#[expect(clippy::unnecessary_wraps)]
 fn parse_nan<N: FloatingPointNumber>(arg: &str) -> Result<Option<N>> {
     Ok((arg == "nan").then_some(N::NAN))
 }
 
+#[expect(clippy::unnecessary_wraps)]
 fn parse_predefined_value<N: FloatingPointNumber>(arg: &str) -> Result<Option<N>> {
     let (negative, arg) = if let Some(arg) = arg.strip_prefix('-') {
         (true, arg)
@@ -198,7 +198,7 @@ fn parse_decimal_bytes<N: FloatingPointNumber>(arg: &str) -> Result<Option<N>> {
         Ok(None)
     } else if len == N::BYTES {
         let bytes: std::result::Result<Vec<_>, _> =
-            bytes.into_iter().map(|b| b.parse::<u8>()).collect();
+            bytes.into_iter().map(str::parse::<u8>).collect();
         let bytes = bytes?;
         let n = N::from_be_bytes(&bytes);
         Ok(Some(n))
@@ -210,6 +210,7 @@ fn parse_decimal_bytes<N: FloatingPointNumber>(arg: &str) -> Result<Option<N>> {
     }
 }
 
+#[expect(clippy::unnecessary_wraps)]
 fn parse_composed<N: FloatingPointNumber>(arg: &str) -> Result<Option<N>> {
     match split(arg, ['e', 'b']) {
         Some((mantissa, base_char, exponent)) => {
@@ -268,7 +269,7 @@ fn strip_sign(arg: &str) -> &str {
 }
 
 fn has_digits_only(arg: &str) -> bool {
-    arg.chars().all(|char| ('0'..='9').contains(&char))
+    arg.chars().all(|char| char.is_ascii_digit())
 }
 
 fn print_help() {
@@ -307,8 +308,12 @@ fn print_help() {
     println!("      single 150,182,37,165");
     println!("      double 150,182,37,165,150,182,37,165");
     println!();
-    println!("  Mantissa and exponent - a mantissa value is optionally followed by the base indicator and the exponent value.");
-    println!("    The mantissa value is composed by an optional sign, followed by digits possibly containing a decimal point.");
+    println!(
+        "  Mantissa and exponent - a mantissa value is optionally followed by the base indicator and the exponent value."
+    );
+    println!(
+        "    The mantissa value is composed by an optional sign, followed by digits possibly containing a decimal point."
+    );
     println!("    The base indicator is the character 'e' for base 10 and 'b' for base 2.");
     println!("    The exponent is an optional sign followed by a natural number.");
     println!("    Examples:");

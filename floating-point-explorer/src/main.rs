@@ -116,7 +116,7 @@ fn explore<N: FloatingPointNumber>(value: N) {
     } else {
         assert_eq!(value.classify(), FpCategory::Normal);
         let category = normal_color(CATEGORY_NORMAL);
-        let exponent_value = exponent_color(exponent_bits.value as i128 - N::EXPONENT_BIAS);
+        let exponent_value = exponent_color(exponent_bits.value.cast_signed() - N::EXPONENT_BIAS);
         let exponent = format!(
             "{} - {} = {}",
             exponent_color(exponent_bits.value),
@@ -152,11 +152,7 @@ fn print_bytes_in_base(title: &str, bytes: impl IntoIterator<Item = String>, sep
 
 fn ensure_dot<D: Display>(d: D) -> String {
     let s = d.to_string();
-    if s.contains('.') {
-        s
-    } else {
-        s + ".0"
-    }
+    if s.contains('.') { s } else { s + ".0" }
 }
 
 fn ensure_sign<D: Display>(d: D) -> String {
