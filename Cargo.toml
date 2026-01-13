@@ -26,3 +26,6 @@ members = [
     "tailcall",
     "wavelength-to-rgb",
 ]
+
+[workspace.lints.clippy]
+pedantic = "warn"
