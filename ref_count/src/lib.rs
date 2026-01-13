@@ -1,9 +1,9 @@
 use std::borrow::Borrow;
 use std::cell::Cell;
 use std::hash::Hash;
-use std::mem::{forget, MaybeUninit};
+use std::mem::{self, forget, MaybeUninit};
 use std::ops::Deref;
-use std::ptr::{self, NonNull};
+use std::ptr::NonNull;
 
 pub struct RefCount<T> {
     control: NonNull<Control<T>>,
@@ -191,16 +191,9 @@ struct Control<T> {
 
 impl<T> Control<T> {
     unsafe fn ptr_from_raw(ptr: *const T) -> NonNull<Self> {
-        let offset = Self::value_offset();
+        let offset = mem::offset_of!(Self, value.value);
         let control_ptr = (ptr as *const u8).sub(offset) as *mut Self;
         NonNull::new(control_ptr).unwrap()
-    }
-
-    unsafe fn value_offset() -> usize {
-        let base_ptr: *const Self = ptr::null();
-        let base_ref = &*base_ptr;
-        let member_ptr = ptr::addr_of!(base_ref.value.value);
-        member_ptr as usize
     }
 }
 
@@ -398,7 +391,7 @@ fn drop_from_heap<T>(ptr: NonNull<T>) {
 
 #[cfg(test)]
 mod tests {
-    use std::cell::RefCell;
+    use std::{cell::RefCell, ptr};
 
     use super::*;
 
