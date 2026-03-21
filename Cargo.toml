@@ -12,6 +12,7 @@ members = [
     "dices_probabilities",
     "emulated_closures",
     "floating-point-explorer",
+    "fn-bind",
     "happy_number",
     "hlist",
     "insertion_order_hash_map",
