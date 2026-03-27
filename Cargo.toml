@@ -25,6 +25,7 @@ members = [
     "shared_ownership",
     "syn-dump",
     "tailcall",
+    "version-sorting",
     "wavelength-to-rgb",
 ]
 

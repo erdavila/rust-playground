@@ -1,0 +1,13 @@
+[package]
+name = "version-sorting"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+
+[dev-dependencies]
+rand = "0.10.0"
+test-case = "3.3"
+
+[lints]
+workspace = true
