@@ -542,17 +542,15 @@ mod tests {
         let w = RefCount::downgrade(&rc1);
 
         let result = RefCount::try_unwrap(rc2);
-        let rc2 = match result {
-            Ok(_) => panic!("result should be Err(_)"),
-            Err(rc) => rc,
+        let Err(rc2) = result else {
+            panic!("result should be Err(_)")
         };
         assert!(w.upgrade().is_some());
 
         drop(rc1);
         let result = RefCount::try_unwrap(rc2);
-        let inner = match result {
-            Ok(inner) => inner,
-            Err(_) => panic!("result should be Ok(_)"),
+        let Ok(inner) = result else {
+            panic!("result should be Ok(_)");
         };
         assert!(w.upgrade().is_none());
         assert_eq!(w.strong_count(), 0);
@@ -645,8 +643,8 @@ mod tests {
         let rc_as_ptr = RefCount::as_ptr(&rc);
         let w_as_ptr = w.as_ptr();
 
-        assert!(ptr::eq(rc_as_ptr, &*rc));
-        assert!(ptr::eq(w_as_ptr, &*rc));
+        assert!(ptr::eq(rc_as_ptr, &raw const *rc));
+        assert!(ptr::eq(w_as_ptr, &raw const *rc));
         assert_eq!(unsafe { &*rc_as_ptr }.value, 7);
     }
 
@@ -664,9 +662,8 @@ mod tests {
         let mut rc1 = RefCount::new(inner);
 
         let result = RefCount::get_mut(&mut rc1);
-        let r = match result {
-            Some(r) => r,
-            None => panic!("result should be Some(_)"),
+        let Some(r) = result else {
+            panic!("result should be Some(_)")
         };
         r.value += 1;
 
@@ -679,9 +676,8 @@ mod tests {
         drop(w);
 
         let result = RefCount::get_mut(&mut rc1);
-        let r = match result {
-            Some(r) => r,
-            None => panic!("result should be Some(_)"),
+        let Some(r) = result else {
+            panic!("result should be Some(_)")
         };
         assert_eq!(r.value, 8);
     }

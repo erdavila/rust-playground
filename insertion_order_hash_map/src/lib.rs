@@ -8,6 +8,7 @@ use std::marker::PhantomData;
 use std::mem;
 use std::ops::Index;
 use std::ptr::NonNull;
+use std::ptr::from_mut;
 
 #[cfg(test)]
 mod tests;
@@ -169,7 +170,7 @@ where
     }
 
     pub fn entry(&mut self, key: K) -> Entry<'_, K, V> {
-        let self_ref = unsafe { &mut *std::ptr::from_mut::<Self>(self) };
+        let self_ref = unsafe { &mut *from_mut::<Self>(self) };
 
         match self.nodes.get_mut(&KeyWrapper(&raw const key)) {
             Some(node) => Entry::Occupied(OccupiedEntry {
@@ -239,7 +240,7 @@ where
         &mut self,
         get_end_node: GetEndNode<K, V>,
     ) -> Option<OccupiedEntry<'_, K, V>> {
-        let self_ref = unsafe { &mut *std::ptr::from_mut::<Self>(self) };
+        let self_ref = unsafe { &mut *from_mut::<Self>(self) };
         self.order.as_mut().map(|order| {
             let mut node = get_end_node(order);
             let node = unsafe { node.as_mut() };
@@ -306,7 +307,7 @@ where
         Q: Hash + Eq + ?Sized,
     {
         let q = BorrowWrapper::from_ref(k);
-        let self_ref = unsafe { &mut *std::ptr::from_mut::<Self>(self) };
+        let self_ref = unsafe { &mut *from_mut::<Self>(self) };
         match self.nodes.get_mut(q) {
             Some(node) => {
                 let occupied_entry = OccupiedEntry {
@@ -702,7 +703,7 @@ where
     pub fn or_insert_with_key<F: FnOnce(&K) -> V>(self, default: F) -> &'a mut V {
         match self {
             Self::Occupied(mut occupied_entry) => {
-                let ptr = occupied_entry.get_mut() as *mut V;
+                let ptr = from_mut::<V>(occupied_entry.get_mut());
                 unsafe { &mut *ptr }
             }
             Self::Vacant(vacant_entry) => {
@@ -738,7 +739,7 @@ where
     pub fn or_default(self) -> &'a mut V {
         match self {
             Self::Occupied(mut occupied_entry) => {
-                let ptr = occupied_entry.get_mut() as *mut V;
+                let ptr = from_mut::<V>(occupied_entry.get_mut());
                 unsafe { &mut *ptr }
             }
             Self::Vacant(vacant_entry) => vacant_entry.insert(V::default()),

@@ -108,7 +108,7 @@ mod tests {
     #[case(&[1, 1], &[1, 1, 1], Comparison { compared_elements: 2, ordering: Ordering::Less(Reason::UnequalLengths) })]
     #[case(&[1, 1, 1], &[1, 1], Comparison { compared_elements: 2, ordering: Ordering::Greater(Reason::UnequalLengths) })]
     fn compare(#[case] a: &[i32], #[case] b: &[i32], #[case] expected: Comparison) {
-        let output = a.into_iter().compare(b);
+        let output = a.iter().compare(b);
 
         assert_eq!(output, expected);
     }

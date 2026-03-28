@@ -787,7 +787,7 @@ mod tests {
 
         let heap = {
             let mut h = MinMaxBinaryHeap::new();
-            for n in expected.iter() {
+            for n in &expected {
                 h.push(*n);
             }
             h
@@ -808,7 +808,7 @@ mod tests {
 
         let heap = {
             let mut h = MinMaxBinaryHeap::new();
-            for n in expected.iter() {
+            for n in &expected {
                 h.push(*n);
             }
             h
@@ -829,7 +829,7 @@ mod tests {
 
         let heap = {
             let mut h = MinMaxBinaryHeap::new();
-            for n in expected.iter() {
+            for n in &expected {
                 h.push(*n);
             }
             h
@@ -848,7 +848,7 @@ mod tests {
     fn from_iter() {
         let values = 1..=5;
 
-        let heap = MinMaxBinaryHeap::from_iter(values.clone());
+        let heap: MinMaxBinaryHeap<_> = values.clone().collect();
 
         assert_state!(heap);
         assert_eq!(heap.len(), values.clone().count());
@@ -875,7 +875,7 @@ mod tests {
     #[test]
     fn drain() {
         let values = 1..=5;
-        let mut heap = MinMaxBinaryHeap::from_iter(values.clone());
+        let mut heap: MinMaxBinaryHeap<_> = values.clone().collect();
 
         let drained: HashSet<_> = heap.drain().collect();
 
@@ -887,7 +887,7 @@ mod tests {
     #[test]
     fn drain_not_fully_iterated() {
         let values = 1..=5;
-        let mut heap = MinMaxBinaryHeap::from_iter(values);
+        let mut heap: MinMaxBinaryHeap<_> = values.clone().collect();
 
         let mut drain = heap.drain();
         assert_eq!(drain.next(), Some(5));
@@ -945,7 +945,7 @@ mod tests {
     #[test]
     fn retain() {
         let values = 1..=10;
-        let mut heap = MinMaxBinaryHeap::from_iter(values.clone());
+        let mut heap: MinMaxBinaryHeap<_> = values.clone().collect();
         let predicate = |n: &_| n % 2 == 0;
 
         heap.retain(predicate);
@@ -960,7 +960,7 @@ mod tests {
     #[test]
     fn retain_none() {
         let values = 1..=10;
-        let mut heap = MinMaxBinaryHeap::from_iter(values.clone());
+        let mut heap: MinMaxBinaryHeap<_> = values.clone().collect();
         let predicate = |_: &_| false;
 
         heap.retain(predicate);
@@ -975,7 +975,7 @@ mod tests {
     #[test]
     fn retain_all() {
         let values = 1..=10;
-        let mut heap = MinMaxBinaryHeap::from_iter(values.clone());
+        let mut heap: MinMaxBinaryHeap<_> = values.clone().collect();
         let predicate = |_: &_| true;
 
         heap.retain(predicate);

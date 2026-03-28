@@ -64,12 +64,17 @@ where
 mod tests {
     use super::{BitGroups, Colorizer};
 
+    #[expect(clippy::needless_pass_by_value)]
     fn parens(s: String) -> String {
         format!("({s})")
     }
+
+    #[expect(clippy::needless_pass_by_value)]
     fn square(s: String) -> String {
         format!("[{s}]")
     }
+
+    #[expect(clippy::needless_pass_by_value)]
     fn angle(s: String) -> String {
         format!("<{s}>")
     }

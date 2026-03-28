@@ -15,8 +15,8 @@ fn stress_test() {
 
     let mut data = StressTestData {
         iohm: InsertionOrderHashMap::new(),
-        map: Default::default(),
-        order: Default::default(),
+        map: HashMap::default(),
+        order: Vec::default(),
         rng: rand::thread_rng(),
     };
 

@@ -272,7 +272,7 @@ mod tests {
 
         fixture
             .grid
-            .set_at(fixture.inside_position, Cell::no_color(Segment::Vertical))
+            .set_at(fixture.inside_position, Cell::no_color(Segment::Vertical));
     }
 
     #[test]

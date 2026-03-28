@@ -165,6 +165,7 @@ mod tests {
     }
 
     #[test]
+    #[expect(clippy::too_many_lines)]
     fn it_works() {
         macro_rules! partitions {
             () => {{

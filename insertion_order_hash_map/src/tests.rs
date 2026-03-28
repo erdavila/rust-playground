@@ -446,31 +446,31 @@ fn test_into_keys_iteration() {
 
     consistency::assert_nodes_and_order_from_first_node_option(
         &keys.it.iohm().nodes,
-        &keys.it.next_node,
+        keys.it.next_node,
     );
     assert_eq!(keys.len(), 3);
     assert_eq!(keys.next(), Some("A"));
     consistency::assert_nodes_and_order_from_first_node_option(
         &keys.it.iohm().nodes,
-        &keys.it.next_node,
+        keys.it.next_node,
     );
     assert_eq!(keys.len(), 2);
     assert_eq!(keys.next(), Some("B"));
     consistency::assert_nodes_and_order_from_first_node_option(
         &keys.it.iohm().nodes,
-        &keys.it.next_node,
+        keys.it.next_node,
     );
     assert_eq!(keys.len(), 1);
     assert_eq!(keys.next(), Some("C"));
     consistency::assert_nodes_and_order_from_first_node_option(
         &keys.it.iohm().nodes,
-        &keys.it.next_node,
+        keys.it.next_node,
     );
     assert_eq!(keys.len(), 0);
     assert_eq!(keys.next(), None);
     consistency::assert_nodes_and_order_from_first_node_option(
         &keys.it.iohm().nodes,
-        &keys.it.next_node,
+        keys.it.next_node,
     );
 }
 
@@ -602,31 +602,31 @@ fn test_into_values_iteration() {
 
     consistency::assert_nodes_and_order_from_first_node_option(
         &values.it.iohm().nodes,
-        &values.it.next_node,
+        values.it.next_node,
     );
     assert_eq!(values.len(), 3);
     assert_eq!(values.next(), Some(1));
     consistency::assert_nodes_and_order_from_first_node_option(
         &values.it.iohm().nodes,
-        &values.it.next_node,
+        values.it.next_node,
     );
     assert_eq!(values.len(), 2);
     assert_eq!(values.next(), Some(2));
     consistency::assert_nodes_and_order_from_first_node_option(
         &values.it.iohm().nodes,
-        &values.it.next_node,
+        values.it.next_node,
     );
     assert_eq!(values.len(), 1);
     assert_eq!(values.next(), Some(3));
     consistency::assert_nodes_and_order_from_first_node_option(
         &values.it.iohm().nodes,
-        &values.it.next_node,
+        values.it.next_node,
     );
     assert_eq!(values.len(), 0);
     assert_eq!(values.next(), None);
     consistency::assert_nodes_and_order_from_first_node_option(
         &values.it.iohm().nodes,
-        &values.it.next_node,
+        values.it.next_node,
     );
 }
 
@@ -694,7 +694,7 @@ fn test_iter_mut_on_non_empty() {
     iohm.insert("B", 2i32);
     iohm.insert("C", 3i32);
 
-    for (k, v) in iohm.iter_mut() {
+    for (k, v) in &mut iohm {
         *v *= 100;
         *v += k.chars().next().unwrap() as i32;
     }
@@ -733,19 +733,19 @@ fn test_drain_iteration() {
     let mut drain = iohm.drain();
 
     //println!("{}", iohm.len()); // should not compile!
-    consistency::assert(&drain.it.iohm());
+    consistency::assert(drain.it.iohm());
     assert_eq!(drain.len(), 3);
     assert_eq!(drain.next(), Some(("A", 1)));
-    consistency::assert(&drain.it.iohm());
+    consistency::assert(drain.it.iohm());
     assert_eq!(drain.len(), 2);
     assert_eq!(drain.next(), Some(("B", 2)));
-    consistency::assert(&drain.it.iohm());
+    consistency::assert(drain.it.iohm());
     assert_eq!(drain.len(), 1);
     assert_eq!(drain.next(), Some(("C", 3)));
-    consistency::assert(&drain.it.iohm());
+    consistency::assert(drain.it.iohm());
     assert_eq!(drain.len(), 0);
     assert_eq!(drain.next(), None);
-    consistency::assert(&drain.it.iohm());
+    consistency::assert(drain.it.iohm());
     mem::drop(drain);
     assert!(iohm.is_empty());
 }
@@ -759,10 +759,10 @@ fn test_drain_drop() {
 
     let mut drain = iohm.drain();
 
-    consistency::assert(&drain.it.iohm());
+    consistency::assert(drain.it.iohm());
     assert_eq!(drain.len(), 3);
     assert_eq!(drain.next(), Some(("A", 1)));
-    consistency::assert(&drain.it.iohm());
+    consistency::assert(drain.it.iohm());
     assert_eq!(drain.len(), 2);
     mem::drop(drain);
     assert!(iohm.is_empty());
@@ -793,7 +793,7 @@ fn test_debug() {
     iohm.insert("C".to_string(), 3);
     let iohm = as_immutable(iohm);
 
-    let result = format!("{:#?}", iohm);
+    let result = format!("{iohm:#?}");
 
     assert_eq!(
         result,
@@ -869,23 +869,23 @@ fn test_index_existing_key() {
 }
 
 #[test]
-#[should_panic]
+#[should_panic(expected = "no entry found for key")]
 fn test_index_non_existing_key_1() {
     let mut iohm = InsertionOrderHashMap::new();
     iohm.insert("A".to_string(), 1);
     let iohm = as_immutable(iohm);
 
-    iohm["B"];
+    let _ = iohm["B"];
 }
 
 #[test]
-#[should_panic]
+#[should_panic(expected = "no entry found for key")]
 fn test_index_non_existing_key_2() {
     let mut iohm = InsertionOrderHashMap::new();
     iohm.insert("A".to_string(), 1);
     let iohm = as_immutable(iohm);
 
-    iohm[&"B".to_string()];
+    let _ = iohm[&"B".to_string()];
 }
 
 #[test]

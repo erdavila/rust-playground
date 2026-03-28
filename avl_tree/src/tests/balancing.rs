@@ -45,7 +45,7 @@ fn assert_on_node<K: Ord + Debug, V>(
         None => TreeEvaluation::zeroes(),
     };
 
-    let diff = left_node_evaluation.height as i16 - right_node_evaluation.height as i16;
+    let diff = i16::from(left_node_evaluation.height) - i16::from(right_node_evaluation.height);
     assert!(diff >= -1);
     assert!(diff <= 1);
 

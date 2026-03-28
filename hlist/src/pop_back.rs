@@ -51,7 +51,7 @@ mod tests {
         let hlist = hlist!(123, "abc", true);
 
         let (value, hlist) = hlist.pop_back();
-        assert_eq!(value, true);
+        assert!(value);
         assert_eq!(hlist, hlist!(123, "abc"));
 
         let (value, hlist) = hlist.pop_back();

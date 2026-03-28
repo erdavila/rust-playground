@@ -142,6 +142,7 @@ mod tests {
     use super::*;
 
     #[test]
+    #[expect(clippy::too_many_lines)]
     fn it_works() {
         let inputs = [
             ['A', 'B', 'x', 'y'],

@@ -261,7 +261,7 @@ mod tests {
     #[test]
     fn condition_macro() {
         fn iter(len: usize) -> impl Iterator {
-            std::iter::repeat(()).take(len)
+            std::iter::repeat_n((), len)
         }
 
         for len in 0..5 {

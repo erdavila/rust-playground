@@ -50,6 +50,7 @@ mod tests {
 
     #[test]
     fn into_tuple() {
+        #[expect(clippy::let_unit_value)]
         let tuple = hlist!().into_tuple();
         assert_eq!(tuple, ());
 

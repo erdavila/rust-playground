@@ -259,7 +259,7 @@ mod tests {
         }
 
         if let Some(_val) = shared2.get_ref() {
-            assert!(false);
+            panic!();
         }
 
         assert_eq!(
@@ -284,7 +284,7 @@ mod tests {
         }
 
         if let Some(_val) = shared2.get_mut() {
-            assert!(false);
+            panic!();
         }
 
         assert_eq!(
@@ -309,7 +309,7 @@ mod tests {
         }
 
         if let Some(_val) = shared2.r#move() {
-            assert!(false);
+            panic!();
         }
 
         assert_eq!(

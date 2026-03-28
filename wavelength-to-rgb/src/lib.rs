@@ -226,6 +226,7 @@ mod tests {
     }
 
     #[test]
+    #[expect(clippy::float_cmp)]
     fn test_map() {
         assert_eq!(remap(0.0, 0.0..1.0, 0.0..1.0), 0.0);
         assert_eq!(remap(0.5, 0.0..1.0, 0.0..1.0), 0.5);

@@ -312,11 +312,11 @@ fn test_vacant_entry_insert() {
     consistency::assert(&iohm);
 }
 
-fn insert_and_get_occupied_entry<'a, K, V>(
-    iohm: &'a mut InsertionOrderHashMap<K, V>,
+fn insert_and_get_occupied_entry<K, V>(
+    iohm: &mut InsertionOrderHashMap<K, V>,
     key: K,
     value: V,
-) -> OccupiedEntry<'a, K, V>
+) -> OccupiedEntry<'_, K, V>
 where
     K: std::hash::Hash + Eq + Clone,
 {
@@ -327,10 +327,7 @@ where
     }
 }
 
-fn get_vacant_entry<'a, K, V>(
-    iohm: &'a mut InsertionOrderHashMap<K, V>,
-    key: K,
-) -> VacantEntry<'a, K, V>
+fn get_vacant_entry<K, V>(iohm: &mut InsertionOrderHashMap<K, V>, key: K) -> VacantEntry<'_, K, V>
 where
     K: std::hash::Hash + Eq,
 {

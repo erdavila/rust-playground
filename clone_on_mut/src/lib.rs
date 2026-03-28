@@ -171,8 +171,10 @@ mod tests {
             }
         }
 
+        #[expect(clippy::unused_self)]
         fn access(&self) {}
 
+        #[expect(clippy::unused_self)]
         fn access_mut(&mut self) {}
     }
     impl Clone for Value {
@@ -197,9 +199,10 @@ mod tests {
 
         let com = CloneOnMut::borrow(&value);
 
-        match com {
-            CloneOnMut::Borrowed(borrowed) => assert_eq!(borrowed.id, value.id),
-            _ => panic!("should be Borrowed(_)"),
+        if let CloneOnMut::Borrowed(borrowed) = com {
+            assert_eq!(borrowed.id, value.id);
+        } else {
+            panic!("should be Borrowed(_)")
         }
     }
 
@@ -209,9 +212,10 @@ mod tests {
 
         let com: CloneOnMut<Value> = CloneOnMut::own(value);
 
-        match com {
-            CloneOnMut::Owned(owned) => assert_eq!(owned.id, "original"),
-            _ => panic!("should be Owned(_)"),
+        if let CloneOnMut::Owned(owned) = com {
+            assert_eq!(owned.id, "original");
+        } else {
+            panic!("should be Owned(_)")
         }
     }
 
@@ -242,9 +246,10 @@ mod tests {
 
         com.access();
 
-        match com {
-            CloneOnMut::Borrowed(borrowed) => assert_eq!(borrowed.id, value.id),
-            _ => panic!("should be Borrowed(_)"),
+        if let CloneOnMut::Borrowed(borrowed) = com {
+            assert_eq!(borrowed.id, value.id);
+        } else {
+            panic!("should be Borrowed(_)")
         }
     }
 
@@ -255,9 +260,10 @@ mod tests {
 
         com.access();
 
-        match com {
-            CloneOnMut::Owned(owned) => assert_eq!(owned.id, "original"),
-            _ => panic!("should be Owned(_)"),
+        if let CloneOnMut::Owned(owned) = com {
+            assert_eq!(owned.id, "original");
+        } else {
+            panic!("should be Owned(_)")
         }
     }
 
@@ -268,9 +274,10 @@ mod tests {
 
         com.access_mut();
 
-        match &com {
-            CloneOnMut::Owned(owned) => assert_eq!(owned.cloned_from_id, Some(value.id)),
-            _ => panic!("should be Owned(_)"),
+        if let CloneOnMut::Owned(owned) = com {
+            assert_eq!(owned.cloned_from_id, Some(value.id));
+        } else {
+            panic!("should be Owned(_)")
         }
     }
 
@@ -281,9 +288,10 @@ mod tests {
 
         com.access_mut();
 
-        match &com {
-            CloneOnMut::Owned(owned) => assert_eq!(owned.id, "original"),
-            _ => panic!("should be Owned(_)"),
+        if let CloneOnMut::Owned(owned) = com {
+            assert_eq!(owned.id, "original");
+        } else {
+            panic!("should be Owned(_)");
         }
     }
 
@@ -294,9 +302,10 @@ mod tests {
 
         let clone = CloneOnMut::clone(&com);
 
-        match clone {
-            CloneOnMut::Borrowed(borrowed) => assert_eq!(borrowed.id, value.id),
-            _ => panic!("should be Borrowed(_)"),
+        if let CloneOnMut::Borrowed(borrowed) = clone {
+            assert_eq!(borrowed.id, value.id);
+        } else {
+            panic!("should be Borrowed(_)")
         }
     }
 
@@ -307,9 +316,10 @@ mod tests {
 
         let clone = CloneOnMut::clone(&com);
 
-        match clone {
-            CloneOnMut::Borrowed(borrowed) => assert_eq!(borrowed.id, "original"),
-            _ => panic!("should be Borrowed(_)"),
+        if let CloneOnMut::Borrowed(borrowed) = clone {
+            assert_eq!(borrowed.id, "original");
+        } else {
+            panic!("should be Borrowed(_)")
         }
     }
 
