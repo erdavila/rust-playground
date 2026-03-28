@@ -407,7 +407,8 @@ fn drop_from_heap<T>(ptr: NonNull<T>) {
 
 #[cfg(test)]
 mod tests {
-    use std::{cell::RefCell, ptr};
+    use std::cell::RefCell;
+    use std::ptr;
 
     use super::*;
 

@@ -1,7 +1,10 @@
-use rand::{Rng, rngs::ThreadRng, seq::IteratorRandom};
 use std::collections::HashMap;
 use std::ops::Add;
 use std::time::{Duration, Instant};
+
+use rand::Rng;
+use rand::rngs::ThreadRng;
+use rand::seq::IteratorRandom;
 
 use crate::InsertionOrderHashMap;
 use crate::tests::consistency;

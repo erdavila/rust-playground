@@ -5,7 +5,8 @@ mod shared_movable_ownership;
 mod shared_mutable_ownership;
 mod shared_ownership;
 
-use std::{error::Error, fmt::Display};
+use std::error::Error;
+use std::fmt::Display;
 
 pub use refs::*;
 pub use shared_movable_ownership::*;
@@ -23,7 +24,8 @@ impl Display for AlreadyMutablyBorrowed {
 
 #[cfg(test)]
 mod tests {
-    use std::{cell::RefCell, rc::Rc};
+    use std::cell::RefCell;
+    use std::rc::Rc;
 
     #[derive(Default, PartialEq, Eq, Debug)]
     pub(crate) struct Usage {

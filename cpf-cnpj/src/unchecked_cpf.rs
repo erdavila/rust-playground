@@ -1,6 +1,9 @@
-use std::{array, fmt::Display, str::FromStr};
+use std::array;
+use std::fmt::Display;
+use std::str::FromStr;
 
-use crate::{CPF, Error, InvalidChar, parser::Parser};
+use crate::parser::Parser;
+use crate::{CPF, Error, InvalidChar};
 
 unchecked_id!(UncheckedCPF, 9, CPF, UncheckedCPFParser);
 impl Display for UncheckedCPF {
@@ -42,9 +45,8 @@ impl Parser<{ UncheckedCPF::LENGTH }> for UncheckedCPFParser {
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use crate::cpf;
-
     use super::*;
+    use crate::cpf;
 
     static FORMATTED_STR: &str = "111.444.777";
     static RAW_STR: &str = "111444777";

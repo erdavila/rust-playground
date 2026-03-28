@@ -1,14 +1,12 @@
 use std::borrow::Borrow;
-use std::collections::HashMap;
-use std::collections::TryReserveError;
+use std::collections::{HashMap, TryReserveError};
 use std::fmt::Debug;
 use std::hash::Hash;
 use std::iter::FusedIterator;
 use std::marker::PhantomData;
 use std::mem;
 use std::ops::Index;
-use std::ptr::NonNull;
-use std::ptr::from_mut;
+use std::ptr::{NonNull, from_mut};
 
 #[cfg(test)]
 mod tests;

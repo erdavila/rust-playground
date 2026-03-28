@@ -1,10 +1,8 @@
-use std::{
-    cell::{Ref, RefCell, RefMut},
-    collections::TryReserveError,
-    marker::PhantomData,
-    ops::Index,
-    rc::Rc,
-};
+use std::cell::{Ref, RefCell, RefMut};
+use std::collections::TryReserveError;
+use std::marker::PhantomData;
+use std::ops::Index;
+use std::rc::Rc;
 
 pub(crate) struct Entry<T> {
     pub element: T,

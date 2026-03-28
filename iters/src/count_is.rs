@@ -1,4 +1,5 @@
-use std::{cell::RefCell, ops::DerefMut};
+use std::cell::RefCell;
+use std::ops::DerefMut;
 
 use crate::count_satisfies::evaluation::{Eq, Evaluator as _, Gt, Lt, Not};
 
@@ -75,7 +76,8 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::{cell::Cell, rc::Rc};
+    use std::cell::Cell;
+    use std::rc::Rc;
 
     use super::*;
 

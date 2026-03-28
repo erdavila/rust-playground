@@ -1,7 +1,5 @@
-use std::{
-    collections::{BTreeMap, HashMap, btree_map, hash_map},
-    hash::Hash,
-};
+use std::collections::{BTreeMap, HashMap, btree_map, hash_map};
+use std::hash::Hash;
 
 macro_rules! update_count {
     ($namespace:ident :: $map_type:ident) => {

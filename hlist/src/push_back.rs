@@ -34,9 +34,8 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{hlist, hnil};
-
     use super::*;
+    use crate::{hlist, hnil};
 
     #[test]
     fn push_back() {

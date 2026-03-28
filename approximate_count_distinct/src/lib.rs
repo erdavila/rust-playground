@@ -3,10 +3,11 @@
 //! URL: <https://arxiv.org/pdf/2301.10191.pdf>
 #![expect(clippy::missing_panics_doc)]
 
-use rand::rngs::ThreadRng;
-use rand::{self, Rng};
 use std::collections::HashSet;
 use std::hash::Hash;
+
+use rand::rngs::ThreadRng;
+use rand::{self, Rng};
 
 pub struct ApproximateCountDistinct<T> {
     seen: HashSet<T>,

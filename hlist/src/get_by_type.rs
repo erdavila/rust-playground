@@ -1,9 +1,7 @@
 use std::marker::PhantomData;
 
-use crate::{
-    HCons, HList,
-    index::{Index, Succ, Zero},
-};
+use crate::index::{Index, Succ, Zero};
+use crate::{HCons, HList};
 
 pub trait GetByType<A, W: Where>: HList {
     type Index: Index;
@@ -64,7 +62,8 @@ impl<W: Where> Where for There<W> {}
 
 #[cfg(test)]
 mod tests {
-    use crate::{hlist, index::Index};
+    use crate::hlist;
+    use crate::index::Index;
 
     #[test]
     fn get_by_type() {

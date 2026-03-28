@@ -1,7 +1,5 @@
-use std::{
-    cell,
-    ops::{Deref, DerefMut},
-};
+use std::cell;
+use std::ops::{Deref, DerefMut};
 
 pub struct Ref<'a, T>(pub(crate) cell::Ref<'a, T>);
 

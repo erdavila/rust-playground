@@ -62,9 +62,8 @@ impl_get_with_positive_index!(11);
 
 #[cfg(test)]
 mod tests {
-    use crate::hlist;
-
     use super::*;
+    use crate::hlist;
 
     #[test]
     fn get() {

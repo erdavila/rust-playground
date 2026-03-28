@@ -47,9 +47,8 @@ impl_tuple_trait!(A0 A1 A2 A3 A4 A5 A6 A7 A8 A9 A10 A11 ; 0 1 2 3 4 5 6 7 8 9 10
 
 #[cfg(test)]
 mod tests {
-    use crate::{hlist, hlist_type};
-
     use super::*;
+    use crate::{hlist, hlist_type};
 
     #[test]
     fn into_hlist() {

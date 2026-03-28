@@ -1,7 +1,5 @@
-use crate::{
-    HCons, HList, HNil,
-    index::{Index, Succ},
-};
+use crate::index::{Index, Succ};
+use crate::{HCons, HList, HNil};
 
 /// Trait that implements the pairing of values in with their corresponding [`Index`]es.
 pub trait Enumerate: HList {
@@ -36,9 +34,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::{hlist, index::Zero};
-
     use super::*;
+    use crate::hlist;
+    use crate::index::Zero;
 
     #[test]
     fn enumerate() {

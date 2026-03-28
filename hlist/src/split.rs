@@ -63,9 +63,8 @@ impl_split_with_positive_index!(12);
 
 #[cfg(test)]
 mod tests {
-    use crate::hlist;
-
     use super::*;
+    use crate::hlist;
 
     #[test]
     fn split() {

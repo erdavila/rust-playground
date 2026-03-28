@@ -1,4 +1,8 @@
-use std::{cell::RefCell, collections::VecDeque, fmt::Debug, iter::FusedIterator, rc::Rc};
+use std::cell::RefCell;
+use std::collections::VecDeque;
+use std::fmt::Debug;
+use std::iter::FusedIterator;
+use std::rc::Rc;
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 enum PartitionId {

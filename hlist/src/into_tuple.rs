@@ -1,4 +1,5 @@
-use crate::{HList, hlist_type, tuples::Tuple};
+use crate::tuples::Tuple;
+use crate::{HList, hlist_type};
 
 /// A trait implemented by [`HList`]s to be converted into tuples.
 pub trait IntoTuple: HList {
@@ -44,9 +45,8 @@ impl_into_tuple_trait!(A0 A1 A2 A3 A4 A5 A6 A7 A8 A9 A10 A11 ; |this| (this.head
 
 #[cfg(test)]
 mod tests {
-    use crate::hlist;
-
     use super::*;
+    use crate::hlist;
 
     #[test]
     fn into_tuple() {

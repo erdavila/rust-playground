@@ -1,4 +1,5 @@
-use std::{fmt::Display, str::FromStr};
+use std::fmt::Display;
+use std::str::FromStr;
 
 use crate::{UncheckedCNPJ, UncheckedCNPJParser};
 
@@ -7,9 +8,8 @@ from_str_and_try_from!(CNPJ);
 
 #[cfg(test)]
 mod tests {
-    use crate::{CheckDigits, Error, InvalidChar, check_digits, unchecked_cnpj};
-
     use super::*;
+    use crate::{CheckDigits, Error, InvalidChar, check_digits, unchecked_cnpj};
 
     static FORMATTED_STR: &str = "12.AbC.345/01De-35";
     static RAW_STR: &str = "12ABC34501DE35";

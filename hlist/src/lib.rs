@@ -21,8 +21,9 @@ mod split;
 pub mod tuples;
 mod zip;
 
-pub use concat::*;
 pub use core::*;
+
+pub use concat::*;
 pub use enumerate::*;
 pub use for_each::{ForEach, Over as ForEachOver};
 pub use get::*;

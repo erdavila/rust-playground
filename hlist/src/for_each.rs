@@ -63,9 +63,8 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::hlist;
-
     use super::*;
+    use crate::hlist;
 
     #[test]
     fn for_each() {

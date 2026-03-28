@@ -1,11 +1,9 @@
-use ratatui::{
-    Frame,
-    layout::{Constraint, Direction, Layout, Margin, Rect},
-    style::{Style, Stylize},
-    text::Line,
-    widgets::{
-        Block, Borders, List, Padding, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState,
-    },
+use ratatui::Frame;
+use ratatui::layout::{Constraint, Direction, Layout, Margin, Rect};
+use ratatui::style::{Style, Stylize};
+use ratatui::text::Line;
+use ratatui::widgets::{
+    Block, Borders, List, Padding, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState,
 };
 
 use crate::app::App;

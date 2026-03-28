@@ -1,7 +1,6 @@
+use self::vec_grid::VecGrid;
 use crate::cell::Cell;
 use crate::position::Position;
-
-use self::vec_grid::VecGrid;
 
 mod vec_grid;
 
@@ -198,10 +197,9 @@ impl<'a> Iterator for RowIter<'a> {
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::interlace::Interlace;
     use crate::segment::Segment;
-
-    use super::*;
 
     #[test]
     fn calculate_size() {

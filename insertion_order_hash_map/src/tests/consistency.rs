@@ -1,7 +1,5 @@
-use std::{
-    hash::Hash,
-    ptr::{self, NonNull},
-};
+use std::hash::Hash;
+use std::ptr::{self, NonNull};
 
 use crate::{InsertionOrder, InsertionOrderHashMap, KeyWrapper, Node, UnderlyingMap};
 

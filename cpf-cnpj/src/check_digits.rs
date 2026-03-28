@@ -1,6 +1,9 @@
-use std::{array, fmt::Display, str::FromStr};
+use std::array;
+use std::fmt::Display;
+use std::str::FromStr;
 
-use crate::{Error, InvalidChar, UncheckedCNPJ, UncheckedCPF, parser::Parser};
+use crate::parser::Parser;
+use crate::{Error, InvalidChar, UncheckedCNPJ, UncheckedCPF};
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Debug)]
 pub struct CheckDigits(pub(crate) [u8; Self::LENGTH]);

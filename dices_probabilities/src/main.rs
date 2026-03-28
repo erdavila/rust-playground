@@ -1,6 +1,8 @@
 use std::ops::{Index, IndexMut};
 
-use term_table::{Table, TableStyle, row::Row, table_cell::TableCell};
+use term_table::row::Row;
+use term_table::table_cell::TableCell;
+use term_table::{Table, TableStyle};
 
 const DEFAULT_FACES: u8 = 6;
 

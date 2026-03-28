@@ -1,8 +1,7 @@
 use std::fmt::{Debug, Display};
 
-use deterministic_chooser::{
-    DeterministicChooser, deterministic_bool_chooser::DeterministicBoolChooser,
-};
+use deterministic_chooser::DeterministicChooser;
+use deterministic_chooser::deterministic_bool_chooser::DeterministicBoolChooser;
 
 fn main() {
     test_deterministic_chooser([('a', 5.0), ('b', 3.0), ('c', 2.0)]);

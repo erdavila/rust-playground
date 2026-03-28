@@ -1,10 +1,10 @@
-use proc_macro2::{
-    Delimiter, Group, Literal, Punct, Spacing, TokenStream as TokenStream2, TokenTree,
-};
 use std::fs::File;
 use std::io::{self, Write};
 use std::ops::Deref;
 
+use proc_macro2::{
+    Delimiter, Group, Literal, Punct, Spacing, TokenStream as TokenStream2, TokenTree,
+};
 use syn::punctuated::{Pair, Punctuated};
 use syn::{
     Abi, AngleBracketedGenericArguments, Arm, AttrStyle, Attribute, BinOp, Block, Expr, ExprAssign,

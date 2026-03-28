@@ -1,8 +1,6 @@
-use std::{
-    cell::{self, RefCell},
-    fmt::Debug,
-    rc::Rc,
-};
+use std::cell::{self, RefCell};
+use std::fmt::Debug;
+use std::rc::Rc;
 
 use crate::{AlreadyMutablyBorrowed, Ref, RefMut};
 

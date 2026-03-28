@@ -1,7 +1,5 @@
-use crate::{
-    HCons, HList,
-    index::{Index, Succ, Zero},
-};
+use crate::index::{Index, Succ, Zero};
+use crate::{HCons, HList};
 
 /// Trait for getting a value from its [`Index`].
 pub trait GetByIndex<I: Index>: HList {
@@ -44,9 +42,8 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::hlist;
-
     use super::*;
+    use crate::hlist;
 
     #[test]
     fn get_by_index() {

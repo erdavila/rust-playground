@@ -96,8 +96,9 @@ pub enum Reason {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use rstest::*;
+
+    use super::*;
 
     #[rstest]
     #[case(&[], &[], Comparison { compared_elements: 0, ordering: Ordering::Equal })]

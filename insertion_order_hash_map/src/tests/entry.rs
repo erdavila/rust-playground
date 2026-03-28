@@ -1,8 +1,7 @@
 use std::cell::RefCell;
 
-use crate::{Entry, InsertionOrderHashMap, OccupiedEntry, VacantEntry};
-
 use super::consistency;
+use crate::{Entry, InsertionOrderHashMap, OccupiedEntry, VacantEntry};
 
 #[test]
 fn test_entry_occupied() {

@@ -1,14 +1,12 @@
 mod heap;
 
-use std::{
-    cell::{Ref, RefCell, RefMut},
-    collections::TryReserveError,
-    fmt::{Debug, Display},
-    iter::FusedIterator,
-    ops::{Deref, DerefMut},
-    ptr::NonNull,
-    rc::Rc,
-};
+use std::cell::{Ref, RefCell, RefMut};
+use std::collections::TryReserveError;
+use std::fmt::{Debug, Display};
+use std::iter::FusedIterator;
+use std::ops::{Deref, DerefMut};
+use std::ptr::NonNull;
+use std::rc::Rc;
 
 use heap::{Entry, EntryRef, Heap, HeapOrder, Max, Min};
 

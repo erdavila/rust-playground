@@ -1,9 +1,8 @@
-use std::{cell::RefCell, rc::Rc};
+use std::cell::RefCell;
+use std::rc::Rc;
 
-use crate::{
-    AlreadyMutablyBorrowed,
-    refs::{Ref, RefMut},
-};
+use crate::AlreadyMutablyBorrowed;
+use crate::refs::{Ref, RefMut};
 
 pub struct SharedMutableOwnership<T>(Rc<RefCell<T>>);
 

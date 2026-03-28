@@ -1,4 +1,5 @@
-use std::{fmt::Display, str::FromStr};
+use std::fmt::Display;
+use std::str::FromStr;
 
 use crate::{UncheckedCPF, UncheckedCPFParser};
 
@@ -7,9 +8,8 @@ from_str_and_try_from!(CPF);
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use crate::{CheckDigits, Error, InvalidChar, check_digits, unchecked_cpf};
-
     use super::*;
+    use crate::{CheckDigits, Error, InvalidChar, check_digits, unchecked_cpf};
 
     static FORMATTED_STR: &str = "111.444.777-35";
     static RAW_STR: &str = "11144477735";

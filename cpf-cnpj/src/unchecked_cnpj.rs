@@ -1,6 +1,9 @@
-use std::{array, fmt::Display, str::FromStr};
+use std::array;
+use std::fmt::Display;
+use std::str::FromStr;
 
-use crate::{CNPJ, Error, InvalidChar, parser::Parser};
+use crate::parser::Parser;
+use crate::{CNPJ, Error, InvalidChar};
 
 unchecked_id!(UncheckedCNPJ, 12, CNPJ, UncheckedCNPJParser);
 impl Display for UncheckedCNPJ {
@@ -45,9 +48,8 @@ impl Parser<{ UncheckedCNPJ::LENGTH }> for UncheckedCNPJParser {
 
 #[cfg(test)]
 pub(crate) mod tests {
-    use crate::InvalidChar;
-
     use super::*;
+    use crate::InvalidChar;
 
     static FORMATTED_STR: &str = "12.AbC.345/01De";
     static RAW_STR: &str = "12AbC34501De";

@@ -1,11 +1,9 @@
 #![no_std]
 #![feature(try_trait_v2)]
-use core::{
-    cmp::Ordering,
-    iter::Peekable,
-    ops::{ControlFlow, FromResidual, Try},
-    str::Chars,
-};
+use core::cmp::Ordering;
+use core::iter::Peekable;
+use core::ops::{ControlFlow, FromResidual, Try};
+use core::str::Chars;
 
 // As specified in https://doc.rust-lang.org/style-guide/index.html#sorting.
 #[must_use]

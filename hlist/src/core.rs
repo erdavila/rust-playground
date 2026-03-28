@@ -1,16 +1,14 @@
-use crate::{
-    ForEachOver, MapOver, Zip,
-    concat::Concat,
-    enumerate::Enumerate,
-    get::Get,
-    get_by_index::GetByIndex,
-    get_by_type::{GetByType, Where},
-    index::{Index, Zero},
-    pop_back::PopBack,
-    push_back::PushBack,
-    rev::Rev,
-    split::Split,
-};
+use crate::concat::Concat;
+use crate::enumerate::Enumerate;
+use crate::get::Get;
+use crate::get_by_index::GetByIndex;
+use crate::get_by_type::{GetByType, Where};
+use crate::index::{Index, Zero};
+use crate::pop_back::PopBack;
+use crate::push_back::PushBack;
+use crate::rev::Rev;
+use crate::split::Split;
+use crate::{ForEachOver, MapOver, Zip};
 
 /// The abstract representation of heterogeneous lists.
 pub trait HList {
@@ -565,9 +563,8 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::hlist;
-
     use super::*;
+    use crate::hlist;
 
     #[test]
 
