@@ -1,44 +1,78 @@
 #![no_std]
-use core::{cmp::Ordering, iter::Peekable, str::Chars};
+#![feature(try_trait_v2)]
+use core::{
+    cmp::Ordering,
+    iter::Peekable,
+    ops::{ControlFlow, FromResidual, Try},
+    str::Chars,
+};
 
 // As specified in https://doc.rust-lang.org/style-guide/index.html#sorting.
 #[must_use]
 pub fn version_sorting(a: &&str, b: &&str) -> Ordering {
     let mut vs = VersionSorting::new(a, b);
-    result_to_ordering(vs.compare())
+    Ordering::from(vs.compare())
 }
 
-type Result = core::result::Result<(), NonEqual>;
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+enum Result {
+    Equal,
+    NonEqual(NonEqual),
+}
 
-fn ordering_to_result(ord: Ordering) -> Result {
-    match ord {
-        Ordering::Equal => Ok(()),
-        Ordering::Less => Err(NonEqual::Less),
-        Ordering::Greater => Err(NonEqual::Greater),
+impl Result {
+    fn reverse(self) -> Self {
+        Ordering::from(self).reverse().into()
     }
 }
 
-fn result_to_ordering(res: Result) -> Ordering {
-    match res {
-        Ok(()) => Ordering::Equal,
-        Err(NonEqual::Less) => Ordering::Less,
-        Err(NonEqual::Greater) => Ordering::Greater,
+impl Try for Result {
+    type Output = ();
+
+    type Residual = NonEqual;
+
+    fn from_output((): Self::Output) -> Self {
+        Result::Equal
+    }
+
+    fn branch(self) -> ControlFlow<Self::Residual, Self::Output> {
+        match self {
+            Result::Equal => ControlFlow::Continue(()),
+            Result::NonEqual(non_equal) => ControlFlow::Break(non_equal),
+        }
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+impl FromResidual<NonEqual> for Result {
+    fn from_residual(residual: NonEqual) -> Self {
+        Result::NonEqual(residual)
+    }
+}
+
+impl From<Ordering> for Result {
+    fn from(ord: Ordering) -> Self {
+        match ord {
+            Ordering::Less => Result::NonEqual(NonEqual::Less),
+            Ordering::Equal => Result::Equal,
+            Ordering::Greater => Result::NonEqual(NonEqual::Greater),
+        }
+    }
+}
+
+impl From<Result> for Ordering {
+    fn from(res: Result) -> Self {
+        match res {
+            Result::NonEqual(NonEqual::Less) => Ordering::Less,
+            Result::Equal => Ordering::Equal,
+            Result::NonEqual(NonEqual::Greater) => Ordering::Greater,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum NonEqual {
     Less,
     Greater,
-}
-
-impl NonEqual {
-    fn reverse(self) -> Self {
-        match self {
-            NonEqual::Less => NonEqual::Greater,
-            NonEqual::Greater => NonEqual::Less,
-        }
-    }
 }
 
 struct VersionSorting<'a> {
@@ -71,15 +105,13 @@ impl<'a> VersionSorting<'a> {
                         if a_char == '_' {
                             Self::compare_underscore_to(b_char)?;
                         } else if b_char == '_' {
-                            Self::compare_underscore_to(a_char).map_err(NonEqual::reverse)?;
+                            Self::compare_underscore_to(a_char).reverse()?;
                         } else {
-                            ordering_to_result(a_char.cmp(&b_char))?;
+                            Result::from(a_char.cmp(&b_char))?;
                         }
                     }
                     _ => {
-                        return ordering_to_result(
-                            a_char_opt.cmp(&b_char_opt).then(self.leading_zeroes),
-                        );
+                        return Result::from(a_char_opt.cmp(&b_char_opt).then(self.leading_zeroes));
                     }
                 }
             }
@@ -102,7 +134,7 @@ impl<'a> VersionSorting<'a> {
                 (Some(a_digit), Some(b_digit)) => {
                     value_ord = value_ord.then_with(|| a_digit.cmp(&b_digit));
                 }
-                _ => return ordering_to_result(a_digit_opt.cmp(&b_digit_opt).then(value_ord)),
+                _ => return Result::from(a_digit_opt.cmp(&b_digit_opt).then(value_ord)),
             }
         }
     }
@@ -124,6 +156,6 @@ impl<'a> VersionSorting<'a> {
             _ => Ordering::Less,
         };
 
-        ordering_to_result(ord)
+        ord.into()
     }
 }
