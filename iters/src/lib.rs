@@ -4,3 +4,5 @@ pub mod count_satisfies;
 pub mod fork;
 pub mod forking_cloneable;
 pub mod partition_iters;
+pub mod tail_skip;
+pub mod tail_take;
