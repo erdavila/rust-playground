@@ -1,0 +1,11 @@
+{
+  "1-same": true,
+  "2-different_scalars": 4,
+  "3-different_types": "x",
+  "5-object": {
+    "a": true,
+    "b": 1,
+    "c": "x"
+  },
+  "6-only_in_right": "y"
+}

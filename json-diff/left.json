@@ -1,0 +1,11 @@
+{
+  "1-same": true,
+  "2-different_scalars": 3,
+  "3-different_types": null,
+  "4-only_in_left": [],
+  "5-object": {
+    "a": true,
+    "b": 1,
+    "c": "x"
+  }
+}
