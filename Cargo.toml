@@ -18,6 +18,7 @@ members = [
     "insertion_order_hash_map",
     "interlace",
     "iters",
+    "json-diff",
     "min-max-binary-heap",
     "ratatui-scrolling",
     "ref_count",
