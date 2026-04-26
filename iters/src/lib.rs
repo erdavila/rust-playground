@@ -7,3 +7,4 @@ pub mod group_into;
 pub mod partition_iters;
 pub mod tail_skip;
 pub mod tail_take;
+pub mod try_scan;
