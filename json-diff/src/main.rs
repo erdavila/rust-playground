@@ -11,9 +11,17 @@ mod comparison;
 mod diff;
 mod token;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Format {
+    Line,
+    Inline,
+}
+
 fn main() -> Result<()> {
     let mut left_file = None;
     let mut right_file = None;
+
+    let mut format = Format::Line;
 
     for arg in env::args().skip(1) {
         match arg.as_str() {
@@ -21,6 +29,8 @@ fn main() -> Result<()> {
                 println!("Usage: json-diff <LEFT_FILE> <RIGHT_FILE>");
                 return Ok(());
             }
+            "--line" => format = Format::Line,
+            "--inline" => format = Format::Inline,
             _ => {
                 if left_file.is_none() {
                     left_file = Some(arg);
@@ -41,7 +51,12 @@ fn main() -> Result<()> {
     let right = from_str(&fs::read_to_string(right_file)?)?;
 
     let comparison = compare(left, right);
-    diff::line::tokenize(TokenWriter::new(io::stdout()), comparison)?;
+    let writer = TokenWriter::new(io::stdout());
+
+    match format {
+        Format::Line => diff::line::tokenize(writer, comparison)?,
+        Format::Inline => diff::inline::tokenize(writer, comparison)?,
+    }
 
     Ok(())
 }

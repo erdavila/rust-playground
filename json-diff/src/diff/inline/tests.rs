@@ -1,5 +1,4 @@
 use std::collections::BTreeMap;
-use std::vec;
 
 use serde_json::{Map, json};
 use test_case::test_case;
@@ -7,12 +6,13 @@ use test_case::test_case;
 use super::*;
 use crate::compare::compare;
 use crate::comparison::{
-    ArraysComparison, ObjectsComparison, OneSideOnlyIndexes, Scalar, ScalarPair,
+    ArraysComparison, Comparison, ObjectsComparison, OneSideOnlyIndexes, Scalar, ScalarPair,
+    ScalarsComparison,
 };
 use crate::diff::tests::{TestPutToken, tokens};
 use crate::token::Token;
 
-fn line_diff_tokens(comparison: Comparison) -> Vec<Token> {
+fn inline_diff_tokens(comparison: Comparison) -> Vec<Token> {
     let mut put_token = TestPutToken::new();
     tokenize(&mut put_token, comparison).unwrap();
 
@@ -25,59 +25,65 @@ fn line_diff_tokens(comparison: Comparison) -> Vec<Token> {
 #[test_case("abc" => tokens![Scalar("abc"), NewLine]; "string")]
 fn same_scalars(scalar: impl Into<Scalar>) -> Vec<Token> {
     let comparison = Comparison::Scalars(ScalarsComparison::Same(scalar.into()));
-    line_diff_tokens(comparison)
+    inline_diff_tokens(comparison)
 }
 
 #[test_case(
     ScalarPair::Bools(false, true)
     => tokens![
-        Left { Scalar(false), NewLine },
-        Right { Scalar(true), NewLine },
+        Left { Scalar(false) },
+        Right { Scalar(true) },
+        NewLine,
     ];
     "bools"
 )]
 #[test_case(
     ScalarPair::Numbers(3.into(), 4.into())
     => tokens![
-        Left { Scalar(3), NewLine },
-        Right { Scalar(4), NewLine },
+        Left { Scalar(3) },
+        Right { Scalar(4) },
+        NewLine,
     ];
     "numbers"
 )]
 #[test_case(
     ScalarPair::Strings("a".into(), "b".into())
     => tokens![
-        Left { Scalar("a"), NewLine },
-        Right { Scalar("b"), NewLine },
+        Left { Scalar("a") },
+        Right { Scalar("b") },
+        NewLine,
     ];
     "strings"
 )]
 fn different_scalars(scalars: ScalarPair) -> Vec<Token> {
     let comparison = Comparison::Scalars(ScalarsComparison::Different(scalars));
-    line_diff_tokens(comparison)
+    inline_diff_tokens(comparison)
 }
 
 #[test_case(
     json!(3), json!("a")
     => tokens![
-        Left { Scalar(3), NewLine },
-        Right { Scalar("a"), NewLine },
+        Left { Scalar(3) },
+        Right { Scalar("a") },
+        NewLine,
     ];
     "number vs string"
 )]
 #[test_case(
     json!(null), json!(false)
     => tokens![
-        Left { Null, NewLine },
-        Right { Scalar(false), NewLine },
+        Left { Null },
+        Right { Scalar(false) },
+        NewLine,
     ];
     "null vs bool"
 )]
 #[test_case(
     json!([]), json!({})
     => tokens![
-        Left { ArrayBegin, ArrayEnd, NewLine },
-        Right { ObjectBegin, ObjectEnd, NewLine },
+        Left { ArrayBegin, ArrayEnd },
+        Right { ObjectBegin, ObjectEnd },
+        NewLine,
     ];
     "empty array vs empty object"
 )]
@@ -89,21 +95,22 @@ fn different_scalars(scalars: ScalarPair) -> Vec<Token> {
             Indent, Scalar(true), Comma, NewLine,
             Indent, Scalar(1), Comma, NewLine,
             Indent, Scalar("x"), NewLine,
-            ArrayEnd, NewLine,
+            ArrayEnd,
         },
         Right {
             ObjectBegin, NewLine,
             Indent, Key("a"), Scalar(true), Comma, NewLine,
             Indent, Key("b"), Scalar(1), Comma, NewLine,
             Indent, Key("c"), Scalar("x"), NewLine,
-            ObjectEnd, NewLine,
-        }
+            ObjectEnd,
+        },
+        NewLine,
     ];
     "non-empty array vs non-empty object"
 )]
 fn different_types(left: Value, right: Value) -> Vec<Token> {
     let comparison = Comparison::DifferentTypes(left, right);
-    line_diff_tokens(comparison)
+    inline_diff_tokens(comparison)
 }
 
 #[test_case(
@@ -128,11 +135,12 @@ fn different_types(left: Value, right: Value) -> Vec<Token> {
             Indent, Scalar(true), Comma, NewLine,
             Indent, Scalar(1), Comma, NewLine,
             Indent, Scalar("a"), NewLine,
-            ArrayEnd, NewLine,
+            ArrayEnd,
         },
         Right {
-            ArrayBegin, ArrayEnd, NewLine,
+            ArrayBegin, ArrayEnd,
         },
+        NewLine,
     ];
     "non-empty vs empty"
 )]
@@ -146,15 +154,16 @@ fn different_types(left: Value, right: Value) -> Vec<Token> {
     })
     => tokens![
         Left {
-            ArrayBegin, ArrayEnd, NewLine,
+            ArrayBegin, ArrayEnd,
         },
         Right {
             ArrayBegin, NewLine,
             Indent, Scalar(true), Comma, NewLine,
             Indent, Scalar(1), Comma, NewLine,
             Indent, Scalar("a"), NewLine,
-            ArrayEnd, NewLine,
+            ArrayEnd,
         },
+        NewLine,
     ];
     "empty vs non-empty"
 )]
@@ -187,10 +196,14 @@ fn different_types(left: Value, right: Value) -> Vec<Token> {
     None
     => tokens![
         ArrayBegin, NewLine,
-        Left { Indent, Scalar(false), Comma, NewLine },
-        Right { Indent, Scalar(true), Comma, NewLine },
-        Left { Indent, Scalar(1), Comma, NewLine },
-        Right { Indent, Null, Comma, NewLine },
+        Indent,
+            Left { Scalar(false) },
+            Right { Scalar(true) },
+        Comma, NewLine,
+        Indent,
+            Left { Scalar(1) },
+            Right { Null },
+        Comma, NewLine,
         Indent, Scalar("a"), NewLine,
         ArrayEnd, NewLine,
     ];
@@ -209,10 +222,15 @@ fn different_types(left: Value, right: Value) -> Vec<Token> {
         ArrayBegin, NewLine,
         Indent, Null, Comma, NewLine,
         Indent, Scalar(true), Comma, NewLine,
-        Left { Indent, Scalar(1), Comma, NewLine },
-        Right { Indent, Scalar(1), NewLine },
-        Left { Indent, Scalar("a"), Comma, NewLine },
-        Left { Indent, Scalar("b"), NewLine },
+        Indent, Scalar(1),
+            Left { Comma },
+        NewLine,
+        Indent,
+            Left { Scalar("a"), Comma },
+        NewLine,
+        Indent,
+            Left { Scalar("b") },
+        NewLine,
         ArrayEnd, NewLine,
     ];
     "non-empty arrays with elements only in left"
@@ -230,10 +248,15 @@ fn different_types(left: Value, right: Value) -> Vec<Token> {
         ArrayBegin, NewLine,
         Indent, Null, Comma, NewLine,
         Indent, Scalar(true), Comma, NewLine,
-        Left { Indent, Scalar(1), NewLine },
-        Right { Indent, Scalar(1), Comma, NewLine },
-        Right { Indent, Scalar("a"), Comma, NewLine },
-        Right { Indent, Scalar("b"), NewLine },
+        Indent, Scalar(1),
+            Right { Comma },
+        NewLine,
+        Indent,
+            Right { Scalar("a"), Comma },
+        NewLine,
+        Indent,
+            Right { Scalar("b") },
+        NewLine,
         ArrayEnd, NewLine,
     ];
     "non-empty arrays with elements only in right"
@@ -246,7 +269,7 @@ fn arrays(
         common_indexes,
         one_side_only_indexes,
     });
-    line_diff_tokens(comparison)
+    inline_diff_tokens(comparison)
 }
 
 #[test_case(
@@ -276,11 +299,12 @@ fn arrays(
             Indent, Key("a"), Scalar(true), Comma, NewLine,
             Indent, Key("b"), Scalar(1), Comma, NewLine,
             Indent, Key("c"), Scalar("x"), NewLine,
-            ObjectEnd, NewLine,
+            ObjectEnd,
         },
         Right {
-            ObjectBegin, ObjectEnd, NewLine,
+            ObjectBegin, ObjectEnd,
         },
+        NewLine,
     ];
     "non-empty vs empty"
 )]
@@ -297,15 +321,16 @@ fn arrays(
     ])
     => tokens![
         Left {
-            ObjectBegin, ObjectEnd, NewLine,
+            ObjectBegin, ObjectEnd,
         },
         Right {
             ObjectBegin, NewLine,
             Indent, Key("a"), Scalar(true), Comma, NewLine,
             Indent, Key("b"), Scalar(1), Comma, NewLine,
             Indent, Key("c"), Scalar("x"), NewLine,
-            ObjectEnd, NewLine,
+            ObjectEnd,
         },
+        NewLine,
     ];
     "empty vs non-empty"
 )]
@@ -342,10 +367,14 @@ fn arrays(
     Map::new()
     => tokens![
         ObjectBegin, NewLine,
-        Left { Indent, Key("a"), Scalar(false), Comma, NewLine },
-        Right { Indent, Key("a"), Scalar(true), Comma, NewLine },
-        Left { Indent, Key("b"), Scalar(1), Comma, NewLine },
-        Right { Indent, Key("b"), Null, Comma, NewLine },
+        Indent, Key("a"),
+            Left { Scalar(false) },
+            Right { Scalar(true) },
+        Comma, NewLine,
+        Indent, Key("b"),
+            Left { Scalar(1) },
+            Right { Null },
+        Comma, NewLine,
         Indent, Key("c"), Scalar("x"), NewLine,
         ObjectEnd, NewLine,
     ];
@@ -368,12 +397,17 @@ fn arrays(
     ])
     => tokens![
         ObjectBegin, NewLine,
-        Left { Indent, Key("a"), Scalar(3), Comma, NewLine },
+        Indent,
+            Left { Key("a"), Scalar(3), Comma,  },
+        NewLine,
         Indent, Key("m"), Null, Comma, NewLine,
         Indent, Key("n"), Scalar(true), Comma, NewLine,
-        Left { Indent, Key("o"), Scalar(1), NewLine },
-        Right { Indent, Key("o"), Scalar(1), Comma, NewLine },
-        Right { Indent, Key("z"), Scalar(4), NewLine },
+        Indent, Key("o"), Scalar(1),
+            Right { Comma },
+        NewLine,
+        Indent,
+            Right { Key("z"), Scalar(4) },
+        NewLine,
         ObjectEnd, NewLine,
     ];
     "non-empty objects with elements only in the sides"
@@ -388,7 +422,7 @@ fn objects(
         left_only_entries,
         right_only_entries,
     });
-    line_diff_tokens(comparison)
+    inline_diff_tokens(comparison)
 }
 
 #[test]
@@ -417,25 +451,34 @@ fn compare_and_tokenize() {
     });
 
     let comparison = compare(left, right);
-    let tokens = line_diff_tokens(comparison);
+    let tokens = inline_diff_tokens(comparison);
 
     assert_eq!(
         tokens,
         tokens![
             ObjectBegin, NewLine,
             Indent, Key("1-same"), Scalar(true), Comma, NewLine,
-            Left { Indent, Key("2-different_scalars"), Scalar(3), Comma, NewLine},
-            Right { Indent, Key("2-different_scalars"), Scalar(4), Comma, NewLine},
-            Left { Indent, Key("3-different_types"), Null, Comma, NewLine},
-            Right { Indent, Key("3-different_types"), Scalar("x"), Comma, NewLine},
-            Left { Indent, Key("4-only_in_left"), ArrayBegin, ArrayEnd, Comma, NewLine},
+            Indent, Key("2-different_scalars"),
+                Left { Scalar(3) },
+                Right { Scalar(4) },
+            Comma, NewLine,
+            Indent, Key("3-different_types"),
+                Left { Null },
+                Right { Scalar("x") },
+            Comma, NewLine,
+            Indent,
+                Left { Key("4-only_in_left"), ArrayBegin, ArrayEnd, Comma},
+            NewLine,
             Indent, Key("5-object"), ObjectBegin, NewLine,
             Indent, Indent, Key("a"), Scalar(true), Comma, NewLine,
             Indent, Indent, Key("b"), Scalar(1), Comma, NewLine,
             Indent, Indent, Key("c"), Scalar("x"), NewLine,
-            Left { Indent, ObjectEnd, NewLine },
-            Right { Indent, ObjectEnd, Comma, NewLine },
-            Right { Indent, Key("6-only_in_right"), Scalar("y"), NewLine},
+            Indent, ObjectEnd,
+                Right { Comma },
+            NewLine,
+            Indent,
+                Right { Key("6-only_in_right"), Scalar("y") },
+            NewLine,
             ObjectEnd, NewLine,
         ]
     );
