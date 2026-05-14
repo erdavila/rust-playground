@@ -8,7 +8,7 @@ use crate::token::writer::TokenWriter;
 
 mod compare;
 mod comparison;
-mod line_diff;
+mod diff;
 mod token;
 
 fn main() -> Result<()> {
@@ -41,7 +41,7 @@ fn main() -> Result<()> {
     let right = from_str(&fs::read_to_string(right_file)?)?;
 
     let comparison = compare(left, right);
-    line_diff::tokenize(TokenWriter::new(io::stdout()), comparison)?;
+    diff::line::tokenize(TokenWriter::new(io::stdout()), comparison)?;
 
     Ok(())
 }
