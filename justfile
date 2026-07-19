@@ -11,3 +11,7 @@ test *ARGS:
 [no-cd]
 clippy:
   cargo clippy --all-targets
+
+[no-cd]
+doc *ARGS:
+  cargo doc {{ARGS}}
