@@ -1,41 +1,195 @@
 #![no_std]
 
+//! Provides binary search functions for ranges where distinct positions may not correspond to distinct values.
+//!
+//! This includes cases where some positions are ignored, or where values can span across multiple positions.
+//!
+//! It is important to define the following value types:
+//!
+//! - _elements_ - The low-level values. Indexes and ranges refer to them.
+//! - _items_ - The values that are compared during the search. They are somehow derived from the _elements_.
+//!
+//! The variants include:
+//!
+//! - searching in slices, or in an unspecified source, where the _elements_ are fetched on-demand;
+//! - searching for subslices, or for values of an arbitrary type;
+//! - searching specifically for lines as from a text file.
+
+use core::borrow::Borrow;
 use core::cmp::Ordering;
+use core::ops::{Bound, RangeBounds};
 
 pub type Range = core::range::Range<usize>;
+
+impl Offset for Range {
+    fn offset(mut self, amount: usize) -> Self {
+        self.start = self.start.offset(amount);
+        self.end = self.end.offset(amount);
+        self
+    }
+}
+
 pub type SearchResult<T> = Result<T, usize>;
+
+/// The value and its location from an `elements` range.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct LocatedItem<T> {
+    /// The _item_ that is compared during the binary search.
+    ///
+    /// It may be a subslice reference of the source _elements_, or may be a new value derived from
+    /// the source _elements_.
+    pub value: T,
+
+    /// The range of the _elements_ that were directly used to derive the `value`.
+    ///
+    /// It must be a subslice of `consumed_range`.
+    pub value_range: Range,
+
+    /// The range of _elements_ that were "consumed" in the search for the subslice.
+    ///
+    /// It may include delimiters that were used to locate the _elements_ that derived the `value`.
+    pub consumed_range: Range,
+}
+
+/// Executes a binary search in a sequence of _elements_ in an unspecified source.
+///
+/// Read the [module](self) documentation for basic information.
+///
+/// The `locate_item_in` closure must locate an _item_ in the source _elements_ as delimited by its
+/// range parameter. **The search must start on the midpoint of the range towards both ends.** If
+/// the search were linear in the range, then it would turn the entire binary search into a linear
+/// search, defeating its purpose.
+///
+/// If the [`value`](LocatedItem::value) in the [`LocatedItem`] returned by `locate_item_in` is not
+/// the _item_ that is being search for, the binary search will continue in either before or after
+/// the [`consumed_range`](LocatedItem::consumed_range).
+///
+/// When the `target` is found, the function returns [`Result::Ok`] with the range where the value
+/// was found. If the `target` is NOT found, the function returns [`Result::Err`] with the index at
+/// which the `target` could be inserted in the source _elements_ while maintaining the sort order.
+///
+/// # Example
+///
+/// ```
+/// use binary_search_collection::{sparse_binary_search, LocatedItem, Range, SearchResult, RangeExt as _, SliceExt as _};
+/// use std::assert_matches;
+/// use std::cmp::Ordering;
+///
+/// fn reverse_find_delimited(sequence: &[char], chars: &[char], delimiter: char) -> SearchResult<Range> {
+///     #[derive(PartialEq, Eq)]
+///     struct Reverse<T>(T);
+///
+///     impl<T: Ord> PartialOrd for Reverse<T> {
+///         fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+///             Some(self.cmp(other))
+///         }
+///     }
+///
+///     impl<T: Ord> Ord for Reverse<T> {
+///         fn cmp(&self, other: &Self) -> Ordering {
+///             self.0.cmp(&other.0).reverse()
+///         }
+///     }
+///
+///     sparse_binary_search(&Reverse(sequence), chars.len(), |range| {
+///         let located_subslice = chars
+///             .in_range(range, |slice| {
+///                 slice.subslice_range_from_midpoint_to_delimiters(|&c| c == delimiter)
+///             });
+///
+///         let value_range = located_subslice.subslice_range;
+///         let value = Reverse(&chars[value_range]);
+///         let consumed_range = located_subslice.consumed_range;
+///
+///         Some(LocatedItem {
+///             value,
+///             value_range,
+///             consumed_range,
+///         })
+///     })
+/// }
+///
+/// let chars = ['f', 'f', '-', 'd', 'd', '-', 'b', 'b'];
+///
+/// assert_eq!(     reverse_find_delimited(&['g', 'g'], &chars, '-'), Err(0));
+/// assert_eq!(     reverse_find_delimited(&['f', 'f'], &chars, '-'), Ok((0..2).into()));
+/// assert_matches!(reverse_find_delimited(&['e', 'e'], &chars, '-'), Err(2..=3));
+/// assert_eq!(     reverse_find_delimited(&['d', 'd'], &chars, '-'), Ok((3..5).into()));
+/// assert_matches!(reverse_find_delimited(&['c', 'c'], &chars, '-'), Err(5..=6));
+/// assert_eq!(     reverse_find_delimited(&['b', 'b'], &chars, '-'), Ok((6..8).into()));
+/// assert_eq!(     reverse_find_delimited(&['a', 'a'], &chars, '-'), Err(8));
+/// ```
+#[expect(clippy::missing_errors_doc)]
+pub fn sparse_binary_search<T, Q>(
+    target: &Q,
+    element_count: usize,
+    mut locate_item_in: impl FnMut(Range) -> Option<LocatedItem<T>>,
+) -> SearchResult<Range>
+where
+    T: Borrow<Q>,
+    Q: Ord + ?Sized,
+{
+    let mut start = 0;
+    let mut end = element_count;
+
+    while start < end {
+        let search_range = (start..end).into();
+        let Some(li) = locate_item_in(search_range) else {
+            break;
+        };
+
+        debug_assert!(li.consumed_range.is_subrange_of(search_range));
+
+        match li.value.borrow().cmp(target) {
+            Ordering::Less => start = li.consumed_range.end,
+            Ordering::Equal => return Ok(li.value_range),
+            Ordering::Greater => end = li.consumed_range.start,
+        }
+    }
+
+    Err(start)
+}
 
 /// The location of a subslice in a source slice.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct LocatedSubslice {
-    /// The range of the source slice that delimits the elements of the subslice. It must be a subrange of `source_range`.
+    /// The range of the source slice that delimits the _elements_ of the subslice.
+    ///
+    /// It must be a subrange of `consumed_range`.
     pub subslice_range: Range,
 
-    /// The range of the source slice that delimits the elements that were "consumed" in the search for the subslice.
+    /// The range of _element_ in the source slice that were "consumed" in the search for the subslice.
     ///
     /// It may include delimiters that were used to determine the `subslice_range`.
     pub consumed_range: Range,
 }
 
+impl Offset for LocatedSubslice {
+    fn offset(self, amount: usize) -> Self {
+        LocatedSubslice {
+            subslice_range: self.subslice_range.offset(amount),
+            consumed_range: self.consumed_range.offset(amount),
+        }
+    }
+}
+
 /// Executes a binary search for a `subslice` in a `source` slice.
 ///
-/// The `locate_subslice_in` closure must locate a subslice in its received slice parameter. **The
-/// search must start on the midpoint of the range towards both ends.** If the search were linear in
-/// the range, then it would turn the entire binary search into a linear search, defeating its purpose.
+/// Read the [module](self) documentation for basic information.
 ///
-/// The [`subslice_range`](LocatedSubslice::subslice_range) in the [`LocatedSubslice`] returned by
-/// `locate_subslice_in` must contain the range of its slice parameter that is to be used for
-/// comparisons in the search for the wanted `target_subslice`.
+/// The `locate_subslice_in` closure must locate a subslice in the source _elements_ as delimited by
+/// its range parameter. **The search must start on the midpoint of the range towards both ends.**
+/// If the search were linear in the range, then it would turn the entire binary search into a
+/// linear search, defeating its purpose.
 ///
-/// The [`consumed_range`](LocatedSubslice::consumed_range) in the [`LocatedSubslice`] returned by
-/// `locate_subslice_in` must contain the range of its slice parameter that were "consumed" in the
-/// search for the `subslice_range`. It may include delimiters that were used to determine the
-/// `subslice_range`.
+/// If the [`subslice_range`](LocatedSubslice::subslice_range) in the [`LocatedSubslice`] returned
+/// by `locate_subslice_in` is not the subslice that is being searched for, the binary search will
+/// continue in either before or after the [`consumed_range`](LocatedSubslice::consumed_range).
 ///
-/// When the `target_subslice` is found, the function returns [`Result::Ok`] with a
-/// [`LocatedSubslice`] containing ranges of the `source` slice. If the value is NOT found, the
-/// function returns [`Result::Err`] with the index at which the `target_subslice` could be inserted
-/// in the `source` while maintaining the sort order.
+/// When the `target_subslice` is found, the function returns [`Result::Ok`] with the corresponding
+/// [`LocatedSubslice`]. If the `target_subslice` is NOT found, the function returns [`Result::Err`]
+/// with the index at which the `target_subslice` could be inserted in the `source` _elements_ while
+/// maintaining the sort order.
 ///
 /// # Examples
 ///
@@ -44,7 +198,7 @@ pub struct LocatedSubslice {
 /// When a delimiter is not expected to be followed by another one:
 ///
 /// ```
-/// use binary_search_collection::{subslice_binary_search, LocatedSubslice, Range, SearchResult, RangeExt as _, SliceExt as _};
+/// use binary_search_collection::{subslice_binary_search, Range, SearchResult, SliceExt as _};
 /// use std::assert_matches;
 ///
 /// fn find_delimited(sequence: &[char], chars: &[char], delimiter: char) -> SearchResult<Range> {
@@ -70,7 +224,7 @@ pub struct LocatedSubslice {
 /// When multiple delimiters in sequence constitute a gap:
 ///
 /// ```
-/// use binary_search_collection::{subslice_binary_search, LocatedSubslice, Range, SearchResult, RangeExt as _, SliceExt as _};
+/// use binary_search_collection::{subslice_binary_search, Range, SearchResult, RangeExt as _, SliceExt as _};
 /// use std::assert_matches;
 ///
 /// fn find_subslice_with_gaps<T: Ord>(
@@ -83,7 +237,7 @@ pub struct LocatedSubslice {
 ///             .locate_from_midpoint(|x| x != gap)
 ///             .map(|non_gap_index| {
 ///                 let non_gap_range = Range::from_start_and_len(non_gap_index, 1);
-///                 slice.extend_range_to_delimiters(non_gap_range, |x| x == gap)
+///                 slice.extend_subslice_range_to_delimiters(non_gap_range, |x| x == gap)
 ///             })
 ///     })
 /// }
@@ -104,29 +258,22 @@ pub fn subslice_binary_search<'a, T: Ord>(
     source: &'a [T],
     mut locate_subslice_in: impl FnMut(&'a [T]) -> Option<LocatedSubslice>,
 ) -> SearchResult<Range> {
-    let mut start = 0;
-    let mut end = source.len();
+    sparse_binary_search(target_subslice, source.len(), |search_range| {
+        source
+            .in_range(search_range, &mut locate_subslice_in)
+            .map(|ls| {
+                debug_assert!(ls.subslice_range.is_subrange_of(ls.consumed_range));
+                debug_assert!(ls.consumed_range.is_subrange_of(search_range));
 
-    while start < end {
-        let search_range: Range = (start..end).into();
-        let search_slice = &source[search_range];
-        let Some(ls) = locate_subslice_in(search_slice) else {
-            break;
-        };
-        debug_assert!(ls.consumed_range.end <= search_slice.len());
-        debug_assert!(ls.subslice_range.is_subrange_of(ls.consumed_range));
+                let value_range = ls.subslice_range;
 
-        let consumed_range = ls.consumed_range.moved_by(start);
-        let subslice_range = ls.subslice_range.moved_by(start);
-
-        match source[subslice_range].cmp(target_subslice) {
-            Ordering::Less => start = consumed_range.end,
-            Ordering::Equal => return Ok(subslice_range),
-            Ordering::Greater => end = consumed_range.start,
-        }
-    }
-
-    Err(start)
+                LocatedItem {
+                    value: &source[value_range],
+                    value_range,
+                    consumed_range: ls.consumed_range,
+                }
+            })
+    })
 }
 
 const CR: u8 = b'\r';
@@ -194,9 +341,6 @@ fn strip_line_break(line: &[u8]) -> &[u8] {
 pub trait RangeExt: Copy {
     fn from_start_and_len(start: usize, len: usize) -> Self;
 
-    #[must_use]
-    fn moved_by(self, amount: usize) -> Self;
-
     fn is_subrange_of(self, other: Self) -> bool;
 
     fn midpoint(self) -> usize;
@@ -210,12 +354,6 @@ impl RangeExt for Range {
             start,
             end: start + len,
         }
-    }
-
-    fn moved_by(mut self, amount: usize) -> Self {
-        self.start += amount;
-        self.end += amount;
-        self
     }
 
     fn is_subrange_of(self, other: Self) -> bool {
@@ -260,58 +398,48 @@ impl Iterator for IterFromMidpoint {
 
 /// Extension methods for [slice]s.
 pub trait SliceExt<T>: AsRef<[T]> {
-    /// The range of this slice.
-    ///
-    /// Corresponds to `0..self.len()`.
     fn range(&self) -> Range {
         let this = self.as_ref();
         (0..this.len()).into()
     }
 
-    /// Searches for an element in a slice from the specified `index` to the right, returning its index.
-    ///
-    /// ```
-    /// # use binary_search_collection::SliceExt as _;
-    /// # fn f<T>(slice: &[T], index: usize, predicate: impl FnMut(&T) -> bool + Copy) {
-    /// # let pos1 =
-    /// slice.position_from(index, predicate);
-    /// # assert_eq!(pos1, Some(2));
-    /// // is equivalent to:
-    /// # let pos2 =
-    /// slice[index..].iter().position(predicate).map(|i| i + index);
-    /// # assert_eq!(pos2, Some(2));
-    /// # }
-    /// # f(&['a', 'b', 'a', 'b'], 1, |&c| c == 'a');
-    /// ```
-    fn position_from<P>(&self, index: usize, predicate: P) -> Option<usize>
+    fn in_range<'a, O: Offset>(
+        &'a self,
+        range_bounds: impl RangeBounds<usize>,
+        f: impl FnOnce(&'a [T]) -> O,
+    ) -> O
     where
-        P: FnMut(&T) -> bool,
+        T: 'a,
     {
-        let this = self.as_ref();
-        this[index..].iter().position(predicate).map(|i| i + index)
+        let start = match range_bounds.start_bound() {
+            Bound::Included(i) => *i,
+            Bound::Excluded(i) => i + 1,
+            Bound::Unbounded => 0,
+        };
+
+        let range_bounds = {
+            let start_bound = Bound::Included(start);
+            let end_bound = range_bounds.end_bound().cloned();
+            (start_bound, end_bound)
+        };
+
+        let slice = &self.as_ref()[range_bounds];
+        let output = f(slice);
+        output.offset(start)
     }
 
-    /// Searches for an element in a slice from the specified `index` to the left, returning its index.
-    ///
-    /// ```
-    /// # use binary_search_collection::SliceExt as _;
-    /// # fn f<T>(slice: &[T], index: usize, predicate: impl FnMut(&T) -> bool + Copy) {
-    /// # let pos1 =
-    /// slice.rposition_from(index, predicate);
-    /// # assert_eq!(pos1, Some(1));
-    /// // is equivalent to:
-    /// # let pos2 =
-    /// slice[..index].iter().rposition(predicate);
-    /// # assert_eq!(pos2, Some(1));
-    /// # }
-    /// # f(&['a', 'b', 'a', 'b'], 2, |&c| c == 'b');
-    /// ```
-    fn rposition_from<P>(&self, index: usize, predicate: P) -> Option<usize>
+    fn locate_first<P>(&self, predicate: P) -> Option<usize>
     where
         P: FnMut(&T) -> bool,
     {
-        let this = self.as_ref();
-        this[..index].iter().rposition(predicate)
+        self.as_ref().iter().position(predicate)
+    }
+
+    fn locate_last<P>(&self, predicate: P) -> Option<usize>
+    where
+        P: FnMut(&T) -> bool,
+    {
+        self.as_ref().iter().rposition(predicate)
     }
 
     /// Search for an element in a slice from the midpoint towards both ends, returning its index.
@@ -327,18 +455,26 @@ pub trait SliceExt<T>: AsRef<[T]> {
             .find(|i| predicate(&this[*i]))
     }
 
-    fn extend_range_to_delimiters<P>(&self, range: Range, mut is_delimiter: P) -> LocatedSubslice
+    fn extend_subslice_range_to_delimiters<P>(
+        &self,
+        subslice_range: Range,
+        mut is_delimiter: P,
+    ) -> LocatedSubslice
     where
         P: FnMut(&T) -> bool,
     {
         let this = self.as_ref();
 
         let (subslice_start, consumed_start) = self
-            .rposition_from(range.start, &mut is_delimiter)
+            .in_range(..subslice_range.start, |slice| {
+                slice.locate_last(&mut is_delimiter)
+            })
             .map_or((0, 0), |i| (i + 1, i));
 
         let (subslice_end, consumed_end) = self
-            .position_from(range.end, &mut is_delimiter)
+            .in_range(subslice_range.end.., |slice| {
+                slice.locate_first(&mut is_delimiter)
+            })
             .map_or((this.len(), this.len()), |i| (i, i + 1));
 
         LocatedSubslice {
@@ -353,11 +489,28 @@ pub trait SliceExt<T>: AsRef<[T]> {
     {
         let mid = self.range().midpoint();
         let midpoint_range = Range::from_start_and_len(mid, 0);
-        self.extend_range_to_delimiters(midpoint_range, is_delimiter)
+        self.extend_subslice_range_to_delimiters(midpoint_range, is_delimiter)
     }
 }
 
 impl<T> SliceExt<T> for [T] {}
+
+pub trait Offset {
+    #[must_use]
+    fn offset(self, amount: usize) -> Self;
+}
+
+impl Offset for usize {
+    fn offset(self, amount: usize) -> Self {
+        self + amount
+    }
+}
+
+impl<O: Offset> Offset for Option<O> {
+    fn offset(self, amount: usize) -> Self {
+        self.map(|x| x.offset(amount))
+    }
+}
 
 #[cfg(test)]
 mod tests {
