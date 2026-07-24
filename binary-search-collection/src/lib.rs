@@ -61,3 +61,13 @@ pub struct LocatedItem<T> {
     /// It may include delimiters that were used to locate the _elements_ that derived the `value`.
     pub consumed_range: Range,
 }
+
+impl<T> Offset for LocatedItem<T> {
+    fn offset(self, amount: usize) -> Self {
+        LocatedItem {
+            value: self.value,
+            value_range: self.value_range.offset(amount),
+            consumed_range: self.consumed_range.offset(amount),
+        }
+    }
+}

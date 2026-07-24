@@ -2,8 +2,8 @@
 
 use core::ops::{Bound, RangeBounds};
 
-use crate::Range;
-use crate::subslice::LocatedSubslice;
+use crate::subslice::{self, LocatedSubslice};
+use crate::{Range, SearchResult, line};
 
 /// Extension methods for [`Range<usize>`].
 pub trait RangeExt: Copy {
@@ -13,6 +13,9 @@ pub trait RangeExt: Copy {
 
     fn midpoint(self) -> usize;
 
+    /// Returns an iterator that generates all the values in the range from the midpoint towards both ends.
+    ///
+    /// See the binary search with gaps example for [`crate::sparse::binary_search`].
     fn iter_from_midpoint(self) -> IterFromMidpoint;
 }
 
@@ -66,6 +69,37 @@ impl Iterator for IterFromMidpoint {
 
 /// Extension methods for [slice]s.
 pub trait SliceExt<T>: AsRef<[T]> {
+    /// The function [`subslice::binary_search`] as an extension method.
+    ///
+    /// ```
+    /// # use binary_search_collection::{Range, SearchResult};
+    /// # use binary_search_collection::subslice::{self, LocatedSubslice};
+    /// # use binary_search_collection::ext::SliceExt as _;
+    /// # fn f<T: Ord, E>(
+    /// #     slice: &[T],
+    /// #     subslice: &[T],
+    /// #     mut locate_subslice_in: impl FnMut(&[T]) -> Result<Option<LocatedSubslice>, E> + Copy,
+    /// # ) -> SearchResult<Range, E> {
+    /// #     if unimplemented!() {
+    /// slice.subslice_binary_search(subslice, locate_subslice_in)
+    /// #     } else {
+    /// // is equivalent to:
+    /// subslice::binary_search(subslice, slice, locate_subslice_in)
+    /// #     }
+    /// # }
+    /// ```
+    #[expect(clippy::missing_errors_doc)]
+    fn subslice_binary_search<'a, E>(
+        &'a self,
+        subslice: &[T],
+        locate_subslice_in: impl FnMut(&'a [T]) -> Result<Option<LocatedSubslice>, E>,
+    ) -> SearchResult<Range, E>
+    where
+        T: Ord + 'a,
+    {
+        subslice::binary_search(subslice, self.as_ref(), locate_subslice_in)
+    }
+
     fn range(&self) -> Range {
         let this = self.as_ref();
         (0..this.len()).into()
@@ -162,6 +196,34 @@ pub trait SliceExt<T>: AsRef<[T]> {
 }
 
 impl<T> SliceExt<T> for [T] {}
+
+/// Extension methods for [slice]s.
+pub trait ByteSliceExt: SliceExt<u8> {
+    /// The function [`line::binary_search`] as an extension method.
+    ///
+    /// ```
+    /// # use binary_search_collection::Range;
+    /// # use binary_search_collection::ext::ByteSliceExt as _;
+    /// # use binary_search_collection::line;
+    /// # fn f(
+    /// #     slice: &[u8],
+    /// #     line: impl AsRef<[u8]>,
+    /// # ) -> Result<Range, usize> {
+    /// #     if unimplemented!() {
+    /// slice.line_binary_search(line)
+    /// #     } else {
+    /// // is equivalent to:
+    /// line::binary_search(line, slice)
+    /// #     }
+    /// # }
+    /// ```
+    #[expect(clippy::missing_errors_doc)]
+    fn line_binary_search(&self, line: impl AsRef<[u8]>) -> Result<Range, usize> {
+        line::binary_search(line, self.as_ref())
+    }
+}
+
+impl ByteSliceExt for [u8] {}
 
 pub trait Offset {
     #[must_use]

@@ -44,6 +44,8 @@ impl Offset for LocatedSubslice {
 /// with the index at which the `target_subslice` could be inserted in the `source` _elements_ while
 /// maintaining the sort order.
 ///
+/// This function is also available as an [extension method for slices](crate::ext::SliceExt::subslice_binary_search).
+///
 /// # Examples
 ///
 /// ## Delimited subslices

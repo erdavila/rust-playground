@@ -2,9 +2,9 @@
 
 use core::convert::Infallible;
 
+use crate::Range;
 use crate::ext::{RangeExt as _, SliceExt as _};
-use crate::subslice::LocatedSubslice;
-use crate::{Range, subslice};
+use crate::subslice::{self, LocatedSubslice};
 
 const CR: u8 = b'\r';
 const LF: u8 = b'\n';
@@ -17,6 +17,8 @@ const LF: u8 = b'\n';
 /// When the `target_line` is found, its byte range without the line break is returned. If the
 /// `target_line` is not found then [`Err`] is returned, containing the index where the
 /// `target_line` could be inserted while maintaining sorted order.
+///
+/// This function is also available as an [extension method for slices](crate::ext::ByteSliceExt::line_binary_search).
 ///
 /// # Example
 ///
