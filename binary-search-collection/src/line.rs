@@ -1,8 +1,10 @@
 //! Binary search of lines as loaded from a text file.
 
+use core::convert::Infallible;
+
 use crate::ext::{RangeExt as _, SliceExt as _};
 use crate::subslice::LocatedSubslice;
-use crate::{Range, SearchResult, subslice};
+use crate::{Range, subslice};
 
 const CR: u8 = b'\r';
 const LF: u8 = b'\n';
@@ -30,23 +32,27 @@ const LF: u8 = b'\n';
 /// }
 /// ```
 #[expect(clippy::missing_errors_doc)]
-pub fn binary_search(target_line: impl AsRef<[u8]>, bytes: &[u8]) -> SearchResult<Range> {
-    subslice::binary_search(target_line.as_ref(), bytes, |search_slice| {
-        let ls = search_slice.subslice_range_from_midpoint_to_delimiters(|&b| b == LF);
+pub fn binary_search(target_line: impl AsRef<[u8]>, bytes: &[u8]) -> Result<Range, usize> {
+    let Ok(result) =
+        subslice::binary_search::<_, Infallible>(target_line.as_ref(), bytes, |search_slice| {
+            let ls = search_slice.subslice_range_from_midpoint_to_delimiters(|&b| b == LF);
 
-        let line_start = ls.subslice_range.start;
-        let range_with_break = (line_start..ls.consumed_range.end).into();
+            let line_start = ls.subslice_range.start;
+            let range_with_break = (line_start..ls.consumed_range.end).into();
 
-        let line_with_break = &search_slice[range_with_break];
-        let line_without_break = strip_line_break(line_with_break);
+            let line_with_break = &search_slice[range_with_break];
+            let line_without_break = strip_line_break(line_with_break);
 
-        let range_without_break = Range::from_start_and_len(line_start, line_without_break.len());
+            let range_without_break =
+                Range::from_start_and_len(line_start, line_without_break.len());
 
-        Some(LocatedSubslice {
-            subslice_range: range_without_break,
-            consumed_range: range_with_break,
-        })
-    })
+            Ok(Some(LocatedSubslice {
+                subslice_range: range_without_break,
+                consumed_range: range_with_break,
+            }))
+        });
+
+    result
 }
 
 #[must_use]

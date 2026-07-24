@@ -180,6 +180,12 @@ impl<O: Offset> Offset for Option<O> {
     }
 }
 
+impl<O: Offset, E> Offset for Result<O, E> {
+    fn offset(self, amount: usize) -> Self {
+        self.map(|x| x.offset(amount))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     extern crate alloc;

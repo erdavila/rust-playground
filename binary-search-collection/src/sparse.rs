@@ -28,12 +28,13 @@ use crate::{LocatedItem, Range, SearchResult};
 /// Subslices with delimiters, sorted in reverse order:
 ///
 /// ```
-/// use binary_search_collection::{sparse, LocatedItem, Range, SearchResult};
+/// use binary_search_collection::{sparse, LocatedItem, Range};
 /// use binary_search_collection::ext::{RangeExt as _, SliceExt as _};
 /// use std::assert_matches;
 /// use std::cmp::Ordering;
+/// use std::convert::Infallible;
 ///
-/// fn reverse_find_delimited(sequence: &[char], chars: &[char], delimiter: char) -> SearchResult<Range> {
+/// fn reverse_find_delimited(sequence: &[char], chars: &[char], delimiter: char) -> Result<Range, usize> {
 ///     #[derive(PartialEq, Eq)]
 ///     struct Reverse<T>(T);
 ///
@@ -49,7 +50,7 @@ use crate::{LocatedItem, Range, SearchResult};
 ///         }
 ///     }
 ///
-///     sparse::binary_search(&Reverse(sequence), chars.len(), |range| {
+///     let Ok(result) = sparse::binary_search::<_, _, Infallible>(&Reverse(sequence), chars.len(), |range| {
 ///         let located_subslice = chars
 ///             .in_range(range, |slice| {
 ///                 slice.subslice_range_from_midpoint_to_delimiters(|&c| c == delimiter)
@@ -59,12 +60,14 @@ use crate::{LocatedItem, Range, SearchResult};
 ///         let value = Reverse(&chars[value_range]);
 ///         let consumed_range = located_subslice.consumed_range;
 ///
-///         Some(LocatedItem {
+///         Ok(Some(LocatedItem {
 ///             value,
 ///             value_range,
 ///             consumed_range,
-///         })
-///     })
+///         }))
+///     });
+///
+///     result
 /// }
 ///
 /// let chars = ['f', 'f', '-', 'd', 'd', '-', 'b', 'b'];
@@ -78,11 +81,11 @@ use crate::{LocatedItem, Range, SearchResult};
 /// assert_eq!(     reverse_find_delimited(&['a', 'a'], &chars, '-'), Err(8));
 /// ```
 #[expect(clippy::missing_errors_doc)]
-pub fn binary_search<T, Q>(
+pub fn binary_search<T, Q, E>(
     target: &Q,
     element_count: usize,
-    mut locate_item_in: impl FnMut(Range) -> Option<LocatedItem<T>>,
-) -> SearchResult<Range>
+    mut locate_item_in: impl FnMut(Range) -> Result<Option<LocatedItem<T>>, E>,
+) -> SearchResult<Range, E>
 where
     T: Borrow<Q>,
     Q: Ord + ?Sized,
@@ -92,7 +95,7 @@ where
 
     while start < end {
         let search_range = (start..end).into();
-        let Some(li) = locate_item_in(search_range) else {
+        let Some(li) = locate_item_in(search_range)? else {
             break;
         };
 
@@ -100,10 +103,10 @@ where
 
         match li.value.borrow().cmp(target) {
             Ordering::Less => start = li.consumed_range.end,
-            Ordering::Equal => return Ok(li.value_range),
+            Ordering::Equal => return Ok(Ok(li.value_range)),
             Ordering::Greater => end = li.consumed_range.start,
         }
     }
 
-    Err(start)
+    Ok(Err(start))
 }

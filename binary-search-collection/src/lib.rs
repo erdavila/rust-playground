@@ -6,8 +6,8 @@
 //!
 //! It is important to define the following value types:
 //!
-//! - _elements_ - The low-level values. Indexes and ranges refer to them.
-//! - _items_ - The values that are compared during the search. They are somehow derived from the _elements_.
+//! - _elements_: The low-level values. Indexes and ranges refer to them.
+//! - _items_: The values that are compared during the search. They are somehow derived from the _elements_.
 //!
 //! The variants include:
 //!
@@ -32,7 +32,15 @@ impl Offset for Range {
     }
 }
 
-pub type SearchResult<T> = Result<T, usize>;
+/// The return type for functions where the callback may fail.
+///
+/// The value can be:
+///
+/// - `Ok(Ok(x))`: The _item_ was found.
+/// - `Ok(Err(i))`: The _item_ was NOT found. It could be inserted at the index `i` in the source
+///   _elements_ while maintaining the sort order.
+/// - `Err(e)`: The callback closure failed with the error `e`.
+pub type SearchResult<T, E> = Result<Result<T, usize>, E>;
 
 /// The value and its location from an `elements` range.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
