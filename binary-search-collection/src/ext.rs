@@ -15,7 +15,7 @@ pub trait RangeExt: Copy {
 
     /// Returns an iterator that generates all the values in the range from the midpoint towards both ends.
     ///
-    /// See the binary search with gaps example for [`crate::sparse::binary_search`].
+    /// Check the [Values with Gaps](crate#values-with-gaps) example.
     fn iter_from_midpoint(self) -> IterFromMidpoint;
 }
 

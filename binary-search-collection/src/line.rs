@@ -22,17 +22,7 @@ const LF: u8 = b'\n';
 ///
 /// # Example
 ///
-/// ```
-/// use std::fs::read;
-/// use std::path::Path;
-/// use binary_search_collection::Range;
-/// use binary_search_collection::line;
-///
-/// fn locate_line_in_file<P: AsRef<Path>>(line: &str, path: P) -> Option<Range> {
-///     let bytes = read(path).unwrap();
-///     line::binary_search(line, &bytes).ok()
-/// }
-/// ```
+/// - [Lines from a text file](crate#lines-from-a-text-file)
 #[expect(clippy::missing_errors_doc)]
 pub fn binary_search(target_line: impl AsRef<[u8]>, bytes: &[u8]) -> Result<Range, usize> {
     let Ok(result) =

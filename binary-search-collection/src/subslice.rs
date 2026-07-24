@@ -28,7 +28,7 @@ impl Offset for LocatedSubslice {
 
 /// Executes a binary search for a `subslice` in a `source` slice.
 ///
-/// Read the [module](self) documentation for basic information.
+/// Read the [crate root](self) documentation for basic information.
 ///
 /// The `locate_subslice_in` closure must locate a subslice in the source _elements_ as delimited by
 /// its range parameter. **The search must start on the midpoint of the range towards both ends.**
@@ -48,106 +48,10 @@ impl Offset for LocatedSubslice {
 ///
 /// # Examples
 ///
-/// ## Delimited subslices
+/// - [Subslices with gaps](crate#subslices-with-gaps)
+/// - [Subslices with delimiters](crate#subslices-with-delimiters)
+/// - [Regular binary search](crate#regular-binary-search)
 ///
-/// When a delimiter is not expected to be followed by another one:
-///
-/// ```
-/// use binary_search_collection::{subslice, Range};
-/// use binary_search_collection::ext::SliceExt as _;
-/// use std::assert_matches;
-/// use std::convert::Infallible;
-///
-/// fn find_delimited(sequence: &[char], chars: &[char], delimiter: char) -> Result<Range, usize> {
-///     let Ok(result) = subslice::binary_search::<_, Infallible>(sequence, chars, |slice| {
-///         let located_subslice = slice.subslice_range_from_midpoint_to_delimiters(|&c| c == delimiter);
-///         Ok(Some(located_subslice))
-///     });
-///
-///     result
-/// }
-///
-/// let chars = ['b', 'b', '-', 'd', 'd', '-', 'f', 'f'];
-///
-/// assert_eq!(     find_delimited(&['a', 'a'], &chars, '-'), Err(0));
-/// assert_eq!(     find_delimited(&['b', 'b'], &chars, '-'), Ok((0..2).into()));
-/// assert_matches!(find_delimited(&['c', 'c'], &chars, '-'), Err(2..=3));
-/// assert_eq!(     find_delimited(&['d', 'd'], &chars, '-'), Ok((3..5).into()));
-/// assert_matches!(find_delimited(&['e', 'e'], &chars, '-'), Err(5..=6));
-/// assert_eq!(     find_delimited(&['f', 'f'], &chars, '-'), Ok((6..8).into()));
-/// assert_eq!(     find_delimited(&['g', 'g'], &chars, '-'), Err(8));
-/// ```
-///
-/// ## Subslices separated by gaps
-///
-/// When multiple delimiters in sequence constitute a gap:
-///
-/// ```
-/// use binary_search_collection::{subslice, Range};
-/// use binary_search_collection::ext::{RangeExt as _, SliceExt as _};
-/// use std::assert_matches;
-/// use std::convert::Infallible;
-///
-/// fn find_subslice_with_gaps<T: Ord>(
-///     subslice: &[T],
-///     source: &[T],
-///     gap: &T,
-/// ) -> Result<Range, usize> {
-///     let Ok(result) = subslice::binary_search::<_, Infallible>(subslice, source, |slice| {
-///         let located_subslice_opt = slice
-///             .locate_from_midpoint(|x| x != gap)
-///             .map(|non_gap_index| {
-///                 let non_gap_range = Range::from_start_and_len(non_gap_index, 1);
-///                 slice.extend_subslice_range_to_delimiters(non_gap_range, |x| x == gap)
-///             });
-///         Ok(located_subslice_opt)
-///     });
-///
-///     result
-/// }
-///
-/// let elements = ['a', 'a', '-', '-', '-', 'b', 'b', '-', 'c', 'c', '-', '-'];
-///
-/// assert_eq!(     find_subslice_with_gaps(&['a'], &elements, &'-'), Err(0));
-/// assert_eq!(     find_subslice_with_gaps(&['a', 'a'], &elements, &'-'), Ok((0..2).into()));
-/// assert_matches!(find_subslice_with_gaps(&['b'], &elements, &'-'), Err(2..=5));
-/// assert_eq!(     find_subslice_with_gaps(&['b', 'b'], &elements, &'-'), Ok((5..7).into()));
-/// assert_matches!(find_subslice_with_gaps(&['c'], &elements, &'-'), Err(7..=8));
-/// assert_eq!(     find_subslice_with_gaps(&['c', 'c'], &elements, &'-'), Ok((8..10).into()));
-/// assert_matches!(find_subslice_with_gaps(&['d'], &elements, &'-'), Err(10..=12));
-/// ```
-///
-/// ## Regular binary search
-///
-/// Just like [`slice::binary_search`]:
-///
-/// ```
-/// use binary_search_collection::Range;
-/// use binary_search_collection::subslice::{self, LocatedSubslice};
-/// use binary_search_collection::ext::{RangeExt as _, SliceExt as _};
-/// use std::convert::Infallible;
-///
-/// fn regular_binary_search<T: Ord>(value: &T, list: &[T]) -> Result<usize, usize> {
-///     let value_slice = core::slice::from_ref(value);
-///     let Ok(result) = subslice::binary_search::<_, Infallible>(value_slice, list, |slice| {
-///         let value_range = Range::from_start_and_len(slice.range().midpoint(), 1);
-///         Ok(Some(LocatedSubslice {
-///             subslice_range: value_range,
-///             consumed_range: value_range,
-///         }))
-///     });
-///
-///     result.map(|range| range.start)
-/// }
-///
-/// assert_eq!(regular_binary_search(&5, &[10, 20, 30]), Err(0));
-/// assert_eq!(regular_binary_search(&10, &[10, 20, 30]), Ok(0));
-/// assert_eq!(regular_binary_search(&15, &[10, 20, 30]), Err(1));
-/// assert_eq!(regular_binary_search(&20, &[10, 20, 30]), Ok(1));
-/// assert_eq!(regular_binary_search(&25, &[10, 20, 30]), Err(2));
-/// assert_eq!(regular_binary_search(&30, &[10, 20, 30]), Ok(2));
-/// assert_eq!(regular_binary_search(&35, &[10, 20, 30]), Err(3));
-/// ```
 #[expect(clippy::missing_errors_doc)]
 pub fn binary_search<'a, T: Ord, E>(
     target_subslice: &[T],

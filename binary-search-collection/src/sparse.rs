@@ -8,7 +8,7 @@ use crate::{LocatedItem, Range, SearchResult};
 
 /// Executes a binary search in a sequence of _elements_ in an unspecified source.
 ///
-/// Read the [module](self) documentation for basic information.
+/// Read the [crate root](self) documentation for basic information.
 ///
 /// The `locate_item_in` closure must locate an _item_ in the source _elements_ as delimited by its
 /// range parameter. **The search must start on the midpoint of the range towards both ends.** If
@@ -25,61 +25,8 @@ use crate::{LocatedItem, Range, SearchResult};
 ///
 /// # Example
 ///
-/// Subslices with delimiters, sorted in reverse order:
-///
-/// ```
-/// use binary_search_collection::{sparse, LocatedItem, Range};
-/// use binary_search_collection::ext::{RangeExt as _, SliceExt as _};
-/// use std::assert_matches;
-/// use std::cmp::Ordering;
-/// use std::convert::Infallible;
-///
-/// fn reverse_find_delimited(sequence: &[char], chars: &[char], delimiter: char) -> Result<Range, usize> {
-///     #[derive(PartialEq, Eq)]
-///     struct Reverse<T>(T);
-///
-///     impl<T: Ord> PartialOrd for Reverse<T> {
-///         fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-///             Some(self.cmp(other))
-///         }
-///     }
-///
-///     impl<T: Ord> Ord for Reverse<T> {
-///         fn cmp(&self, other: &Self) -> Ordering {
-///             self.0.cmp(&other.0).reverse()
-///         }
-///     }
-///
-///     let Ok(result) = sparse::binary_search::<_, _, Infallible>(&Reverse(sequence), chars.len(), |range| {
-///         let located_subslice = chars
-///             .in_range(range, |slice| {
-///                 slice.subslice_range_from_midpoint_to_delimiters(|&c| c == delimiter)
-///             });
-///
-///         let value_range = located_subslice.subslice_range;
-///         let value = Reverse(&chars[value_range]);
-///         let consumed_range = located_subslice.consumed_range;
-///
-///         Ok(Some(LocatedItem {
-///             value,
-///             value_range,
-///             consumed_range,
-///         }))
-///     });
-///
-///     result
-/// }
-///
-/// let chars = ['f', 'f', '-', 'd', 'd', '-', 'b', 'b'];
-///
-/// assert_eq!(     reverse_find_delimited(&['g', 'g'], &chars, '-'), Err(0));
-/// assert_eq!(     reverse_find_delimited(&['f', 'f'], &chars, '-'), Ok((0..2).into()));
-/// assert_matches!(reverse_find_delimited(&['e', 'e'], &chars, '-'), Err(2..=3));
-/// assert_eq!(     reverse_find_delimited(&['d', 'd'], &chars, '-'), Ok((3..5).into()));
-/// assert_matches!(reverse_find_delimited(&['c', 'c'], &chars, '-'), Err(5..=6));
-/// assert_eq!(     reverse_find_delimited(&['b', 'b'], &chars, '-'), Ok((6..8).into()));
-/// assert_eq!(     reverse_find_delimited(&['a', 'a'], &chars, '-'), Err(8));
-/// ```
+/// - [Values with gaps](crate#values-with-gaps)
+/// - [Subslices with delimiters with a custom comparison](crate#subslices-with-delimiters-with-a-custom-comparison)
 #[expect(clippy::missing_errors_doc)]
 pub fn binary_search<T, Q, E>(
     target: &Q,
