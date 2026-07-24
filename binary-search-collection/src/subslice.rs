@@ -108,6 +108,37 @@ impl Offset for LocatedSubslice {
 /// assert_eq!(     find_subslice_with_gaps(&['c', 'c'], &elements, &'-'), Ok((8..10).into()));
 /// assert_matches!(find_subslice_with_gaps(&['d'], &elements, &'-'), Err(10..=12));
 /// ```
+///
+/// ## Regular binary search
+///
+/// Just like [`slice::binary_search`]:
+///
+/// ```
+/// use binary_search_collection::{Range, SearchResult};
+/// use binary_search_collection::subslice::{self, LocatedSubslice};
+/// use binary_search_collection::ext::{RangeExt as _, SliceExt as _};
+///
+/// fn regular_binary_search<T: Ord>(value: &T, list: &[T]) -> SearchResult<usize> {
+///     let value_slice = core::slice::from_ref(value);
+///     let result = subslice::binary_search(value_slice, list, |slice| {
+///         let value_range = Range::from_start_and_len(slice.range().midpoint(), 1);
+///         Some(LocatedSubslice {
+///             subslice_range: value_range,
+///             consumed_range: value_range,
+///         })
+///     });
+///
+///     result.map(|range| range.start)
+/// }
+///
+/// assert_eq!(regular_binary_search(&5, &[10, 20, 30]), Err(0));
+/// assert_eq!(regular_binary_search(&10, &[10, 20, 30]), Ok(0));
+/// assert_eq!(regular_binary_search(&15, &[10, 20, 30]), Err(1));
+/// assert_eq!(regular_binary_search(&20, &[10, 20, 30]), Ok(1));
+/// assert_eq!(regular_binary_search(&25, &[10, 20, 30]), Err(2));
+/// assert_eq!(regular_binary_search(&30, &[10, 20, 30]), Ok(2));
+/// assert_eq!(regular_binary_search(&35, &[10, 20, 30]), Err(3));
+/// ```
 #[expect(clippy::missing_errors_doc)]
 pub fn binary_search<'a, T: Ord>(
     target_subslice: &[T],

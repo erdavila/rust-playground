@@ -25,6 +25,8 @@ use crate::{LocatedItem, Range, SearchResult};
 ///
 /// # Example
 ///
+/// Subslices with delimiters, sorted in reverse order:
+///
 /// ```
 /// use binary_search_collection::{sparse, LocatedItem, Range, SearchResult};
 /// use binary_search_collection::ext::{RangeExt as _, SliceExt as _};
