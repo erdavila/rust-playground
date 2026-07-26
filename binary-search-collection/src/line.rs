@@ -1,4 +1,8 @@
 //! Binary search of lines as loaded from a text file.
+//!
+//! Lines are delimited by line breaks, which are a line feed (`\n`) and may include a preceeding
+//! carriage return (`\r`) when present. The last line may not have a line break.
+//!
 
 use core::convert::Infallible;
 
@@ -6,23 +10,26 @@ use crate::Range;
 use crate::ext::{RangeExt as _, SliceExt as _};
 use crate::subslice::{self, LocatedSubslice};
 
+#[cfg(feature = "std")]
+pub mod buffered;
+
 const CR: u8 = b'\r';
 const LF: u8 = b'\n';
 
 /// Executes a binary search of a text line.
 ///
-/// Lines are delimited by line breaks, which are a line feed (`\n`) and may include a preceeding
-/// carriage return (`\r`) when present. The last line may not have a line break.
-///
 /// When the `target_line` is found, its byte range without the line break is returned. If the
 /// `target_line` is not found then [`Err`] is returned, containing the index where the
 /// `target_line` could be inserted while maintaining sorted order.
+///
+/// To execute a binary search by on-demand loading the content of a file, use
+/// [`line::buffered::binary_search`](crate::line::buffered::binary_search).
 ///
 /// This function is also available as an [extension method for slices](crate::ext::ByteSliceExt::line_binary_search).
 ///
 /// # Example
 ///
-/// - [Lines from a text file](crate#lines-from-a-text-file)
+/// - [Lines from a text file load in memory](crate#lines-from-a-text-file-in-memory)
 #[expect(clippy::missing_errors_doc)]
 pub fn binary_search(target_line: impl AsRef<[u8]>, bytes: &[u8]) -> Result<Range, usize> {
     let Ok(result) =
@@ -66,94 +73,134 @@ fn strip_line_break(line: &[u8]) -> &[u8] {
 #[cfg(test)]
 mod tests {
     extern crate alloc;
+    use alloc::collections::BTreeMap;
+    use alloc::vec::Vec;
 
     use super::*;
 
-    mod binary_search {
-        use alloc::collections::BTreeMap;
-        use alloc::vec::Vec;
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    pub(crate) enum LineBreak {
+        Lf,
+        CrLf,
+    }
 
+    impl LineBreak {
+        #[must_use]
+        fn bytes(self) -> &'static [u8] {
+            match self {
+                LineBreak::Lf => &[LF],
+                LineBreak::CrLf => &[CR, LF],
+            }
+        }
+    }
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    pub(crate) struct LineLocation {
+        pub(crate) range: Range,
+        pub(crate) line_break_len: usize,
+    }
+
+    pub(crate) fn make_bytes<'a, L: AsRef<[u8]> + Ord + ?Sized>(
+        lines: impl IntoIterator<Item = &'a L>,
+        line_break: LineBreak,
+        final_line_break: bool,
+    ) -> (Vec<u8>, BTreeMap<&'a L, LineLocation>) {
+        let mut bytes = Vec::new();
+        let mut ranges = BTreeMap::new();
+
+        let mut lines = lines.into_iter().peekable();
+
+        while let Some(line) = lines.next() {
+            let start = bytes.len();
+            bytes.extend_from_slice(line.as_ref());
+            let end = bytes.len();
+
+            let line_break_len = if final_line_break || lines.peek().is_some() {
+                let line_break_bytes = line_break.bytes();
+                bytes.extend(line_break_bytes);
+                line_break_bytes.len()
+            } else {
+                0
+            };
+
+            ranges.insert(
+                line,
+                LineLocation {
+                    range: (start..end).into(),
+                    line_break_len,
+                },
+            );
+        }
+
+        (bytes, ranges)
+    }
+
+    mod make_bytes {
         use super::*;
 
-        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-        enum LineBreak {
-            Lf,
-            CrLf,
-        }
+        #[test]
+        fn test() {
+            let lines = ["abc", "xyz"];
 
-        impl LineBreak {
-            #[must_use]
-            fn bytes(self) -> &'static [u8] {
-                match self {
-                    LineBreak::Lf => &[LF],
-                    LineBreak::CrLf => &[CR, LF],
-                }
-            }
-        }
-
-        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-        struct LineLocation {
-            range: Range,
-            line_break_len: usize,
-        }
-
-        fn make_bytes<'a, L: AsRef<[u8]> + Ord + ?Sized>(
-            lines: impl IntoIterator<Item = &'a L>,
-            line_break: LineBreak,
-            final_line_break: bool,
-        ) -> (Vec<u8>, BTreeMap<&'a L, LineLocation>) {
-            let mut bytes = Vec::new();
-            let mut ranges = BTreeMap::new();
-
-            let mut lines = lines.into_iter().peekable();
-
-            while let Some(line) = lines.next() {
-                let start = bytes.len();
-                bytes.extend_from_slice(line.as_ref());
-                let end = bytes.len();
-
-                let line_break_len = if final_line_break || lines.peek().is_some() {
-                    let line_break_bytes = line_break.bytes();
-                    bytes.extend(line_break_bytes);
-                    line_break_bytes.len()
-                } else {
-                    0
+            macro_rules! case {
+                ($line_break:expr, $final_line_break:expr, $expected_bytes:expr $(; $line:expr => $expected_range:expr, $expected_with_line_break:expr)*) => {
+                    let line_break = $line_break;
+                    let (bytes, locs) = make_bytes(lines, line_break, $final_line_break);
+                    assert_eq!(bytes, $expected_bytes);
+                    assert_eq!(locs, BTreeMap::from([
+                        $(
+                            (
+                                $line,
+                                LineLocation {
+                                    range: $expected_range.into(),
+                                    line_break_len: if $expected_with_line_break { line_break.bytes().len() } else { 0 },
+                                },
+                            ),
+                        )*
+                    ]));
                 };
-
-                ranges.insert(
-                    line,
-                    LineLocation {
-                        range: (start..end).into(),
-                        line_break_len,
-                    },
-                );
             }
 
-            (bytes, ranges)
+            case!(LineBreak::Lf, true, b"abc\nxyz\n"; "abc" => 0..3, true; "xyz" => 4..7, true);
+            case!(LineBreak::Lf, false, b"abc\nxyz"; "abc" => 0..3, true; "xyz" => 4..7, false);
+            case!(LineBreak::CrLf, true, b"abc\r\nxyz\r\n"; "abc" => 0..3, true; "xyz" => 5..8, true);
+            case!(LineBreak::CrLf, false, b"abc\r\nxyz"; "abc" => 0..3, true; "xyz" => 5..8, false);
         }
+    }
 
-        macro_rules! assert_line_found {
-            ($result:expr, $line_location:expr) => {{
-                let range = $result.unwrap();
-                assert_eq!(range, $line_location.range);
-            }};
-        }
+    macro_rules! assert_line_found {
+        ($result:expr, $line_location:expr $(, $($arg:tt)*)?) => {{
+            let result = $result;
+            let Ok(range) = result else {
+                $crate::line::tests::assert_line_found!(@panic "Expected Result::Ok instead of {:?}", result $(, $($arg)*)?);
+            };
+            assert_eq!(range, $line_location.range $(, $($arg)*)?);
+        }};
+        (@panic $msg:tt, $result:expr $(,)?) => {
+            panic!($msg, $result);
+        };
+        (@panic $msg:tt, $result:expr, $($arg:tt)+) => {
+            panic!(concat!($msg, ": {}"), $result, format_args!($($arg)+) );
+        };
+    }
+    pub(crate) use assert_line_found;
 
-        macro_rules! assert_line_not_found {
-            ($result:expr, before: $line_location:expr) => {
-                assert_line_not_found!(@ $result, $line_location.range.start);
-            };
-            ($result:expr, after: $line_location:expr) => {
-                let line_location = $line_location;
-                assert_line_not_found!(@ $result, line_location.range.end + line_location.line_break_len);
-            };
-            (@ $result:expr, $next_line_index:expr) => {
-                assert_eq!(
-                    $result,
-                    Err($next_line_index)
-                );
-            };
-        }
+    macro_rules! assert_line_not_found {
+        ($result:expr, before: $line_location:expr $(, $($arg:tt)*)?) => {
+            $crate::line::tests::assert_line_not_found!(@ $result, $line_location.range.start $(, $($arg)*)?);
+        };
+        ($result:expr, after: $line_location:expr $(, $($arg:tt)*)?) => {
+            let line_location = $line_location;
+            $crate::line::tests::assert_line_not_found!(@ $result, line_location.range.end + line_location.line_break_len $(, $($arg)*)?);
+        };
+        (@ $result:expr, $next_line_index:expr $(, $($arg:tt)*)?) => {
+            assert_eq!($result, Err($next_line_index) $(, $($arg)*)?);
+        };
+    }
+    pub(crate) use assert_line_not_found;
+
+    mod binary_search {
+        use super::*;
 
         #[test]
         fn empty() {
@@ -163,7 +210,6 @@ mod tests {
         #[test]
         fn lf() {
             let (bytes, locs) = make_bytes(["aa", "bb", "cc", "dd", "ee"], LineBreak::Lf, true);
-            assert_eq!(bytes.len(), 15);
 
             assert_line_found!(binary_search("aa", &bytes), locs["aa"]);
             assert_line_found!(binary_search("bb", &bytes), locs["bb"]);
@@ -181,7 +227,6 @@ mod tests {
         #[test]
         fn crlf() {
             let (bytes, locs) = make_bytes(["aa", "bb", "cc", "dd", "ee"], LineBreak::CrLf, true);
-            assert_eq!(bytes.len(), 20);
 
             assert_line_found!(binary_search("aa", &bytes), locs["aa"]);
             assert_line_found!(binary_search("bb", &bytes), locs["bb"]);
@@ -199,7 +244,6 @@ mod tests {
         #[test]
         fn lf_no_final_line_break() {
             let (bytes, locs) = make_bytes(["aa", "bb", "cc", "dd", "ee"], LineBreak::Lf, false);
-            assert_eq!(bytes.len(), 14);
 
             assert_line_found!(binary_search("aa", &bytes), locs["aa"]);
             assert_line_found!(binary_search("bb", &bytes), locs["bb"]);
@@ -217,7 +261,6 @@ mod tests {
         #[test]
         fn crlf_no_final_line_break() {
             let (bytes, locs) = make_bytes(["aa", "bb", "cc", "dd", "ee"], LineBreak::CrLf, false);
-            assert_eq!(bytes.len(), 18);
 
             assert_line_found!(binary_search("aa", &bytes), locs["aa"]);
             assert_line_found!(binary_search("bb", &bytes), locs["bb"]);

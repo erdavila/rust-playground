@@ -11,6 +11,8 @@ pub trait RangeExt: Copy {
 
     fn is_subrange_of(self, other: Self) -> bool;
 
+    fn len(self) -> usize;
+    fn is_empty(self) -> bool;
     fn midpoint(self) -> usize;
 
     /// Returns an iterator that generates all the values in the range from the midpoint towards both ends.
@@ -31,6 +33,14 @@ impl RangeExt for Range {
         other.start <= self.start && self.end <= other.end
     }
 
+    fn len(self) -> usize {
+        self.end.saturating_sub(self.start)
+    }
+
+    fn is_empty(self) -> bool {
+        self.len() == 0
+    }
+
     fn midpoint(self) -> usize {
         self.start.midpoint(self.end)
     }
@@ -38,7 +48,7 @@ impl RangeExt for Range {
     fn iter_from_midpoint(self) -> IterFromMidpoint {
         IterFromMidpoint {
             counter: 0,
-            limit: self.end.saturating_sub(self.start),
+            limit: self.len(),
             midpoint: self.start.midpoint(self.end),
         }
     }
@@ -220,6 +230,11 @@ pub trait ByteSliceExt: SliceExt<u8> {
     #[expect(clippy::missing_errors_doc)]
     fn line_binary_search(&self, line: impl AsRef<[u8]>) -> Result<Range, usize> {
         line::binary_search(line, self.as_ref())
+    }
+
+    #[cfg(debug_assertions)]
+    fn debug_str(&self) -> &str {
+        unsafe { str::from_utf8_unchecked(self.as_ref()) }
     }
 }
 

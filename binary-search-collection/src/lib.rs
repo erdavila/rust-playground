@@ -1,4 +1,5 @@
-#![no_std]
+#![cfg_attr(not(feature = "std"), no_std)]
+#![cfg_attr(all(doc, not(doctest)), feature(doc_cfg))]
 
 //! Provides binary search functions for ranges where distinct positions may not correspond to distinct values.
 //!
@@ -190,7 +191,25 @@
 //! assert_eq!(     reverse_find_delimited(&['a', 'a'], &chars, '-'), Err(8));
 //! ```
 //!
-//! ## Lines from a text file<a id="lines-from-a-text-file"></a>
+//! ## Lines in a text file<a id="lines-in-a-text-file"></a>
+//!
+//! Using [`line::buffered::binary_search`] to read the file on demand:
+//!
+//! ```
+//! use std::fs::File;
+//! use std::num::NonZero;
+//! use std::path::Path;
+//! use binary_search_collection::Range;
+//! use binary_search_collection::line;
+//!
+//! fn locate_line_in_file<P: AsRef<Path>>(line: &str, path: P) -> Option<Range> {
+//!     let file = File::open(path).unwrap();
+//!     let buffer_len = NonZero::try_from(8 * 1024).unwrap();
+//!     line::buffered::binary_search(line, file, buffer_len).unwrap().ok()
+//! }
+//! ```
+//!
+//! ## Lines from a text file loaded in memory<a id="lines-from-a-text-file-in-memory"></a>
 //!
 //! Using [`line::binary_search`] with the content of a text file fully loaded into the memory:
 //!
