@@ -314,3 +314,24 @@ impl<T> Offset for LocatedItem<T> {
         }
     }
 }
+
+/// Indicates how the search must proceed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Comparison {
+    /// The search must proceed before the specified position.
+    Before(usize),
+    /// The _item_ was found in the specified range.
+    Found(Range),
+    /// The search must proceed after the specified position.
+    After(usize),
+}
+
+impl Offset for Comparison {
+    fn offset(mut self, amount: usize) -> Self {
+        match &mut self {
+            Comparison::Found(range) => *range = range.offset(amount),
+            Comparison::Before(x) | Comparison::After(x) => *x = x.offset(amount),
+        }
+        self
+    }
+}
