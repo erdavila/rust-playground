@@ -2,11 +2,15 @@ set allow-duplicate-recipes
 
 import '../justfile'
 
-default: check fmt test clippy
+default: check fmt test-variants clippy
 
 check:
   cargo check --no-default-features
   cargo check --no-default-features --features std
+
+test-variants *ARGS: test
+  cargo test {{ARGS}}
+  cargo test --features alternative-subslice-binary_search  {{ARGS}}
 
 doc *ARGS:
   cargo +nightly doc --all-features {{ARGS}}

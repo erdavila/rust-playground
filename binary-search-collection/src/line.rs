@@ -2,13 +2,12 @@
 //!
 //! Lines are delimited by line breaks, which are a line feed (`\n`) and may include a preceeding
 //! carriage return (`\r`) when present. The last line may not have a line break.
-//!
 
+use core::cmp::Ordering;
 use core::convert::Infallible;
 
-use crate::Range;
 use crate::ext::{RangeExt as _, SliceExt as _};
-use crate::subslice::{self, LocatedSubslice};
+use crate::{Comparison, Range, subslice};
 
 #[cfg(feature = "std")]
 pub mod buffered;
@@ -32,42 +31,116 @@ const LF: u8 = b'\n';
 /// - [Lines from a text file load in memory](crate#lines-from-a-text-file-in-memory)
 #[expect(clippy::missing_errors_doc)]
 pub fn binary_search(target_line: impl AsRef<[u8]>, bytes: &[u8]) -> Result<Range, usize> {
-    let Ok(result) =
-        subslice::binary_search::<_, Infallible>(target_line.as_ref(), bytes, |search_slice| {
-            let ls = search_slice.subslice_range_from_midpoint_to_delimiters(|&b| b == LF);
+    let target_line = target_line.as_ref();
+    let Ok(result) = subslice::binary_search_by::<_, Infallible>(bytes, |search_slice| {
+        let midpoint = search_slice.range().midpoint();
+        let located_line_start = search_slice
+            .in_range(..midpoint, |slice| slice.locate_last(|&b| b == LF))
+            .map_or(0, |i| i + 1);
 
-            let line_start = ls.subslice_range.start;
-            let range_with_break = (line_start..ls.consumed_range.end).into();
+        let prefix_len = target_line.len().min(midpoint - located_line_start);
+        let line_prefix = &target_line[..prefix_len];
+        let located_line_prefix =
+            &search_slice[Range::from_start_and_len(located_line_start, prefix_len)];
 
-            let line_with_break = &search_slice[range_with_break];
-            let line_without_break = strip_line_break(line_with_break);
+        // Compare prefix bytes of `line` and the located line.
+        let cmp = match located_line_prefix.cmp(line_prefix) {
+            Ordering::Less => {
+                let next_line_start = search_slice
+                    .in_range(midpoint.., |slice| slice.locate_first(|&b| b == LF))
+                    .map_or(search_slice.len(), |i| i + 1);
+                Comparison::After(next_line_start)
+            }
+            Ordering::Equal => {
+                let mut line_bytes = target_line.iter().skip(prefix_len);
+                let mut located_line_bytes = search_slice
+                    .iter()
+                    .enumerate()
+                    .skip(located_line_start + prefix_len)
+                    .peekable();
 
-            let range_without_break =
-                Range::from_start_and_len(line_start, line_without_break.len());
+                // Compare remaining bytes.
+                loop {
+                    let located_line_next_byte = match located_line_bytes.next() {
+                        Some((i, &LF)) => {
+                            // Located line ended with LF.
+                            Err(LineEnd {
+                                position: i,
+                                next_line_start: i + 1,
+                            })
+                        }
+                        Some((i, &CR)) => {
+                            if located_line_bytes.peek().is_some_and(|(_, b)| **b == LF) {
+                                // Located line ended with CR + LF.
+                                Err(LineEnd {
+                                    position: i,
+                                    next_line_start: i + 2,
+                                })
+                            } else {
+                                // Located line has CR not followed by LF.
+                                Ok(CR)
+                            }
+                        }
+                        Some((_, &b)) => {
+                            // Regular byte in the located line.
+                            Ok(b)
+                        }
+                        None => {
+                            // Located Line ended without a line break.
+                            Err(LineEnd {
+                                position: search_slice.len(),
+                                next_line_start: search_slice.len(),
+                            })
+                        }
+                    };
 
-            Ok(Some(LocatedSubslice {
-                subslice_range: range_without_break,
-                consumed_range: range_with_break,
-            }))
-        });
+                    match (located_line_next_byte, line_bytes.next()) {
+                        (Ok(_), None) => {
+                            // Located line is longer than the `line`.
+                            break Comparison::Before(located_line_start);
+                        }
+                        (Err(e), None) => {
+                            // Both `line` and the located ended with equal bytes.
+                            break Comparison::Found((located_line_start..e.position).into());
+                        }
+                        (Ok(loc_b), Some(b)) => match loc_b.cmp(b) {
+                            Ordering::Less => {
+                                // Stop the comparison.
+                                // Next round will search after the located line.
+                                let next_line_start = located_line_bytes
+                                    .find_map(|(i, &b)| (b == LF).then_some(i + 1))
+                                    .unwrap_or(search_slice.len());
+                                break Comparison::After(next_line_start);
+                            }
+                            Ordering::Equal => {
+                                // Bytes in `line` and in the located line are equal.
+                                // Continue comparing.
+                            }
+                            Ordering::Greater => {
+                                // Stop the comparison.
+                                // Next round will search before the located line.
+                                break Comparison::Before(located_line_start);
+                            }
+                        },
+                        (Err(e), Some(_)) => {
+                            // `line` is longer than the located line.
+                            break Comparison::After(e.next_line_start);
+                        }
+                    }
+                }
+            }
+            Ordering::Greater => Comparison::Before(located_line_start),
+        };
 
+        Ok(Some(cmp))
+    });
     result
 }
 
-#[must_use]
-fn strip_line_break(line: &[u8]) -> &[u8] {
-    fn strip_last(b: u8, s: &[u8]) -> Option<&[u8]> {
-        (s.last() == Some(&b)).then(|| &s[..s.len() - 1])
-    }
-
-    let Some(line) = strip_last(LF, line) else {
-        return line;
-    };
-    let Some(line) = strip_last(CR, line) else {
-        return line;
-    };
-
-    line
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+struct LineEnd {
+    position: usize,
+    next_line_start: usize,
 }
 
 #[cfg(test)]
@@ -274,47 +347,21 @@ mod tests {
             assert_line_not_found!(binary_search("e", &bytes), before: locs["ee"]);
             assert_line_not_found!(binary_search("f", &bytes), after: locs["ee"]);
         }
-    }
-
-    mod strip_line_break {
-        use super::*;
-
-        const A: u8 = b'a';
-        const B: u8 = b'b';
-
-        #[test]
-        fn empty() {
-            assert_eq!(strip_line_break(&[]), []);
-        }
-
-        #[test]
-        fn lf_only() {
-            assert_eq!(strip_line_break(&[LF]), []);
-        }
-
-        #[test]
-        fn crlf_only() {
-            assert_eq!(strip_line_break(&[CR, LF]), []);
-        }
-
-        #[test]
-        fn no_lf() {
-            assert_eq!(strip_line_break(&[A, B]), [A, B]);
-        }
-
-        #[test]
-        fn lf() {
-            assert_eq!(strip_line_break(&[A, B, LF]), [A, B]);
-        }
-
-        #[test]
-        fn crlf() {
-            assert_eq!(strip_line_break(&[A, B, CR, LF]), [A, B]);
-        }
 
         #[test]
         fn cr_without_lf() {
-            assert_eq!(strip_line_break(&[A, B, CR]), [A, B, CR]);
+            let bytes = [b'a', b'a', CR, b'b', b'b'];
+
+            assert_eq!(binary_search("aa", &bytes), Err(0));
+            assert_eq!(binary_search("aa\rbb", &bytes), Ok((0..5).into()));
+            assert_eq!(binary_search("bb", &bytes), Err(5));
+        }
+
+        #[test]
+        fn large_line() {
+            let (bytes, locs) = make_bytes(["aa", "bb"], LineBreak::Lf, false);
+
+            assert_line_not_found!(binary_search("aaaa", &bytes), after: locs["aa"]);
         }
     }
 }

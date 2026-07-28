@@ -1,7 +1,7 @@
 //! Binary search in a slice or array.
 
-use crate::ext::{Offset, RangeExt as _, SliceExt as _};
-use crate::{LocatedItem, Range, SearchResult, sparse};
+use crate::ext::{Offset, SliceExt as _};
+use crate::{Comparison, Range, SearchResult, sparse};
 
 /// The location of a subslice in a source slice.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
@@ -51,29 +51,96 @@ impl Offset for LocatedSubslice {
 /// - [Subslices with gaps](crate#subslices-with-gaps)
 /// - [Subslices with delimiters](crate#subslices-with-delimiters)
 /// - [Regular binary search](crate#regular-binary-search)
-///
 #[expect(clippy::missing_errors_doc)]
 pub fn binary_search<'a, T: Ord, E>(
     target_subslice: &[T],
     source: &'a [T],
-    mut locate_subslice_in: impl FnMut(&'a [T]) -> Result<Option<LocatedSubslice>, E>,
+    locate_subslice_in: impl FnMut(&'a [T]) -> Result<Option<LocatedSubslice>, E>,
 ) -> SearchResult<Range, E> {
-    sparse::binary_search(target_subslice, source.len(), |search_range| {
-        let loc_item_opt = source
-            .in_range(search_range, &mut locate_subslice_in)?
-            .map(|ls| {
-                debug_assert!(ls.subslice_range.is_subrange_of(ls.consumed_range));
-                debug_assert!(ls.consumed_range.is_subrange_of(search_range));
+    binary_search::implementation(target_subslice, source, locate_subslice_in)
+}
 
-                let value_range = ls.subslice_range;
+// Implementation using `subslice::binary_search_by`.
+#[cfg(not(feature = "alternative-subslice-binary_search"))]
+mod binary_search {
+    use core::cmp::Ordering;
 
-                LocatedItem {
-                    value: &source[value_range],
-                    value_range,
-                    consumed_range: ls.consumed_range,
-                }
-            });
+    use crate::subslice::{self, LocatedSubslice};
+    use crate::{Comparison, Range, SearchResult};
 
-        Ok(loc_item_opt)
+    pub(super) fn implementation<'a, T: Ord, E>(
+        target_subslice: &[T],
+        source: &'a [T],
+        mut locate_subslice_in: impl FnMut(&'a [T]) -> Result<Option<LocatedSubslice>, E>,
+    ) -> SearchResult<Range, E> {
+        subslice::binary_search_by(source, |search_slice| {
+            locate_subslice_in(search_slice).map(|opt| {
+                opt.map(|ls: LocatedSubslice| {
+                    match search_slice[ls.subslice_range].cmp(target_subslice) {
+                        Ordering::Less => Comparison::After(ls.consumed_range.end),
+                        Ordering::Equal => Comparison::Found(ls.subslice_range),
+                        Ordering::Greater => Comparison::Before(ls.consumed_range.start),
+                    }
+                })
+            })
+        })
+    }
+}
+
+// Implementation using `sparse::binary_search`.
+#[cfg(feature = "alternative-subslice-binary_search")]
+mod binary_search {
+    use crate::ext::{RangeExt as _, SliceExt as _};
+    use crate::subslice::LocatedSubslice;
+    use crate::{LocatedItem, Range, SearchResult, sparse};
+
+    pub(super) fn implementation<'a, T: Ord, E>(
+        target_subslice: &[T],
+        source: &'a [T],
+        mut locate_subslice_in: impl FnMut(&'a [T]) -> Result<Option<LocatedSubslice>, E>,
+    ) -> SearchResult<Range, E> {
+        sparse::binary_search(target_subslice, source.len(), |search_range| {
+            let loc_item_opt = source
+                .in_range(search_range, &mut locate_subslice_in)?
+                .map(|ls| {
+                    debug_assert!(ls.subslice_range.is_subrange_of(ls.consumed_range));
+                    debug_assert!(ls.consumed_range.is_subrange_of(search_range));
+
+                    let value_range = ls.subslice_range;
+
+                    LocatedItem {
+                        value: &source[value_range],
+                        value_range,
+                        consumed_range: ls.consumed_range,
+                    }
+                });
+
+            Ok(loc_item_opt)
+        })
+    }
+}
+
+/// Executes a binary search for a subslice in a `source` slice with a custom comparison.
+///
+/// Read the [crate root](self) documentation for basic information.
+///
+/// The `locate_and_compare_in` closure must locate a subslice in the source _elements_ as delimited by
+/// its slice parameter, and decide if the _item_ is the wanted one, or if the search must continue
+/// before or after it. **The search must start on the midpoint of the range towards both ends.** If
+/// the search were linear in the range, then it would turn the entire binary search into a linear
+/// search, defeating its purpose.
+///
+/// When the subslice is found, the function returns [`Result::Ok`] with the range where it was found.
+/// If the subslice is NOT found, the function returns [`Result::Err`] with the index at which the
+/// subslice could be inserted in the `source` _elements_ while maintaining the sort order.
+///
+/// This function is also available as an [extension method for slices](crate::ext::SliceExt::subslice_binary_search_by).
+#[expect(clippy::missing_errors_doc)]
+pub fn binary_search_by<'a, T, E>(
+    source: &'a [T],
+    mut locate_and_compare_in: impl FnMut(&'a [T]) -> Result<Option<Comparison>, E>,
+) -> SearchResult<Range, E> {
+    sparse::binary_search_by(source.len(), |search_range| {
+        source.in_range(search_range, &mut locate_and_compare_in)
     })
 }

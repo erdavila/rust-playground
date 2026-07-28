@@ -8,6 +8,7 @@ edition = "2024"
 [features]
 default = ["std"]
 std = []
+alternative-subslice-binary_search = []
 
 [lints]
 workspace = true

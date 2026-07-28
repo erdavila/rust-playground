@@ -3,7 +3,7 @@
 use core::ops::{Bound, RangeBounds};
 
 use crate::subslice::{self, LocatedSubslice};
-use crate::{Range, SearchResult, line};
+use crate::{Comparison, Range, SearchResult, line};
 
 /// Extension methods for [`Range<usize>`].
 pub trait RangeExt: Copy {
@@ -108,6 +108,34 @@ pub trait SliceExt<T>: AsRef<[T]> {
         T: Ord + 'a,
     {
         subslice::binary_search(subslice, self.as_ref(), locate_subslice_in)
+    }
+
+    /// The function [`subslice::binary_search_by`] as an extension method.
+    ///
+    /// ```
+    /// # use binary_search_collection::{subslice, Comparison, Range, SearchResult};
+    /// # use binary_search_collection::ext::SliceExt as _;
+    /// # fn f<T: Ord, E>(
+    /// #     slice: &[T],
+    /// #     mut locate_subslice_in: impl FnMut(&[T]) -> Result<Option<Comparison>, E> + Copy,
+    /// # ) -> SearchResult<Range, E> {
+    /// #     if unimplemented!() {
+    /// slice.subslice_binary_search_by(locate_subslice_in)
+    /// #     } else {
+    /// // is equivalent to:
+    /// subslice::binary_search_by(slice, locate_subslice_in)
+    /// #     }
+    /// # }
+    /// ```
+    #[expect(clippy::missing_errors_doc)]
+    fn subslice_binary_search_by<'a, E>(
+        &'a self,
+        locate_and_compare_in: impl FnMut(&'a [T]) -> Result<Option<Comparison>, E>,
+    ) -> SearchResult<Range, E>
+    where
+        T: 'a,
+    {
+        subslice::binary_search_by(self.as_ref(), locate_and_compare_in)
     }
 
     fn range(&self) -> Range {
