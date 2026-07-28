@@ -10,7 +10,11 @@ check:
 
 test-variants *ARGS: test
   cargo test {{ARGS}}
-  cargo test --features alternative-subslice-binary_search  {{ARGS}}
+  cargo test --features '\
+    alternative-line-binary_search \
+    alternative-subslice-binary_search \
+    ' \
+    {{ARGS}}
 
 doc *ARGS:
   cargo +nightly doc --all-features {{ARGS}}

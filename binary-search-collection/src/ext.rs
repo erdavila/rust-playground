@@ -1,9 +1,11 @@
 //! Traits for extension methods.
 
+use core::cmp::Ordering;
 use core::ops::{Bound, RangeBounds};
 
+use crate::line::{self, CR, LF, LineBytes, LineEnd};
 use crate::subslice::{self, LocatedSubslice};
-use crate::{Comparison, Range, SearchResult, line};
+use crate::{Comparison, Range, SearchResult};
 
 /// Extension methods for [`Range<usize>`].
 pub trait RangeExt: Copy {
@@ -258,6 +260,83 @@ pub trait ByteSliceExt: SliceExt<u8> {
     #[expect(clippy::missing_errors_doc)]
     fn line_binary_search(&self, line: impl AsRef<[u8]>) -> Result<Range, usize> {
         line::binary_search(line, self.as_ref())
+    }
+
+    /// The function [`line::binary_search_by`] as an extension method.
+    ///
+    /// ```
+    /// # use binary_search_collection::{Range, SearchResult};
+    /// # use binary_search_collection::ext::ByteSliceExt as _;
+    /// # use binary_search_collection::line::{self, LineBytes};
+    /// # use std::cmp::Ordering;
+    /// # fn f<'a, E>(
+    /// #     slice: &'a[u8],
+    /// #     compare: impl FnMut(&mut LineBytes<'a>) -> Result<Ordering, E>,
+    /// # ) -> SearchResult<Range, E> {
+    /// #     if unimplemented!() {
+    /// slice.line_binary_search_by(compare)
+    /// #     } else {
+    /// // is equivalent to:
+    /// line::binary_search_by(slice, compare)
+    /// #     }
+    /// # }
+    /// ```
+    #[expect(clippy::missing_errors_doc)]
+    fn line_binary_search_by<'a, E>(
+        &'a self,
+        compare: impl FnMut(&mut LineBytes<'a>) -> Result<Ordering, E>,
+    ) -> SearchResult<Range, E> {
+        line::binary_search_by(self.as_ref(), compare)
+    }
+
+    /// Locates the line start delimited by LF from the slice end.
+    ///
+    /// Returns [`None`] if LF is not found.
+    fn locate_line_start_from_end(&self) -> Option<usize> {
+        self.as_ref().locate_last(|&b| b == LF).map(|i| i + 1)
+    }
+
+    /// Locates the line end delimited by LF from the slice start.
+    ///
+    /// Returns [`None`] if LF is not found.
+    fn locate_line_end_from_start(&self) -> Option<LineEnd> {
+        let slice = self.as_ref();
+        slice.locate_first(|&b| b == LF).map(|lf| {
+            if let Some(before_lf) = lf.checked_sub(1)
+                && slice[before_lf] == CR
+            {
+                // CR + LF
+                LineEnd {
+                    position: before_lf,
+                    line_break_len: 2,
+                }
+            } else {
+                // LF
+                LineEnd {
+                    position: lf,
+                    line_break_len: 1,
+                }
+            }
+        })
+    }
+
+    /// Locates the line start from the slice end.
+    ///
+    /// Returns `0` if LF is not found.
+    fn locate_line_start_from_end_or_zero(&self) -> usize {
+        self.locate_line_start_from_end().unwrap_or(0)
+    }
+
+    /// Locates the line end from the slice start.
+    ///
+    /// Returns [`LineEnd`] with [`position`](LineEnd::position) equal to `self.len()` if LF is not
+    /// found.
+    fn locate_line_end_from_start_or_len(&self) -> LineEnd {
+        let slice = self.as_ref();
+        slice.locate_line_end_from_start().unwrap_or(LineEnd {
+            position: slice.len(),
+            line_break_len: 0,
+        })
     }
 
     #[cfg(debug_assertions)]

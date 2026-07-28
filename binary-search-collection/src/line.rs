@@ -4,16 +4,15 @@
 //! carriage return (`\r`) when present. The last line may not have a line break.
 
 use core::cmp::Ordering;
-use core::convert::Infallible;
 
-use crate::ext::{RangeExt as _, SliceExt as _};
-use crate::{Comparison, Range, subslice};
+use crate::ext::{ByteSliceExt, Offset, RangeExt as _, SliceExt as _};
+use crate::{Comparison, Range, SearchResult, subslice};
 
 #[cfg(feature = "std")]
 pub mod buffered;
 
-const CR: u8 = b'\r';
-const LF: u8 = b'\n';
+pub(crate) const CR: u8 = b'\r';
+pub(crate) const LF: u8 = b'\n';
 
 /// Executes a binary search of a text line.
 ///
@@ -31,116 +30,233 @@ const LF: u8 = b'\n';
 /// - [Lines from a text file load in memory](crate#lines-from-a-text-file-in-memory)
 #[expect(clippy::missing_errors_doc)]
 pub fn binary_search(target_line: impl AsRef<[u8]>, bytes: &[u8]) -> Result<Range, usize> {
-    let target_line = target_line.as_ref();
-    let Ok(result) = subslice::binary_search_by::<_, Infallible>(bytes, |search_slice| {
+    binary_search::implementation(target_line, bytes)
+}
+
+// Implementation using `line::binary_search_by`.
+#[cfg(not(feature = "alternative-line-binary_search"))]
+mod binary_search {
+    use core::cmp::Ordering;
+    use core::convert::Infallible;
+
+    use crate::{Range, line};
+
+    pub(super) fn implementation(
+        target_line: impl AsRef<[u8]>,
+        bytes: &[u8],
+    ) -> Result<Range, usize> {
+        let target_line = target_line.as_ref();
+        let Ok(result) = line::binary_search_by::<Infallible>(bytes, |located_line_bytes| {
+            let located_line_prefix = located_line_bytes.next_slice(target_line.len());
+
+            let cmp = located_line_prefix.cmp(target_line).then_with(|| {
+                // The located line has `line` as a prefix.
+                if located_line_bytes.next().is_some() {
+                    // The located line has more bytes than `line`.
+                    Ordering::Greater
+                } else {
+                    // The located line and the `line` are equal.
+                    Ordering::Equal
+                }
+            });
+
+            Ok(cmp)
+        });
+
+        result
+    }
+}
+
+// Implementation using `subslice::binary_search_by`.
+#[cfg(feature = "alternative-line-binary_search")]
+mod binary_search {
+    use core::cmp::Ordering;
+    use core::convert::Infallible;
+
+    use crate::ext::{ByteSliceExt, RangeExt as _, SliceExt as _};
+    use crate::line::LineBytes;
+    use crate::{Comparison, Range, subslice};
+
+    pub(super) fn implementation(
+        target_line: impl AsRef<[u8]>,
+        bytes: &[u8],
+    ) -> Result<Range, usize> {
+        let target_line = target_line.as_ref();
+        let Ok(result) = subslice::binary_search_by::<_, Infallible>(bytes, |search_slice| {
+            let midpoint = search_slice.range().midpoint();
+            let located_line_start =
+                search_slice.in_range(..midpoint, ByteSliceExt::locate_line_start_from_end_or_zero);
+
+            let mut located_line_bytes = LineBytes::new(search_slice, located_line_start);
+            let located_line_prefix = located_line_bytes.next_slice(target_line.len());
+
+            let cmp = match located_line_prefix.cmp(target_line) {
+                Ordering::Less => {
+                    let line_end = located_line_bytes.skip_to_end();
+                    let next_line_start = line_end.line_break_end_position();
+                    Comparison::After(next_line_start)
+                }
+                Ordering::Equal => {
+                    // The located line has `line` as a prefix.
+                    if located_line_bytes.next().is_some() {
+                        // The located line has more bytes than `line`.
+                        Comparison::Before(located_line_start)
+                    } else {
+                        // The located line and the `line` are equal.
+                        let line_end = located_line_bytes.skip_to_end();
+                        let located_line_end = line_end.position;
+                        Comparison::Found((located_line_start..located_line_end).into())
+                    }
+                }
+                Ordering::Greater => Comparison::Before(located_line_start),
+            };
+
+            Ok(Some(cmp))
+        });
+        result
+    }
+}
+
+/// Executes a binary search of a text line with a custom comparison.
+///
+/// The `compare` closure must read the bytes in its [`LineBytes`] parameter and compare it with the
+/// target line, returning the proper [`Ordering`] value.
+///
+/// When the target line is found, its byte range without the line break is returned. If the target
+/// line is not found then [`Err`] is returned, containing the index where the target line could be
+/// inserted while maintaining sorted order.
+///
+/// This function is also available as an [extension method for slices](crate::ext::ByteSliceExt::line_binary_search_by).
+#[expect(clippy::missing_errors_doc)]
+pub fn binary_search_by<'a, E>(
+    bytes: &'a [u8],
+    mut compare: impl FnMut(&mut LineBytes<'a>) -> Result<Ordering, E>,
+) -> SearchResult<Range, E> {
+    subslice::binary_search_by(bytes, |search_slice| {
         let midpoint = search_slice.range().midpoint();
-        let located_line_start = search_slice
-            .in_range(..midpoint, |slice| slice.locate_last(|&b| b == LF))
-            .map_or(0, |i| i + 1);
+        let start =
+            search_slice.in_range(..midpoint, ByteSliceExt::locate_line_start_from_end_or_zero);
 
-        let prefix_len = target_line.len().min(midpoint - located_line_start);
-        let line_prefix = &target_line[..prefix_len];
-        let located_line_prefix =
-            &search_slice[Range::from_start_and_len(located_line_start, prefix_len)];
+        let mut line_bytes = LineBytes::new(search_slice, start);
 
-        // Compare prefix bytes of `line` and the located line.
-        let cmp = match located_line_prefix.cmp(line_prefix) {
+        let cmp = match compare(&mut line_bytes)? {
             Ordering::Less => {
-                let next_line_start = search_slice
-                    .in_range(midpoint.., |slice| slice.locate_first(|&b| b == LF))
-                    .map_or(search_slice.len(), |i| i + 1);
+                let line_end = line_bytes.skip_to_end();
+                let next_line_start = line_end.line_break_end_position();
                 Comparison::After(next_line_start)
             }
             Ordering::Equal => {
-                let mut line_bytes = target_line.iter().skip(prefix_len);
-                let mut located_line_bytes = search_slice
-                    .iter()
-                    .enumerate()
-                    .skip(located_line_start + prefix_len)
-                    .peekable();
-
-                // Compare remaining bytes.
-                loop {
-                    let located_line_next_byte = match located_line_bytes.next() {
-                        Some((i, &LF)) => {
-                            // Located line ended with LF.
-                            Err(LineEnd {
-                                position: i,
-                                next_line_start: i + 1,
-                            })
-                        }
-                        Some((i, &CR)) => {
-                            if located_line_bytes.peek().is_some_and(|(_, b)| **b == LF) {
-                                // Located line ended with CR + LF.
-                                Err(LineEnd {
-                                    position: i,
-                                    next_line_start: i + 2,
-                                })
-                            } else {
-                                // Located line has CR not followed by LF.
-                                Ok(CR)
-                            }
-                        }
-                        Some((_, &b)) => {
-                            // Regular byte in the located line.
-                            Ok(b)
-                        }
-                        None => {
-                            // Located Line ended without a line break.
-                            Err(LineEnd {
-                                position: search_slice.len(),
-                                next_line_start: search_slice.len(),
-                            })
-                        }
-                    };
-
-                    match (located_line_next_byte, line_bytes.next()) {
-                        (Ok(_), None) => {
-                            // Located line is longer than the `line`.
-                            break Comparison::Before(located_line_start);
-                        }
-                        (Err(e), None) => {
-                            // Both `line` and the located ended with equal bytes.
-                            break Comparison::Found((located_line_start..e.position).into());
-                        }
-                        (Ok(loc_b), Some(b)) => match loc_b.cmp(b) {
-                            Ordering::Less => {
-                                // Stop the comparison.
-                                // Next round will search after the located line.
-                                let next_line_start = located_line_bytes
-                                    .find_map(|(i, &b)| (b == LF).then_some(i + 1))
-                                    .unwrap_or(search_slice.len());
-                                break Comparison::After(next_line_start);
-                            }
-                            Ordering::Equal => {
-                                // Bytes in `line` and in the located line are equal.
-                                // Continue comparing.
-                            }
-                            Ordering::Greater => {
-                                // Stop the comparison.
-                                // Next round will search before the located line.
-                                break Comparison::Before(located_line_start);
-                            }
-                        },
-                        (Err(e), Some(_)) => {
-                            // `line` is longer than the located line.
-                            break Comparison::After(e.next_line_start);
-                        }
-                    }
-                }
+                let line_end = line_bytes.skip_to_end();
+                let end = line_end.position;
+                Comparison::Found((start..end).into())
             }
-            Ordering::Greater => Comparison::Before(located_line_start),
+            Ordering::Greater => Comparison::Before(start),
         };
 
         Ok(Some(cmp))
-    });
-    result
+    })
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-struct LineEnd {
-    position: usize,
-    next_line_start: usize,
+/// An iterator on the bytes of a line.
+pub struct LineBytes<'a> {
+    bytes: &'a [u8],
+    next_index: usize,
+}
+
+impl<'a> LineBytes<'a> {
+    /// Creates a new instance.
+    ///
+    /// The line must be located at the start of the `bytes` slice.
+    ///
+    /// The `bytes` slice must contain at least the full line, and may include the line break and
+    /// additional bytes. The additional bytes are ignored.
+    #[must_use]
+    pub fn new(bytes: &'a [u8], start_index: usize) -> Self {
+        LineBytes {
+            bytes,
+            next_index: start_index,
+        }
+    }
+
+    /// Returns a slice of up to `len` bytes.
+    pub fn next_slice(&mut self, len: usize) -> &'a [u8] {
+        self.slice(|this| {
+            // Advances up to `len` bytes.
+            for _ in 0..len {
+                if this.next().is_none() {
+                    break;
+                }
+            }
+        })
+    }
+
+    /// Returns a slice with the remaining bytes.
+    pub fn remainder(&mut self) -> &'a [u8] {
+        self.slice(|this| {
+            this.skip_to_end();
+        })
+    }
+
+    fn slice(&mut self, f: impl FnOnce(&mut Self)) -> &'a [u8] {
+        let start = self.next_index;
+        f(self);
+        let end = self.next_index;
+        &self.bytes[start..end]
+    }
+
+    /// Skips to the end of the line.
+    pub fn skip_to_end(&mut self) -> LineEnd {
+        let line_end = self.bytes.in_range(
+            self.next_index..,
+            ByteSliceExt::locate_line_end_from_start_or_len,
+        );
+
+        self.next_index = line_end.position;
+        line_end
+    }
+}
+
+impl Iterator for LineBytes<'_> {
+    type Item = u8;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let output = self.bytes.get(self.next_index).and_then(|&b| match b {
+            LF => None,
+            CR => {
+                if self.bytes.get(self.next_index + 1) == Some(&LF) {
+                    None
+                } else {
+                    Some(b)
+                }
+            }
+            _ => Some(b),
+        });
+
+        if output.is_some() {
+            self.next_index += 1;
+        }
+        output
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct LineEnd {
+    pub position: usize,
+    pub line_break_len: usize,
+}
+
+impl LineEnd {
+    #[must_use]
+    pub fn line_break_end_position(self) -> usize {
+        self.position + self.line_break_len
+    }
+}
+
+impl Offset for LineEnd {
+    fn offset(mut self, amount: usize) -> Self {
+        self.position = self.position.offset(amount);
+        self
+    }
 }
 
 #[cfg(test)]
