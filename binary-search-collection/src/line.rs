@@ -4,6 +4,9 @@
 //! carriage return (`\r`) when present. The last line may not have a line break.
 
 use core::cmp::Ordering;
+use core::fmt::Debug;
+#[cfg(feature = "std")]
+use std::collections::vec_deque::VecDeque;
 
 use crate::ext::{ByteSliceExt, Offset, RangeExt as _, SliceExt as _};
 use crate::{Comparison, Range, SearchResult, subslice};
@@ -256,6 +259,37 @@ impl Offset for LineEnd {
     fn offset(mut self, amount: usize) -> Self {
         self.position = self.position.offset(amount);
         self
+    }
+}
+
+#[allow(dead_code)]
+trait DebugStr {
+    type Output<'a>: AsRef<str> + Debug
+    where
+        Self: 'a;
+    fn debug_str(&self) -> Self::Output<'_>;
+}
+
+impl DebugStr for [u8] {
+    type Output<'a>
+        = &'a str
+    where
+        Self: 'a;
+
+    fn debug_str(&self) -> Self::Output<'_> {
+        unsafe { str::from_utf8_unchecked(self) }
+    }
+}
+
+#[cfg(feature = "std")]
+impl DebugStr for VecDeque<u8> {
+    type Output<'a>
+        = String
+    where
+        Self: 'a;
+
+    fn debug_str(&self) -> Self::Output<'_> {
+        unsafe { String::from_utf8_unchecked(self.iter().copied().collect()) }
     }
 }
 

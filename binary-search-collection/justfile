@@ -12,9 +12,14 @@ test-variants *ARGS: test
   cargo test {{ARGS}}
   cargo test --features '\
     alternative-line-binary_search \
+    alternative-line_buffered-binary_search \
     alternative-subslice-binary_search \
     ' \
     {{ARGS}}
+
+clippy:
+  cargo clippy --all-targets --no-default-features
+  cargo clippy --all-targets --no-default-features --features std
 
 doc *ARGS:
   cargo +nightly doc --all-features {{ARGS}}

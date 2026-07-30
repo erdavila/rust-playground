@@ -338,11 +338,6 @@ pub trait ByteSliceExt: SliceExt<u8> {
             line_break_len: 0,
         })
     }
-
-    #[cfg(debug_assertions)]
-    fn debug_str(&self) -> &str {
-        unsafe { str::from_utf8_unchecked(self.as_ref()) }
-    }
 }
 
 impl ByteSliceExt for [u8] {}
