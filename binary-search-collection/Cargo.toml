@@ -12,6 +12,7 @@ alternative-line-binary_search = []
 alternative-line_buffered-binary_search-1 = []
 alternative-line_buffered-binary_search-2 = []
 alternative-subslice-binary_search = []
+alternative-subslice-binary_search_by_key = []
 
 [lints]
 workspace = true

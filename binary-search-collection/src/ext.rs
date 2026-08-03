@@ -1,11 +1,12 @@
 //! Traits for extension methods.
 
+use core::borrow::Borrow;
 use core::cmp::Ordering;
 use core::ops::{Bound, RangeBounds};
 
 use crate::line::{self, CR, LF, LineBytes, LineEnd};
 use crate::subslice::{self, LocatedSubslice};
-use crate::{Comparison, Range, SearchResult};
+use crate::{Comparison, LocatedItem, Range, SearchResult};
 
 /// Extension methods for [`Range<usize>`].
 pub trait RangeExt: Copy {
@@ -110,6 +111,43 @@ pub trait SliceExt<T>: AsRef<[T]> {
         T: Ord + 'a,
     {
         subslice::binary_search(subslice, self.as_ref(), locate_subslice_in)
+    }
+
+    /// The function [`subslice::binary_search_by_key`] as an extension method.
+    ///
+    /// ```
+    /// # use binary_search_collection::{subslice, LocatedItem, Range, SearchResult};
+    /// # use binary_search_collection::ext::SliceExt as _;
+    /// # use std::borrow::Borrow;
+    /// # fn f<T, V, Q, E>(
+    /// #     slice: &[T],
+    /// #     target_value: &Q,
+    /// #     mut locate_item_in: impl FnMut(&[T]) -> Result<Option<LocatedItem<V>>, E> + Copy,
+    /// # ) -> SearchResult<Range, E>
+    /// # where
+    /// #     Q: Ord,
+    /// #     V: Borrow<Q>,
+    /// # {
+    /// #     if unimplemented!() {
+    /// slice.subslice_binary_search_by_key(target_value, locate_item_in)
+    /// #     } else {
+    /// // is equivalent to:
+    /// subslice::binary_search_by_key(target_value, slice, locate_item_in)
+    /// #     }
+    /// # }
+    /// ```
+    #[expect(clippy::missing_errors_doc)]
+    fn subslice_binary_search_by_key<'a, V, Q, E>(
+        &'a self,
+        target_value: &Q,
+        locate_item_in: impl FnMut(&'a [T]) -> Result<Option<LocatedItem<V>>, E>,
+    ) -> SearchResult<Range, E>
+    where
+        T: 'a,
+        Q: Ord + ?Sized,
+        V: Borrow<Q>,
+    {
+        subslice::binary_search_by_key(target_value, self.as_ref(), locate_item_in)
     }
 
     /// The function [`subslice::binary_search_by`] as an extension method.
