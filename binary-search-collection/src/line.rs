@@ -24,7 +24,7 @@ pub(crate) const LF: u8 = b'\n';
 /// `target_line` could be inserted while maintaining sorted order.
 ///
 /// To execute a binary search by on-demand loading the content of a file, use
-/// [`line::buffered::binary_search`](crate::line::buffered::binary_search).
+/// [`line::buffered::binary_search`].
 ///
 /// This function is also available as an [extension method for slices](crate::ext::ByteSliceExt::line_binary_search).
 ///

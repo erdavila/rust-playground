@@ -5,7 +5,7 @@ use std::num::{NonZeroUsize, TryFromIntError};
 use std::{cmp, io, mem};
 
 use crate::ext::{ByteSliceExt, RangeExt as _, SliceExt as _};
-use crate::line::{CR, DebugStr, LF, LineEnd};
+use crate::line::{CR, DebugStr, LF, LineEnd, buffered};
 use crate::{Comparison, Range, SearchResult, sparse};
 
 fn convert_int<From, To>(from: From) -> io::Result<To>
@@ -27,8 +27,7 @@ where
 /// target `target_line` is not found then [`Err`] is returned, containing the index where the
 /// `target_line` could be inserted while maintaining sorted order.
 ///
-/// To execute binary search of a file content loaded into memory, use
-/// [`line::binary_search`](crate::line::binary_search).
+/// To execute binary search of a file content loaded into memory, use [`line::binary_search`].
 ///
 /// # Example
 ///
@@ -51,7 +50,10 @@ where
 }
 
 // Implementation using `line::buffered::binary_search_by`.
-#[cfg(not(feature = "alternative-line_buffered-binary_search"))]
+#[cfg(not(any(
+    feature = "alternative-line_buffered-binary_search-1",
+    feature = "alternative-line_buffered-binary_search-2",
+)))]
 mod binary_search {
     use std::cmp::Ordering;
     use std::num::NonZeroUsize;
@@ -102,7 +104,7 @@ mod binary_search {
 }
 
 // Implementation using `sparse::binary_search`.
-#[cfg(feature = "alternative-line_buffered-binary_search")]
+#[cfg(feature = "alternative-line_buffered-binary_search-1")]
 mod binary_search {
     use std::num::NonZeroUsize;
     use std::{cmp, io};
@@ -205,6 +207,69 @@ mod binary_search {
             }))
         })
     }
+}
+
+// Implementation using `line::buffered::binary_search_by_key`.
+#[cfg(feature = "alternative-line_buffered-binary_search-2")]
+mod binary_search {
+    use std::borrow::Cow;
+    use std::io;
+    use std::num::NonZeroUsize;
+
+    use crate::{Range, SearchResult, line};
+
+    pub(super) fn implementation<S>(
+        target_line: impl AsRef<[u8]>,
+        source: S,
+        buffer_len: NonZeroUsize,
+    ) -> SearchResult<Range, io::Error>
+    where
+        S: io::Read + io::Seek,
+    {
+        let target = Cow::Borrowed(target_line.as_ref());
+        line::buffered::binary_search_by_key(&target, source, buffer_len, |line_bytes| {
+            let vec = line_bytes.collect::<io::Result<Vec<_>>>()?;
+            Ok(Cow::Owned(vec))
+        })
+    }
+}
+
+/// Executes a binary search of a text line in (possibly) a [`File`] with a comparison key
+/// extraction.
+///
+/// The `source` can be anything that implements [`Read`] and [`Seek`], which includes [`File`] and
+/// [`Cursor`].
+///
+/// The `buffered_len` parameter is the preferred and maximum amount of bytes that are read each time.
+///
+/// The `extract` closure must extract from its [`BufferedLineBytes`] parameter the value to be
+/// compared against the `target`.
+///
+/// When the target line is found, its byte range without the line break is returned. If the target
+/// line is not found then [`Err`] is returned, containing the index where the target line could be
+/// inserted while maintaining sorted order.
+///
+/// [`Cursor`]: std::io::Cursor
+/// [`File`]: std::fs::File
+/// [`Read`]: std::io::Read
+/// [`Seek`]: std::io::Seek
+#[expect(clippy::missing_errors_doc)]
+pub fn binary_search_by_key<T, S, E>(
+    target: &T,
+    source: S,
+    buffer_len: NonZeroUsize,
+    mut extract: impl FnMut(&mut BufferedLineBytes<S>) -> Result<T, E>,
+) -> SearchResult<Range, E>
+where
+    T: Ord,
+    S: io::Read + io::Seek,
+    E: From<io::Error>,
+{
+    buffered::binary_search_by(source, buffer_len, |line_bytes| {
+        let value = extract(line_bytes)?;
+        let cmp = value.cmp(target);
+        Ok(cmp)
+    })
 }
 
 /// Executes a binary search of a text line in (possibly) a [`File`] with a custom comparison.
@@ -313,7 +378,7 @@ impl<S> Reader<S> {
     }
 }
 
-#[cfg(feature = "alternative-line_buffered-binary_search")]
+#[cfg(feature = "alternative-line_buffered-binary_search-1")]
 struct Line {
     bytes: VecDeque<u8>,
     start: usize,
@@ -321,7 +386,7 @@ struct Line {
     back_buffer_len: usize,
 }
 
-#[cfg(feature = "alternative-line_buffered-binary_search")]
+#[cfg(feature = "alternative-line_buffered-binary_search-1")]
 impl Line {
     fn new(midpoint: usize, midpoint_index: usize, len: usize) -> Self {
         assert!(midpoint_index < len);
@@ -457,7 +522,7 @@ impl Line {
     }
 }
 
-#[cfg(feature = "alternative-line_buffered-binary_search")]
+#[cfg(feature = "alternative-line_buffered-binary_search-1")]
 impl Debug for Line {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let bytes: Vec<_> = self.bytes.iter().copied().collect();
