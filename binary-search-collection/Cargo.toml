@@ -9,6 +9,7 @@ edition = "2024"
 default = ["std"]
 std = []
 alternative-line-binary_search = []
+alternative-line-binary_search_by_key = []
 alternative-line_buffered-binary_search-1 = []
 alternative-line_buffered-binary_search-2 = []
 alternative-subslice-binary_search = []

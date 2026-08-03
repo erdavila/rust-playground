@@ -300,6 +300,44 @@ pub trait ByteSliceExt: SliceExt<u8> {
         line::binary_search(line, self.as_ref())
     }
 
+    /// The function [`line::binary_search_by_key`] as an extension method.
+    ///
+    /// ```
+    /// # use binary_search_collection::{Range, SearchResult};
+    /// # use binary_search_collection::ext::ByteSliceExt as _;
+    /// # use binary_search_collection::line::{self, LineBytes};
+    /// # use std::borrow::Borrow;
+    /// # use std::cmp::Ordering;
+    /// # fn f<'a, V, Q, E>(
+    /// #     slice: &'a[u8],
+    /// #     target_value: &Q,
+    /// #     compare: impl FnMut(&mut LineBytes<'a>) -> Result<V, E>,
+    /// # ) -> SearchResult<Range, E>
+    /// # where
+    /// #     Q: Ord,
+    /// #     V: Borrow<Q>,
+    /// # {
+    /// #     if unimplemented!() {
+    /// slice.line_binary_search_by_key(target_value, compare)
+    /// #     } else {
+    /// // is equivalent to:
+    /// line::binary_search_by_key(target_value, slice, compare)
+    /// #     }
+    /// # }
+    /// ```
+    #[expect(clippy::missing_errors_doc)]
+    fn line_binary_search_by_key<'a, V, Q, E>(
+        &'a self,
+        target_value: &Q,
+        extract: impl FnMut(&mut LineBytes<'a>) -> Result<V, E>,
+    ) -> SearchResult<Range, E>
+    where
+        Q: Ord + ?Sized,
+        V: Borrow<Q>,
+    {
+        line::binary_search_by_key(target_value, self.as_ref(), extract)
+    }
+
     /// The function [`line::binary_search_by`] as an extension method.
     ///
     /// ```

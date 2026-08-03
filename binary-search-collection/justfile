@@ -12,6 +12,7 @@ test-variants *ARGS: test
   cargo test {{ARGS}}
   cargo test --features '\
     alternative-line-binary_search \
+    alternative-line-binary_search_by_key \
     alternative-line_buffered-binary_search-1 \
     alternative-subslice-binary_search \
     alternative-subslice-binary_search_by_key \
