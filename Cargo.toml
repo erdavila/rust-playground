@@ -24,6 +24,7 @@ members = [
     "min-max-binary-heap",
     "ratatui-scrolling",
     "ref_count",
+    "rewrap-rustdoc",
     "same-elements",
     "shared_ownership",
     "syn-dump",

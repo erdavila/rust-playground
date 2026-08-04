@@ -2,7 +2,12 @@ default: fmt test clippy
 
 [no-cd]
 fmt:
-  cargo +nightly fmt -- --config group_imports=StdExternalCrate --config imports_granularity=Module
+  cargo +nightly fmt -- \
+    --config group_imports=StdExternalCrate \
+    --config imports_granularity=Module \
+    --config wrap_comments=true \
+    --config comment_width=100 \
+    --config format_code_in_doc_comments=true
 
 [no-cd]
 test *ARGS:
