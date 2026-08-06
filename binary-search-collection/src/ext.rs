@@ -18,7 +18,8 @@ pub trait RangeExt: Copy {
     fn is_empty(self) -> bool;
     fn midpoint(self) -> usize;
 
-    /// Returns an iterator that generates all the values in the range from the midpoint towards both ends.
+    /// Returns an iterator that generates all the values in the range from the midpoint towards
+    /// both ends.
     ///
     /// Check the [Values with Gaps](crate#values-with-gaps) example.
     fn iter_from_midpoint(self) -> IterFromMidpoint;
@@ -48,6 +49,7 @@ impl RangeExt for Range {
         self.start.midpoint(self.end)
     }
 
+    /// Returns an iterator from the midpoint of the range towards its ends.
     fn iter_from_midpoint(self) -> IterFromMidpoint {
         IterFromMidpoint {
             counter: 0,
@@ -57,6 +59,17 @@ impl RangeExt for Range {
     }
 }
 
+/// An iterator from the midpoint of a range towards its ends.
+///
+/// ```
+/// use binary_search_collection::Range;
+/// use binary_search_collection::ext::RangeExt as _;
+///
+/// let range = Range { start: 0, end: 10 };
+///
+/// let indexes: Vec<_> = range.iter_from_midpoint().collect();
+/// assert_eq!(indexes, [5, 4, 6, 3, 7, 2, 8, 1, 9, 0]);
+/// ```
 pub struct IterFromMidpoint {
     counter: usize,
     limit: usize,
@@ -183,6 +196,29 @@ pub trait SliceExt<T>: AsRef<[T]> {
         (0..this.len()).into()
     }
 
+    /// Executes a closure in a subslice context.
+    ///
+    /// The closure is passed a subslice of this slice delimited by the `range_bounds`. The indexes
+    /// and positions in the return of the closure are adjusted to be relative to this slice.
+    ///
+    /// ```
+    /// use binary_search_collection::ext::SliceExt as _;
+    ///
+    /// let slice = b"abcdefghij";
+    ///
+    /// let output = slice.in_range(2..8, |subslice| {
+    ///     assert_eq!(subslice, b"cdefgh");
+    ///
+    ///     let output = subslice.locate_first(|&b| b == b'e');
+    ///     assert_eq!(output, Some(2));
+    ///     assert_eq!(subslice[2], b'e');
+    ///
+    ///     output
+    /// });
+    ///
+    /// assert_eq!(output, Some(4));
+    /// assert_eq!(slice[4], b'e');
+    /// ```
     fn in_range<'a, O: Offset>(
         &'a self,
         range_bounds: impl RangeBounds<usize>,

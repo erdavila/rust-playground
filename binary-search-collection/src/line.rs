@@ -1,7 +1,16 @@
-//! Binary search of lines as loaded from a text file.
+//! Binary search of text lines in memory.
 //!
-//! Lines are delimited by line breaks, which are a line feed (`\n`) and may include a preceeding
-//! carriage return (`\r`) when present. The last line may not have a line break.
+//! Read the [crate root](crate) documentation for information common to all functions in the crate.
+//!
+//! Lines are delimited by line breaks, which are line feed bytes (`\n`) that may be preceeded by
+//! carriage return (`\r`). The last line may not have a line break.
+//!
+//! Line breaks are not used during line comparisons.
+//!
+//! When a target line is found, the returned range does not include the line break.
+//!
+//! The functions are also available as [extension method for byte
+//! slices](crate::ext::ByteSliceExt).
 
 use core::borrow::Borrow;
 use core::cmp::Ordering;
@@ -20,21 +29,20 @@ pub(crate) const LF: u8 = b'\n';
 
 /// Executes a binary search of a text line.
 ///
-/// When the `target_line` is found, its byte range without the line break is returned. If the
-/// `target_line` is not found then [`Err`] is returned, containing the index where the
-/// `target_line` could be inserted while maintaining sorted order.
+/// Read the [module](self) documentation for information common to all functions in the module.
 ///
-/// To execute a binary search by on-demand loading the content of a file, use
+/// To execute a binary without loading the full content of a text file, use
 /// [`line::buffered::binary_search`].
 ///
-/// This function is also available as an [extension method for slices](crate::ext::ByteSliceExt::line_binary_search).
+/// This function is also available as an [extension method for byte
+/// slices](crate::ext::ByteSliceExt::line_binary_search).
 ///
 /// # Example
 ///
 /// - [Lines from a text file load in memory](crate#lines-from-a-text-file-in-memory)
 #[expect(clippy::missing_errors_doc)]
-pub fn binary_search(target_line: impl AsRef<[u8]>, bytes: &[u8]) -> Result<Range, usize> {
-    binary_search::implementation(target_line, bytes)
+pub fn binary_search(target: impl AsRef<[u8]>, bytes: &[u8]) -> Result<Range, usize> {
+    binary_search::implementation(target, bytes)
 }
 
 // Implementation using `line::binary_search_by_key`.
@@ -44,18 +52,12 @@ mod binary_search {
 
     use crate::{Range, line};
 
-    pub(super) fn implementation(
-        target_line: impl AsRef<[u8]>,
-        bytes: &[u8],
-    ) -> Result<Range, usize> {
-        let Ok(result) = line::binary_search_by_key::<_, _, Infallible>(
-            target_line.as_ref(),
-            bytes,
-            |line_bytes| {
+    pub(super) fn implementation(target: impl AsRef<[u8]>, bytes: &[u8]) -> Result<Range, usize> {
+        let Ok(result) =
+            line::binary_search_by_key::<_, _, Infallible>(target.as_ref(), bytes, |line_bytes| {
                 let slice = line_bytes.remainder();
                 Ok(slice)
-            },
-        );
+            });
 
         result
     }
@@ -70,17 +72,14 @@ mod binary_search {
     use crate::line::LineBytes;
     use crate::{Comparison, Range, subslice};
 
-    pub(super) fn implementation(
-        target_line: impl AsRef<[u8]>,
-        bytes: &[u8],
-    ) -> Result<Range, usize> {
-        let target_line = target_line.as_ref();
+    pub(super) fn implementation(target: impl AsRef<[u8]>, bytes: &[u8]) -> Result<Range, usize> {
+        let target = target.as_ref();
         let Ok(result) = subslice::binary_search_by::<_, Infallible>(bytes, |search_slice| {
             let mut line_bytes = LineBytes::from_midpoint_of(search_slice);
             let line_start = line_bytes.next_index;
-            let line_prefix = line_bytes.next_slice(target_line.len());
+            let line_prefix = line_bytes.next_slice(target.len());
 
-            let cmp = match line_prefix.cmp(target_line) {
+            let cmp = match line_prefix.cmp(target) {
                 Ordering::Less => {
                     let line_end = line_bytes.skip_to_end();
                     let next_line_start = line_end.line_break_end_position();
@@ -107,19 +106,16 @@ mod binary_search {
     }
 }
 
-/// Executes a binary search of a text line with a comparison key extraction.
+/// Executes a binary search of a text line with a comparison key extraction function.
 ///
-/// The `extract` closure must read the bytes in its [`LineBytes`] parameter and extract a value of
-/// type `V` to be compared against the `target_value`.
+/// The `extract` closure must read the bytes from its [`LineBytes`] parameter and extract a value
+/// to be compared to the `target` line.
 ///
-/// When the target line is found, its byte range without the line break is returned. If the target
-/// line is not found then [`Err`] is returned, containing the index where the target line could be
-/// inserted while maintaining sorted order.
-///
-/// This function is also available as an [extension method for slices](crate::ext::ByteSliceExt::line_binary_search_by_key).
+/// This function is also available as an [extension method for byte
+/// slices](crate::ext::ByteSliceExt::line_binary_search_by_key).
 #[expect(clippy::missing_errors_doc)]
 pub fn binary_search_by_key<'a, T, Q, E>(
-    target_value: &Q,
+    target: &Q,
     bytes: &'a [u8],
     extract: impl FnMut(&mut LineBytes<'a>) -> Result<T, E>,
 ) -> SearchResult<Range, E>
@@ -127,7 +123,7 @@ where
     Q: Ord + ?Sized,
     T: Borrow<Q>,
 {
-    binary_search_by_key::implementation(target_value, bytes, extract)
+    binary_search_by_key::implementation(target, bytes, extract)
 }
 
 // Implementation using `line::binary_search_by`.
@@ -139,7 +135,7 @@ mod binary_search_by_key {
     use crate::{Range, SearchResult};
 
     pub(super) fn implementation<'a, T, Q, E>(
-        target_value: &Q,
+        target: &Q,
         bytes: &'a [u8],
         mut extract: impl FnMut(&mut LineBytes<'a>) -> Result<T, E>,
     ) -> SearchResult<Range, E>
@@ -148,7 +144,7 @@ mod binary_search_by_key {
         T: Borrow<Q>,
     {
         line::binary_search_by(bytes, |line_bytes| {
-            extract(line_bytes).map(|value| value.borrow().cmp(target_value))
+            extract(line_bytes).map(|value| value.borrow().cmp(target))
         })
     }
 }
@@ -162,7 +158,7 @@ mod binary_search_by_key {
     use crate::{LocatedItem, Range, SearchResult, subslice};
 
     pub(super) fn implementation<'a, T, Q, E>(
-        target_value: &Q,
+        target: &Q,
         bytes: &'a [u8],
         mut extract: impl FnMut(&mut LineBytes<'a>) -> Result<T, E>,
     ) -> SearchResult<Range, E>
@@ -170,7 +166,7 @@ mod binary_search_by_key {
         Q: Ord + ?Sized,
         T: Borrow<Q>,
     {
-        subslice::binary_search_by_key::<_, T, _, _>(target_value, bytes, |search_slice| {
+        subslice::binary_search_by_key::<_, T, _, _>(target, bytes, |search_slice| {
             let mut line_bytes = LineBytes::from_midpoint_of(search_slice);
             let start = line_bytes.next_index;
 
@@ -188,14 +184,13 @@ mod binary_search_by_key {
 
 /// Executes a binary search of a text line with a custom comparison.
 ///
-/// The `compare` closure must read the bytes in its [`LineBytes`] parameter and compare it with the
-/// target line, returning the proper [`Ordering`] value.
+/// Read the [module](self) documentation for information common to all functions in the module.
 ///
-/// When the target line is found, its byte range without the line break is returned. If the target
-/// line is not found then [`Err`] is returned, containing the index where the target line could be
-/// inserted while maintaining sorted order.
+/// The `compare` closure must evaluate the bytes from its [`LineBytes`] parameter and compare it
+/// with the target line, returning the proper [`Ordering`] value.
 ///
-/// This function is also available as an [extension method for slices](crate::ext::ByteSliceExt::line_binary_search_by).
+/// This function is also available as an [extension method for byte
+/// slices](crate::ext::ByteSliceExt::line_binary_search_by).
 #[expect(clippy::missing_errors_doc)]
 pub fn binary_search_by<'a, E>(
     bytes: &'a [u8],
@@ -224,6 +219,8 @@ pub fn binary_search_by<'a, E>(
 }
 
 /// An iterator on the bytes of a line.
+///
+/// Initially, the end of the line is not located.
 pub struct LineBytes<'a> {
     bytes: &'a [u8],
     next_index: usize,
@@ -241,14 +238,11 @@ impl<'a> LineBytes<'a> {
     }
 
     /// Returns a slice of up to `len` bytes.
+    ///
+    /// The returned slice is shorter than `len` bytes if the end of the line is found.
     pub fn next_slice(&mut self, len: usize) -> &'a [u8] {
         self.slice(|this| {
-            // Advances up to `len` bytes.
-            for _ in 0..len {
-                if this.next().is_none() {
-                    break;
-                }
-            }
+            this.by_ref().take(len).count();
         })
     }
 
@@ -257,6 +251,13 @@ impl<'a> LineBytes<'a> {
         self.slice(|this| {
             this.skip_to_end();
         })
+    }
+
+    pub fn slices<'s>(&'a mut self, len: usize) -> Slices<'s, 'a> {
+        Slices {
+            line_bytes: self,
+            slice_len: len,
+        }
     }
 
     fn slice(&mut self, f: impl FnOnce(&mut Self)) -> &'a [u8] {
@@ -298,6 +299,23 @@ impl Iterator for LineBytes<'_> {
             self.next_index += 1;
         }
         output
+    }
+}
+
+/// An iterator on the line slices.
+///
+/// The iterator is returned by [`LineBytes::slices`].
+pub struct Slices<'s, 'a> {
+    line_bytes: &'s mut LineBytes<'a>,
+    slice_len: usize,
+}
+
+impl<'a> Iterator for Slices<'_, 'a> {
+    type Item = &'a [u8];
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let slice = self.line_bytes.next_slice(self.slice_len);
+        (!slice.is_empty()).then_some(slice)
     }
 }
 
@@ -571,6 +589,35 @@ mod tests {
             let (bytes, locs) = make_bytes(["aa", "bb"], LineBreak::Lf, false);
 
             assert_line_not_found!(binary_search("aaaa", &bytes), after: locs["aa"]);
+        }
+    }
+
+    mod line_bytes {
+        use super::*;
+
+        #[test]
+        fn next_slice() {
+            let slice = b"abcdefghij";
+
+            let mut line_bytes = LineBytes::from_midpoint_of(slice);
+
+            assert_eq!(line_bytes.next_slice(4), b"abcd");
+            assert_eq!(line_bytes.next_slice(4), b"efgh");
+            assert_eq!(line_bytes.next_slice(4), b"ij");
+            assert_eq!(line_bytes.next_slice(4), b"");
+        }
+
+        #[test]
+        fn slices() {
+            let slice = b"abcdefghij";
+            let mut line_bytes = LineBytes::from_midpoint_of(slice);
+
+            let slices = line_bytes.slices(4);
+
+            assert_eq!(
+                slices.collect::<Vec<_>>(),
+                [b"abcd".as_slice(), b"efgh", b"ij",]
+            );
         }
     }
 }

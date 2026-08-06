@@ -1,3 +1,25 @@
+//! Binary search of text lines in any source that implements [`Read`] and [`Seek`].
+//!
+//! Read the [crate root](crate) documentation for information common to all functions in the crate.
+//!
+//! The `source` can be anything that implements [`Read`] and [`Seek`], which includes [`File`] and
+//! [`Cursor`].
+//!
+//! Lines are delimited by line breaks, which are line feed bytes (`\n`) that may be preceeded by
+//! carriage return (`\r`). The last line may not have a line break.
+//!
+//! Line breaks are not used during line comparisons.
+//!
+//! The `buffered_len` parameter is the preferred and maximum amount of bytes that are read from the
+//! source each time.
+//!
+//! When a target line is found, the returned range does not include the line break.
+//!
+//! [`Cursor`]: std::io::Cursor
+//! [`File`]: std::fs::File
+//! [`Read`]: std::io::Read
+//! [`Seek`]: std::io::Seek
+
 use std::cmp::Ordering;
 use std::collections::VecDeque;
 use std::fmt::{self, Debug};
@@ -16,16 +38,9 @@ where
         .map_err(|e| io::Error::new(io::ErrorKind::FileTooLarge, e))
 }
 
-/// Executes a binary search of a text line in (possibly) a [`File`].
+/// Executes a binary search of a line in (possibly) a text [`File`].
 ///
-/// The `source` can be anything that implements [`Read`] and [`Seek`], which includes [`File`] and
-/// [`Cursor`].
-///
-/// The `buffered_len` parameter is the preferred and maximum amount of bytes that are read each time.
-///
-/// When the `target_line` line is found, its byte range without the line break is returned. If the
-/// target `target_line` is not found then [`Err`] is returned, containing the index where the
-/// `target_line` could be inserted while maintaining sorted order.
+/// Read the [module](self) documentation for information common to all functions in the module.
 ///
 /// To execute binary search of a file content loaded into memory, use [`line::binary_search`].
 ///
@@ -33,20 +48,17 @@ where
 ///
 /// - [Lines in a text file](crate#lines-in-a-text-file)
 ///
-/// [`Cursor`]: std::io::Cursor
 /// [`File`]: std::fs::File
-/// [`Read`]: std::io::Read
-/// [`Seek`]: std::io::Seek
 #[expect(clippy::missing_errors_doc)]
 pub fn binary_search<S>(
-    target_line: impl AsRef<[u8]>,
+    target: impl AsRef<[u8]>,
     source: S,
     buffer_len: NonZeroUsize,
 ) -> SearchResult<Range, io::Error>
 where
     S: io::Read + io::Seek,
 {
-    binary_search::implementation(target_line, source, buffer_len)
+    binary_search::implementation(target, source, buffer_len)
 }
 
 // Implementation using `line::buffered::binary_search_by`.
@@ -62,7 +74,7 @@ mod binary_search {
     use crate::{Range, SearchResult, line};
 
     pub(super) fn implementation<S>(
-        target_line: impl AsRef<[u8]>,
+        target: impl AsRef<[u8]>,
         source: S,
         buffer_len: NonZeroUsize,
     ) -> SearchResult<Range, io::Error>
@@ -70,16 +82,16 @@ mod binary_search {
         S: io::Read + io::Seek,
     {
         line::buffered::binary_search_by(source, buffer_len, |loc_line_bytes| {
-            let mut target_line = target_line.as_ref();
+            let mut target = target.as_ref();
 
-            while !target_line.is_empty() {
+            while !target.is_empty() {
                 let Some(chunk) = loc_line_bytes.next_chunk()? else {
                     return Ok(Ordering::Less);
                 };
 
-                let cmp_len = cmp::min(target_line.len(), chunk.len());
+                let cmp_len = cmp::min(target.len(), chunk.len());
                 let (chunk_prefix, chunk_rest) = chunk.split_at(cmp_len);
-                let (line_prefix, line_rest) = target_line.split_at(cmp_len);
+                let (line_prefix, line_rest) = target.split_at(cmp_len);
 
                 let cmp = chunk_prefix.cmp(line_prefix);
                 if cmp.is_ne() {
@@ -91,7 +103,7 @@ mod binary_search {
                     return Ok(Ordering::Greater);
                 }
 
-                target_line = line_rest;
+                target = line_rest;
             }
 
             if loc_line_bytes.next().is_some() {
@@ -115,7 +127,7 @@ mod binary_search {
     use crate::{LocatedItem, Range, SearchResult, sparse};
 
     pub(super) fn implementation<S>(
-        target_line: impl AsRef<[u8]>,
+        target: impl AsRef<[u8]>,
         mut source: S,
         buffer_len: NonZeroUsize,
     ) -> SearchResult<Range, io::Error>
@@ -127,7 +139,7 @@ mod binary_search {
 
         let mut reader = Reader::new(source);
 
-        sparse::binary_search_by_key(target_line.as_ref(), element_count, |search_range| {
+        sparse::binary_search_by_key(target.as_ref(), element_count, |search_range| {
             let buffer_len = cmp::min(buffer_len, search_range.len());
             let midpoint = search_range.midpoint();
             let read_start = {
@@ -219,14 +231,14 @@ mod binary_search {
     use crate::{Range, SearchResult, line};
 
     pub(super) fn implementation<S>(
-        target_line: impl AsRef<[u8]>,
+        target: impl AsRef<[u8]>,
         source: S,
         buffer_len: NonZeroUsize,
     ) -> SearchResult<Range, io::Error>
     where
         S: io::Read + io::Seek,
     {
-        let target = Cow::Borrowed(target_line.as_ref());
+        let target = Cow::Borrowed(target.as_ref());
         line::buffered::binary_search_by_key(&target, source, buffer_len, |line_bytes| {
             let vec = line_bytes.collect::<io::Result<Vec<_>>>()?;
             Ok(Cow::Owned(vec))
@@ -234,25 +246,19 @@ mod binary_search {
     }
 }
 
-/// Executes a binary search of a text line in (possibly) a [`File`] with a comparison key
-/// extraction.
+/// Executes a binary search of a line in (possibly) a text [`File`] with a comparison key
+/// extraction function.
 ///
-/// The `source` can be anything that implements [`Read`] and [`Seek`], which includes [`File`] and
-/// [`Cursor`].
+/// Read the [module](self) documentation for information common to all functions in the module.
 ///
-/// The `buffered_len` parameter is the preferred and maximum amount of bytes that are read each time.
+/// The `extract` closure must read the bytes from its [`BufferedLineBytes`] parameter and extract a
+/// value to be compared to the `target` line.
 ///
-/// The `extract` closure must extract from its [`BufferedLineBytes`] parameter the value to be
-/// compared against the `target`.
+/// # Example
 ///
-/// When the target line is found, its byte range without the line break is returned. If the target
-/// line is not found then [`Err`] is returned, containing the index where the target line could be
-/// inserted while maintaining sorted order.
+/// - [Numeric lines in a text file](crate#numeric-lines-in-a-text-file)
 ///
-/// [`Cursor`]: std::io::Cursor
 /// [`File`]: std::fs::File
-/// [`Read`]: std::io::Read
-/// [`Seek`]: std::io::Seek
 #[expect(clippy::missing_errors_doc)]
 pub fn binary_search_by_key<T, S, E>(
     target: &T,
@@ -272,27 +278,15 @@ where
     })
 }
 
-/// Executes a binary search of a text line in (possibly) a [`File`] with a custom comparison.
+/// Executes a binary search of a line in (possibly) a text [`File`] with a custom comparison.
 ///
-/// The `source` can be anything that implements [`Read`] and [`Seek`], which includes [`File`] and
-/// [`Cursor`].
-///
-/// The `buffered_len` parameter is the preferred and maximum amount of bytes that are read each time.
-///
-/// The `compare` closure must read the bytes in its [`BufferedLineBytes`] parameter and compare it
-/// with the target line, returning the proper [`Ordering`] value.
-///
-/// When the target line is found, its byte range without the line break is returned. If the target
-/// line is not found then [`Err`] is returned, containing the index where the target line could be
-/// inserted while maintaining sorted order.
+/// The `compare` closure must evaluate the bytes from its [`BufferedLineBytes`] parameter and
+/// compare it with the target line, returning the proper [`Ordering`] value.
 ///
 /// To execute binary search of a file content loaded into memory with a custom comparison, use
 /// [`line::binary_search_by`](crate::line::binary_search).
 ///
-/// [`Cursor`]: std::io::Cursor
 /// [`File`]: std::fs::File
-/// [`Read`]: std::io::Read
-/// [`Seek`]: std::io::Seek
 #[expect(clippy::missing_errors_doc)]
 pub fn binary_search_by<S, E>(
     mut source: S,
@@ -658,13 +652,20 @@ impl<S> Debug for BufLineBytesState<'_, S> {
     }
 }
 
+/// An iterator on the bytes of a line.
+///
+/// Initially, the end of the line is not located.
+///
+/// The source is read in chunks of up to `buffer_len` (the search function parameter) bytes. The
+/// iterator advances by reading the chunks, discarding the depleted ones, and reading new ones
+/// until the end of the line is reached.
 pub struct BufferedLineBytes<'a, S> {
     next_position: usize,
     state: BufLineBytesState<'a, S>,
 }
 
 impl<'a, S> BufferedLineBytes<'a, S> {
-    pub(crate) fn new(
+    fn new(
         start_position: usize,
         start_chunks: Vec<VecDeque<u8>>,
         mid_chunk: VecDeque<u8>,
@@ -785,7 +786,7 @@ impl<'a, S> BufferedLineBytes<'a, S> {
     }
 
     #[expect(clippy::missing_errors_doc, clippy::missing_panics_doc)]
-    /// Returns the next non-empty chunk.
+    /// Returns the next chunk.
     pub fn next_chunk(&mut self) -> io::Result<Option<Vec<u8>>>
     where
         S: io::Read + io::Seek,
@@ -875,10 +876,12 @@ impl<'a, S> BufferedLineBytes<'a, S> {
         Ok(chunk)
     }
 
+    /// Returns an interator on the chunks.
     pub fn chunks(&mut self) -> Chunks<'_, 'a, S> {
         Chunks { line_bytes: self }
     }
 
+    /// Skips to the end of the line.
     #[expect(clippy::missing_errors_doc)]
     pub fn skip_to_end(&mut self) -> io::Result<LineEnd>
     where
@@ -917,6 +920,9 @@ impl<S> Debug for BufferedLineBytes<'_, S> {
     }
 }
 
+/// An iterator on the line chunks.
+///
+/// The iterator is returned by [`BufferedLineBytes::chunks`].
 pub struct Chunks<'a, 'b, S> {
     line_bytes: &'a mut BufferedLineBytes<'b, S>,
 }
