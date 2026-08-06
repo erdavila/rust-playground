@@ -87,7 +87,7 @@ mod binary_search {
     }
 }
 
-// Implementation using `sparse::binary_search`.
+// Implementation using `sparse::binary_search_by_key`.
 #[cfg(feature = "alternative-subslice-binary_search")]
 mod binary_search {
     use crate::ext::{RangeExt as _, SliceExt as _};
@@ -99,7 +99,7 @@ mod binary_search {
         source: &'a [T],
         mut locate_subslice_in: impl FnMut(&'a [T]) -> Result<Option<LocatedSubslice>, E>,
     ) -> SearchResult<Range, E> {
-        sparse::binary_search(target_subslice, source.len(), |search_range| {
+        sparse::binary_search_by_key(target_subslice, source.len(), |search_range| {
             let loc_item_opt = source
                 .in_range(search_range, &mut locate_subslice_in)?
                 .map(|ls| {
@@ -194,7 +194,7 @@ mod binary_search_by_key {
         Q: Ord + ?Sized,
         V: Borrow<Q>,
     {
-        sparse::binary_search(target_value, source.len(), |search_range| {
+        sparse::binary_search_by_key(target_value, source.len(), |search_range| {
             source.in_range(search_range, &mut locate_item_in)
         })
     }

@@ -127,7 +127,7 @@ mod binary_search {
 
         let mut reader = Reader::new(source);
 
-        sparse::binary_search(target_line.as_ref(), element_count, |search_range| {
+        sparse::binary_search_by_key(target_line.as_ref(), element_count, |search_range| {
             let buffer_len = cmp::min(buffer_len, search_range.len());
             let midpoint = search_range.midpoint();
             let read_start = {

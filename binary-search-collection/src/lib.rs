@@ -18,7 +18,7 @@
 //!
 //! A list of values where some of them must be ignored.
 //!
-//! Using [`sparse::binary_search`]:
+//! Using [`sparse::binary_search_by_key`]:
 //!
 //! ```
 //! use binary_search_collection::{sparse, LocatedItem, Range};
@@ -27,7 +27,7 @@
 //! use std::convert::Infallible;
 //!
 //! fn binary_search_with_gaps<T, V: Ord>(value: &V, list: &[T], mut extract: impl FnMut(&T) -> Option<V>) -> Result<usize, usize> {
-//!     let Ok(result) = sparse::binary_search::<_, _, Infallible>(value, list.len(), |range| {
+//!     let Ok(result) = sparse::binary_search_by_key::<_, _, Infallible>(value, list.len(), |range| {
 //!         let li_opt = range
 //!             .iter_from_midpoint()
 //!             .find_map(|i| {
@@ -133,7 +133,7 @@
 //!
 //! ## Subslices with delimiters With a custom comparison<a id="subslices-with-delimiters-with-a-custom-comparison"></a>
 //!
-//! A custom comparison can be used with [`sparse::binary_search`].
+//! A custom comparison can be used with [`sparse::binary_search_by_key`].
 //!
 //! In the example below, slices are compared in reverse order:
 //!
@@ -160,7 +160,7 @@
 //!         }
 //!     }
 //!
-//!     let Ok(result) = sparse::binary_search::<_, _, Infallible>(&Reverse(sequence), chars.len(), |range| {
+//!     let Ok(result) = sparse::binary_search_by_key::<_, _, Infallible>(&Reverse(sequence), chars.len(), |range| {
 //!         let located_subslice = chars
 //!             .in_range(range, |slice| {
 //!                 slice.subslice_range_from_midpoint_to_delimiters(|&c| c == delimiter)

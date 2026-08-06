@@ -28,7 +28,7 @@ use crate::{Comparison, LocatedItem, Range, SearchResult, sparse};
 /// - [Values with gaps](crate#values-with-gaps)
 /// - [Subslices with delimiters with a custom comparison](crate#subslices-with-delimiters-with-a-custom-comparison)
 #[expect(clippy::missing_errors_doc)]
-pub fn binary_search<T, Q, E>(
+pub fn binary_search_by_key<T, Q, E>(
     target: &Q,
     element_count: usize,
     mut locate_item_in: impl FnMut(Range) -> Result<Option<LocatedItem<T>>, E>,
