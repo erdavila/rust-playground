@@ -1,6 +1,10 @@
 default: fmt test clippy
 
 [no-cd]
+check *ARGS:
+  cargo check {{ARGS}}
+
+[no-cd]
 fmt:
   cargo +nightly fmt -- \
     --config group_imports=StdExternalCrate \
@@ -20,3 +24,7 @@ clippy:
 [no-cd]
 doc *ARGS:
   cargo doc {{ARGS}}
+
+[no-cd]
+run *ARGS:
+  cargo run {{ARGS}}

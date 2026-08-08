@@ -21,6 +21,7 @@ members = [
     "interlace",
     "iters",
     "json-diff",
+    "method-resolution",
     "min-max-binary-heap",
     "ratatui-scrolling",
     "ref_count",
