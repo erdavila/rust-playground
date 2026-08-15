@@ -1,0 +1,10 @@
+[package]
+name = "music"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+enum-indexed = { path = "../enum-indexed" }
+
+[lints]
+workspace = true
