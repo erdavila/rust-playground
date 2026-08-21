@@ -1,0 +1,13 @@
+error[E0308]: mismatched types
+ --> tests/indexed_output_requirement/static/require_owned/ref_output_idxd.rs:7:5
+  |
+7 |     owned_output::required_by_static_dispatch(&ref_output::idxd!());
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ one type is more general than the other
+  |
+  = note: expected reference `&'a u32`
+             found reference `&u32`
+note: the lifetime requirement is introduced here
+ --> tests/indexed_output_requirement/static/require_owned/../../fixture.rs
+  |
+  |     pub(crate) fn required_by_static_dispatch<Idx, T>(_: &impl for<'a> Indexed<'a, Idx, Output = T>) {}
+  |                                                                                         ^^^^^^^^^^

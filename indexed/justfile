@@ -1,0 +1,11 @@
+set allow-duplicate-recipes
+
+import '../justfile'
+
+default: fmt test clippy
+
+[no-cd]
+check *ARGS:
+  cargo check --no-default-features {{ARGS}}
+  cargo check --no-default-features --features alloc {{ARGS}}
+  cargo check --no-default-features --features std {{ARGS}}

@@ -23,7 +23,7 @@ clippy:
 
 [no-cd]
 doc *ARGS:
-  cargo doc {{ARGS}}
+  cargo +nightly doc {{ARGS}}
 
 [no-cd]
 run *ARGS:

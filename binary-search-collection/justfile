@@ -29,4 +29,4 @@ clippy:
   cargo clippy --all-targets --no-default-features --features std
 
 doc *ARGS:
-  cargo +nightly doc {{ARGS}}
+  cargo doc {{ARGS}}

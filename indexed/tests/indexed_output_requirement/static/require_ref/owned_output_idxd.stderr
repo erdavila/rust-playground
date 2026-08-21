@@ -1,0 +1,15 @@
+error[E0271]: type mismatch resolving `<View<u32, RefOutputIdxd<char, u32, 3>, impl Fn(&u32) -> u32> as Indexed<'a, char>>::Output == &_`
+ --> tests/indexed_output_requirement/static/require_ref/owned_output_idxd.rs:7:45
+  |
+7 |     ref_output::required_by_static_dispatch(&owned_output::idxd!());
+  |     --------------------------------------- ^^^^^^^^^^^^^^^^^^^^^^ expected `&_`, found `u32`
+  |     |
+  |     required by a bound introduced by this call
+  |
+  = note: expected reference `&_`
+                  found type `u32`
+note: required by a bound in `fixture::ref_output::required_by_static_dispatch`
+ --> tests/indexed_output_requirement/static/require_ref/../../fixture.rs
+  |
+  |     pub(crate) fn required_by_static_dispatch<Idx, T>(_: &impl for<'a> Indexed<'a, Idx, Output = &'a T>) {}
+  |                                                                                         ^^^^^^^^^^^^^^ required by this bound in `required_by_static_dispatch`
