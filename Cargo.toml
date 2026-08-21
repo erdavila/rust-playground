@@ -29,6 +29,7 @@ members = [
     "method-resolution",
     "min-max-binary-heap",
     "music",
+    "partial-match",
     "ratatui-scrolling",
     "ref-count",
     "rewrap-rustdoc",
