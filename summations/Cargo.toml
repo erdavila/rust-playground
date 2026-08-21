@@ -1,0 +1,11 @@
+[package]
+name = "summations"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+indexed = { workspace = true, features = ["alloc"] }
+rand = "0.10.2"
+
+[lints]
+workspace = true

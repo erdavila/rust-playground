@@ -33,6 +33,7 @@ members = [
     "rewrap-rustdoc",
     "same-elements",
     "shared-ownership",
+    "summations",
     "syn-dump",
     "tailcall",
     "version-sorting",
@@ -42,6 +43,7 @@ members = [
 [workspace.dependencies]
 cpf-cnpj.path = "cpf-cnpj"
 enum-indexed.path = "enum-indexed"
+indexed = { path = "indexed", default-features = false }
 syn-dump.path = "syn-dump"
 
 [workspace.lints.clippy]
