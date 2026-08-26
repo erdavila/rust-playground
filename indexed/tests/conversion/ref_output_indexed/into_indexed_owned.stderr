@@ -1,0 +1,19 @@
+error[E0599]: the method `get` exists for struct `AsIndexedOwned<RefOutputIdxd<char, u32, 3>>`, but its trait bounds were not satisfied
+  --> tests/conversion/ref_output_indexed/into_indexed_owned.rs:14:16
+   |
+14 |     idxd_owned.get(NONE_INDEX);
+   |                ^^^ method cannot be called on `AsIndexedOwned<RefOutputIdxd<char, u32, 3>>` due to unsatisfied trait bounds
+   |
+  ::: tests/conversion/ref_output_indexed/../../mods/idxd.rs
+   |
+   | pub(crate) struct RefOutputIdxd<Idx, T, const N: usize>(pub(crate) [(Idx, T); N]);
+   | ------------------------------------------------------- doesn't satisfy `<_ as Indexed<'a, _>>::Output = _`
+   |
+  ::: src/indexed/as_indexed_owned.rs
+   |
+   | pub struct AsIndexedOwned<A> {
+   | ---------------------------- doesn't satisfy `_: IndexedOwned<_>`
+   |
+   = note: the following trait bounds were not satisfied:
+           `<RefOutputIdxd<char, u32, 3> as Indexed<'a, _>>::Output = _`
+           which is required by `AsIndexedOwned<RefOutputIdxd<char, u32, 3>>: IndexedOwned<_>`

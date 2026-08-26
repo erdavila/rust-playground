@@ -5,8 +5,16 @@
 extern crate alloc;
 
 mod impls;
-mod indexed;
+pub mod indexed;
+pub mod indexed_owned;
+mod indices;
+mod len;
 mod view;
 
-pub use indexed::*;
+#[doc(inline)]
+pub use indexed::Indexed;
+#[doc(inline)]
+pub use indexed_owned::IndexedOwned;
+pub use indices::*;
+pub use len::*;
 pub use view::*;

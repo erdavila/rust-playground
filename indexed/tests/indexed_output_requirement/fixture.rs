@@ -20,7 +20,7 @@ pub(crate) mod owned_output {
 
     pub(crate) fn required_by_static_dispatch<Idx, T>(_: &impl for<'a> Indexed<'a, Idx, Output = T>) {}
 
-    pub(crate) fn required_by_dynamic_dispatch<Idx, T, Idxs>(_: &dyn for<'a> Indexed<'a, Idx, Output = T, Indices = Idxs>) {}
+    pub(crate) fn required_by_dynamic_dispatch<Idx, T>(_: &dyn for<'a> Indexed<'a, Idx, Output = T>) {}
 }
 
 pub(crate) mod ref_output {
@@ -35,7 +35,7 @@ pub(crate) mod ref_output {
 
     pub(crate) fn required_by_static_dispatch<Idx, T>(_: &impl for<'a> Indexed<'a, Idx, Output = &'a T>) {}
 
-    pub(crate) fn required_by_dynamic_dispatch<Idx, T, Idxs>(_: &dyn for<'a> Indexed<'a, Idx, Output = &'a T, Indices = Idxs>) {}
+    pub(crate) fn required_by_dynamic_dispatch<Idx, T>(_: &dyn for<'a> Indexed<'a, Idx, Output = &'a T>) {}
 }
 
 pub(crate) mod any_output {

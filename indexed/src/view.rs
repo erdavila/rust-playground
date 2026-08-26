@@ -1,7 +1,7 @@
 use core::marker::PhantomData;
 use core::ops::Index;
 
-use crate::Indexed;
+use crate::{Indexed, IndexedOwned, Indices, Len};
 
 pub struct View<T, A, F> {
     inner: A,
@@ -32,6 +32,26 @@ where
     }
 }
 
+impl<T, A, F> Len for View<T, A, F>
+where
+    A: Len,
+{
+    fn len(&self) -> usize {
+        self.inner.len()
+    }
+}
+
+impl<'a, T, A, F, Idx> Indices<'a, Idx> for View<T, A, F>
+where
+    A: Indices<'a, Idx>,
+{
+    type Indices = A::Indices;
+
+    fn indices(&'a self) -> Self::Indices {
+        self.inner.indices()
+    }
+}
+
 impl<'a, T, A, F, Idx> Indexed<'a, Idx> for View<T, A, F>
 where
     A: Indexed<'a, Idx>,
@@ -39,17 +59,19 @@ where
 {
     type Output = T;
 
-    type Indices = A::Indices;
-
     fn get(&'a self, index: Idx) -> Option<Self::Output> {
         self.inner.get(index).map(&self.f)
     }
+}
 
-    fn indices(&'a self) -> Self::Indices {
-        self.inner.indices()
-    }
+impl<T, A, F, Idx> IndexedOwned<Idx> for View<T, A, F>
+where
+    A: IndexedOwned<Idx>,
+    F: Fn(A::Output) -> T,
+{
+    type Output = T;
 
-    fn len(&self) -> usize {
-        self.inner.len()
+    fn get(&self, index: Idx) -> Option<Self::Output> {
+        self.inner.get(index).map(&self.f)
     }
 }

@@ -1,4 +1,4 @@
-use indexed::Indexed;
+use indexed::{Indexed, Indices};
 
 use crate::mods::asserts::assert_indexed;
 use crate::mods::asserts::entries::{VALUES, values_mapped};
@@ -9,6 +9,7 @@ mod mods;
 
 mod owned_output {
     use super::*;
+    use crate::mods::asserts::assert_indexed_owned;
 
     #[test]
     fn get_and_len() {
@@ -36,10 +37,41 @@ mod owned_output {
     }
 
     #[test]
-    fn dyn_compatible() {
+    fn as_indexed_owned() {
         let idxd = new_owned_output_indexed(VALUES);
 
-        let obj: &dyn for<'a> Indexed<'a, _, Output = _, Indices = _> = &idxd;
+        let idxd_owned = idxd.as_indexed_owned();
+
+        assert_indexed_owned!(idxd_owned);
+    }
+
+    #[test]
+    fn into_indexed_owned() {
+        let idxd = new_owned_output_indexed(VALUES);
+
+        let idxd_owned = idxd.into_indexed_owned();
+
+        assert_indexed_owned!(idxd_owned);
+    }
+
+    #[test]
+    fn dyn_compatible() {
+        pub(crate) trait IndexedWithIndicesOwned<'a, Idx>
+        where
+            Self: Indexed<'a, Idx>,
+            Self: Indices<'a, Idx>,
+        {
+        }
+        impl<'a, A, Idx> IndexedWithIndicesOwned<'a, Idx> for A
+        where
+            A: Indexed<'a, Idx>,
+            A: Indices<'a, Idx>,
+        {
+        }
+
+        let idxd = new_owned_output_indexed(VALUES);
+
+        let obj: &dyn for<'a> IndexedWithIndicesOwned<'a, _, Output = _, Indices = _> = &idxd;
 
         assert_indexed!(owned: obj);
     }
@@ -74,10 +106,35 @@ mod ref_output {
     }
 
     #[test]
+    fn as_indexed_owned() {
+        let t = trybuild::TestCases::new();
+        t.compile_fail("tests/conversion/ref_output_indexed/as_indexed_owned.rs");
+    }
+
+    #[test]
+    fn into_indexed_owned() {
+        let t = trybuild::TestCases::new();
+        t.compile_fail("tests/conversion/ref_output_indexed/into_indexed_owned.rs");
+    }
+
+    #[test]
     fn dyn_compatible() {
+        pub(crate) trait IndexedWithIndicesRef<Idx, Target: ?Sized>
+        where
+            Self: for<'a> Indexed<'a, Idx, Output = &'a Target>,
+            Self: for<'a> Indices<'a, Idx>,
+        {
+        }
+        impl<A, Idx, Target: ?Sized> IndexedWithIndicesRef<Idx, Target> for A
+        where
+            A: for<'a> Indexed<'a, Idx, Output = &'a Target>,
+            A: for<'a> Indices<'a, Idx> + ?Sized,
+        {
+        }
+
         let idxd = new_ref_output_indexed(VALUES);
 
-        let obj: &dyn for<'a> Indexed<'a, _, Output = &'a _, Indices = _> = &idxd;
+        let obj: &dyn IndexedWithIndicesRef<_, _, Indices = _> = &idxd;
 
         assert_indexed!(ref: obj);
     }

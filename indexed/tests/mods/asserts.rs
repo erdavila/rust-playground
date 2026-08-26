@@ -14,25 +14,55 @@ macro_rules! assert_indexed {
         $crate::mods::asserts::assert_indexed!(@ &$idxd, $expected, $none_index);
     };
     (@ $idxd:expr, $expected:expr, $none_index:expr) => {{
-        use std::collections::{BTreeMap, BTreeSet};
+        #[allow(unused_imports)]
         use indexed::Indexed;
+
+        $crate::mods::asserts::__assert_indexed!(Indexed; $idxd, $expected, $none_index);
+    }};
+}
+pub(crate) use assert_indexed;
+
+macro_rules! assert_indexed_owned {
+    ($idxd_owned:expr) => {{
+        use $crate::mods::asserts::entries::{expected, NONE_INDEX};
+
+        $crate::mods::asserts::assert_indexed_owned!($idxd_owned, expected::as_owned_owned(), NONE_INDEX);
+    }};
+    ($idxd_owned:expr, $expected:expr, $none_index:expr $(,)?) => {
+        $crate::mods::asserts::assert_indexed_owned!(@ $idxd_owned, $expected, $none_index);
+        $crate::mods::asserts::assert_indexed_owned!(@ &$idxd_owned, $expected, $none_index);
+    };
+    (@ $idxd_owned:expr, $expected:expr, $none_index:expr) => {{
+        #[allow(unused_imports)]
+        use indexed::IndexedOwned;
+
+        $crate::mods::asserts::__assert_indexed!(IndexedOwned; $idxd_owned, $expected, $none_index);
+    }};
+}
+pub(crate) use assert_indexed_owned;
+
+macro_rules! __assert_indexed {
+    ($trait:ident $(, $mut:tt)?; $a:expr, $expected:expr, $none_index:expr) => {{
+        use std::collections::{BTreeMap, BTreeSet};
+
+        use indexed::{Indices, Len};
 
         let expected: BTreeMap<_, _> = $expected.into_iter().collect();
 
-        assert_eq!(Indexed::len(&$idxd), expected.len());
+        assert_eq!(Len::len(&$a), expected.len());
 
         assert_eq!(
-            Indexed::indices(&$idxd).into_iter().collect::<BTreeSet<_>>(),
+            Indices::indices(&$a).into_iter().collect::<BTreeSet<_>>(),
             expected.keys().copied().collect::<BTreeSet<_>>(),
         );
 
         for (k, v) in expected {
-            assert_eq!($idxd.get(k), Some(v));
+            assert_eq!($a.get(k), Some(v));
         }
-        assert_eq!($idxd.get($none_index), None);
+        assert_eq!($a.get($none_index), None);
     }};
 }
-pub(crate) use assert_indexed;
+pub(crate) use __assert_indexed;
 
 pub(crate) mod entries {
     use std::array;

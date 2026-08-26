@@ -6,4 +6,4 @@ error[E0271]: type mismatch resolving `<View<u32, RefOutputIdxd<char, u32, 3>, i
   |
   = note: expected reference `&_`
                   found type `u32`
-  = note: required for the cast from `&View<u32, RefOutputIdxd<char, u32, 3>, impl for<'a> Fn(&'a u32) -> u32>` to `&dyn for<'a> indexed::Indexed<'a, char, Indices = [char; 3], Output = &'a _>`
+  = note: required for the cast from `&View<u32, RefOutputIdxd<char, u32, 3>, impl for<'a> Fn(&'a u32) -> u32>` to `&dyn for<'a> indexed::Indexed<'a, char, Output = &'a _>`

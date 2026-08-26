@@ -1,4 +1,8 @@
-use crate::View;
+use crate::{Len, View};
+
+mod as_indexed_owned;
+
+pub use as_indexed_owned::AsIndexedOwned;
 
 /// Provides indexed access to elements.
 ///
@@ -7,20 +11,10 @@ use crate::View;
 /// it is cumbersome to have the function receive `&[T]` and `impl FnMut(&T) -> U` parameters.
 ///
 /// The `Output` can be either an owned value, or a reference.
-pub trait Indexed<'a, Idx> {
+pub trait Indexed<'a, Idx>: Len {
     type Output;
 
-    type Indices: IntoIterator<Item = Idx>;
-
     fn get(&'a self, index: Idx) -> Option<Self::Output>;
-
-    fn indices(&'a self) -> Self::Indices;
-
-    fn len(&self) -> usize;
-
-    fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
 
     fn view<T, F>(&self, f: F) -> View<T, &Self, F>
     where
@@ -36,5 +30,19 @@ pub trait Indexed<'a, Idx> {
         Self: Sized,
     {
         View::new(self, f)
+    }
+
+    fn as_indexed_owned(&self) -> AsIndexedOwned<&Self>
+    where
+        Self: Sized,
+    {
+        AsIndexedOwned::new(self)
+    }
+
+    fn into_indexed_owned(self) -> AsIndexedOwned<Self>
+    where
+        Self: Sized,
+    {
+        AsIndexedOwned::new(self)
     }
 }
