@@ -1,0 +1,5 @@
+error[E0599]: no method named `get` found for struct `AsIndexedRef<A>` in the current scope
+  --> tests/conversion/owned_output_indexed/as_indexed_ref.rs:14:14
+   |
+14 |     idxd_ref.get(NONE_INDEX);
+   |              ^^^ method not found in `AsIndexedRef<&View<u32, RefOutputIdxd<char, u32, 3>, impl for<'a> Fn(&'a u32) -> u32>>`

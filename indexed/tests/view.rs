@@ -1,8 +1,12 @@
 use indexed::View;
 
-use crate::mods::asserts::entries::{expected, values_mapped};
-use crate::mods::asserts::{assert_indexed, assert_indexed_owned};
-use crate::mods::idxd::{new_indexed_owned, new_owned_output_indexed, new_ref_output_indexed};
+use crate::mods::asserts::entries::values_mapped;
+use crate::mods::asserts::{
+    assert_index, assert_indexed, assert_indexed_owned, assert_indexed_ref,
+};
+use crate::mods::idxd::{
+    new_indexed_owned, new_indexed_ref, new_owned_output_indexed, new_ref_output_indexed,
+};
 use crate::mods::wrapper::Wrapper;
 
 mod mods;
@@ -51,9 +55,7 @@ mod indexed_inner {
             let view = View::new(owned_inner, Wrapper::ref_to_ref);
             assert_indexed!(ref: view);
             // `Index::index` is available when the inner is owned and the output is a reference.
-            for (idx, val) in expected::as_owned_owned() {
-                assert_eq!(view[idx], val);
-            }
+            assert_index!(view);
         }
     }
 }
@@ -69,4 +71,19 @@ fn indexed_owned_inner() {
     let owned_inner = idxd_owned;
     let view = View::new(owned_inner, Wrapper::owned_to_owned);
     assert_indexed_owned!(view);
+}
+
+#[test]
+fn indexed_ref_inner() {
+    let idxd_ref = new_indexed_ref(values_mapped(Wrapper));
+
+    let ref_inner = &idxd_ref;
+    let view = View::new(ref_inner, Wrapper::ref_to_ref);
+    assert_indexed_ref!(view);
+
+    let owned_inner = idxd_ref;
+    let view = View::new(owned_inner, Wrapper::ref_to_ref);
+    assert_indexed_ref!(view);
+    // `Index::index` is available when the inner is owned and the output is a reference.
+    assert_index!(view);
 }

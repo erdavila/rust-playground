@@ -1,5 +1,5 @@
 mod refs {
-    use crate::{Indexed, IndexedOwned, Indices, Len};
+    use crate::{Indexed, IndexedOwned, IndexedRef, Indices, Len};
 
     impl<A> Len for &A
     where
@@ -39,6 +39,17 @@ mod refs {
         type Output = A::Output;
 
         fn get(&self, index: Idx) -> Option<Self::Output> {
+            (**self).get(index)
+        }
+    }
+
+    impl<A, Idx> IndexedRef<Idx> for &A
+    where
+        A: IndexedRef<Idx> + ?Sized,
+    {
+        type Target = A::Target;
+
+        fn get(&self, index: Idx) -> Option<&Self::Target> {
             (**self).get(index)
         }
     }

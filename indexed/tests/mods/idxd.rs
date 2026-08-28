@@ -30,6 +30,15 @@ where
     new_owned_output_indexed(values).into_indexed_owned()
 }
 
+pub(crate) fn new_indexed_ref<Idx, T, const N: usize>(
+    values: [(Idx, T); N],
+) -> indexed::indexed::AsIndexedRef<RefOutputIdxd<Idx, T, N>>
+where
+    Idx: Eq,
+{
+    new_ref_output_indexed(values).into_indexed_ref()
+}
+
 pub(crate) struct RefOutputIdxd<Idx, T, const N: usize>(pub(crate) [(Idx, T); N]);
 
 impl<Idx, T, const N: usize> Len for RefOutputIdxd<Idx, T, N> {

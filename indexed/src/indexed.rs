@@ -1,8 +1,10 @@
 use crate::{Len, View};
 
 mod as_indexed_owned;
+mod as_indexed_ref;
 
 pub use as_indexed_owned::AsIndexedOwned;
+pub use as_indexed_ref::AsIndexedRef;
 
 /// Provides indexed access to elements.
 ///
@@ -44,5 +46,19 @@ pub trait Indexed<'a, Idx>: Len {
         Self: Sized,
     {
         AsIndexedOwned::new(self)
+    }
+
+    fn as_indexed_ref(&self) -> AsIndexedRef<&Self>
+    where
+        Self: Sized,
+    {
+        AsIndexedRef::new(self)
+    }
+
+    fn into_indexed_ref(self) -> AsIndexedRef<Self>
+    where
+        Self: Sized,
+    {
+        AsIndexedRef::new(self)
     }
 }

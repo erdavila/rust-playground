@@ -55,6 +55,18 @@ mod owned_output {
     }
 
     #[test]
+    fn as_indexed_ref() {
+        let t = trybuild::TestCases::new();
+        t.compile_fail("tests/conversion/owned_output_indexed/as_indexed_ref.rs");
+    }
+
+    #[test]
+    fn into_indexed_ref() {
+        let t = trybuild::TestCases::new();
+        t.compile_fail("tests/conversion/owned_output_indexed/into_indexed_ref.rs");
+    }
+
+    #[test]
     fn dyn_compatible() {
         pub(crate) trait IndexedWithIndicesOwned<'a, Idx>
         where
@@ -79,6 +91,7 @@ mod owned_output {
 
 mod ref_output {
     use super::*;
+    use crate::mods::asserts::{assert_index, assert_indexed_ref};
 
     #[test]
     fn get_and_len() {
@@ -115,6 +128,26 @@ mod ref_output {
     fn into_indexed_owned() {
         let t = trybuild::TestCases::new();
         t.compile_fail("tests/conversion/ref_output_indexed/into_indexed_owned.rs");
+    }
+
+    #[test]
+    fn as_indexed_ref() {
+        let idxd = new_ref_output_indexed(VALUES);
+
+        let idxd_ref = idxd.as_indexed_ref();
+
+        assert_indexed_ref!(idxd_ref);
+    }
+
+    #[test]
+    fn into_indexed_ref() {
+        let idxd = new_ref_output_indexed(VALUES);
+
+        let idxd_ref = idxd.into_indexed_ref();
+
+        assert_indexed_ref!(idxd_ref);
+        // `Index::index` is available when the inner is owned and the output is a reference.
+        assert_index!(idxd_ref);
     }
 
     #[test]

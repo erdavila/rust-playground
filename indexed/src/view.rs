@@ -1,7 +1,7 @@
 use core::marker::PhantomData;
 use core::ops::Index;
 
-use crate::{Indexed, IndexedOwned, Indices, Len};
+use crate::{Indexed, IndexedOwned, IndexedRef, Indices, Len};
 
 pub struct View<T, A, F> {
     inner: A,
@@ -72,6 +72,19 @@ where
     type Output = T;
 
     fn get(&self, index: Idx) -> Option<Self::Output> {
+        self.inner.get(index).map(&self.f)
+    }
+}
+
+impl<'a, T, A, F, Idx> IndexedRef<Idx> for View<&'a T, A, F>
+where
+    A: IndexedRef<Idx>,
+    A::Target: 'a,
+    F: Fn(&A::Target) -> &T,
+{
+    type Target = T;
+
+    fn get(&self, index: Idx) -> Option<&Self::Target> {
         self.inner.get(index).map(&self.f)
     }
 }
