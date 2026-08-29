@@ -2,4 +2,4 @@ error[E0599]: no method named `get` found for struct `AsIndexedRef<A>` in the cu
   --> tests/conversion/owned_output_indexed/into_indexed_ref.rs:14:14
    |
 14 |     idxd_ref.get(NONE_INDEX);
-   |              ^^^ method not found in `AsIndexedRef<View<u32, RefOutputIdxd<char, u32, 3>, impl for<'a> Fn(&'a u32) -> u32>>`
+   |              ^^^ method not found in `AsIndexedRef<View<u32, indexed::indexed_ref::AsIndexed<RefOutputIdxd<char, u32, 3>>, for<'a> fn(&'a u32) -> u32>>`

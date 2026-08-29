@@ -1,12 +1,12 @@
 #![expect(clippy::type_complexity)]
 
-use std::ops::{Index, Range};
+use std::ops::{Index, IndexMut, Range};
 
-use indexed::{Indexed, Indices, Len};
+use indexed::{Indexed, IndexedMut, IndexedRef, Indices, Len, View};
 
 pub(crate) fn new_owned_output_indexed<Idx, T, const N: usize>(
     values: [(Idx, T); N],
-) -> indexed::View<T, RefOutputIdxd<Idx, T, N>, impl Fn(&T) -> T>
+) -> View<T, indexed::indexed_ref::AsIndexed<RefOutputIdxd<Idx, T, N>>, fn(&T) -> T>
 where
     Idx: Eq + Copy,
     T: Copy,
@@ -16,13 +16,18 @@ where
 
 pub(crate) fn new_ref_output_indexed<Idx, T, const N: usize>(
     values: [(Idx, T); N],
-) -> RefOutputIdxd<Idx, T, N> {
-    RefOutputIdxd(values)
+) -> indexed::indexed_ref::AsIndexed<RefOutputIdxd<Idx, T, N>>
+where
+    Idx: Eq,
+{
+    new_indexed_ref(values).into_indexed()
 }
 
 pub(crate) fn new_indexed_owned<Idx, T, const N: usize>(
     values: [(Idx, T); N],
-) -> indexed::indexed::AsIndexedOwned<indexed::View<T, RefOutputIdxd<Idx, T, N>, impl Fn(&T) -> T>>
+) -> indexed::indexed::AsIndexedOwned<
+    View<T, indexed::indexed_ref::AsIndexed<RefOutputIdxd<Idx, T, N>>, fn(&T) -> T>,
+>
 where
     Idx: Eq + Copy,
     T: Copy,
@@ -32,11 +37,14 @@ where
 
 pub(crate) fn new_indexed_ref<Idx, T, const N: usize>(
     values: [(Idx, T); N],
-) -> indexed::indexed::AsIndexedRef<RefOutputIdxd<Idx, T, N>>
-where
-    Idx: Eq,
-{
-    new_ref_output_indexed(values).into_indexed_ref()
+) -> RefOutputIdxd<Idx, T, N> {
+    RefOutputIdxd(values)
+}
+
+pub(crate) fn new_indexed_mut<Idx, T, const N: usize>(
+    values: [(Idx, T); N],
+) -> RefOutputIdxd<Idx, T, N> {
+    new_indexed_ref(values)
 }
 
 pub(crate) struct RefOutputIdxd<Idx, T, const N: usize>(pub(crate) [(Idx, T); N]);
@@ -55,12 +63,20 @@ impl<'a, Idx: Copy, T: Copy, const N: usize> Indices<'a, Idx> for RefOutputIdxd<
     }
 }
 
-impl<'a, Idx: Eq, T: 'a, const N: usize> Indexed<'a, Idx> for RefOutputIdxd<Idx, T, N> {
-    type Output = &'a T;
+impl<Idx: Eq, T, const N: usize> IndexedRef<Idx> for RefOutputIdxd<Idx, T, N> {
+    type Target = T;
 
-    fn get(&'a self, index: Idx) -> Option<Self::Output> {
+    fn get(&self, index: Idx) -> Option<&Self::Target> {
         self.0
             .iter()
+            .find_map(|(idx, val)| (*idx == index).then_some(val))
+    }
+}
+
+impl<Idx: Eq, T, const N: usize> IndexedMut<Idx> for RefOutputIdxd<Idx, T, N> {
+    fn get_mut(&mut self, index: Idx) -> Option<&mut Self::Target> {
+        self.0
+            .iter_mut()
             .find_map(|(idx, val)| (*idx == index).then_some(val))
     }
 }
@@ -71,6 +87,15 @@ impl<Idx: Eq, T, const N: usize> Index<Idx> for RefOutputIdxd<Idx, T, N> {
     fn index(&self, index: Idx) -> &Self::Output {
         self.0
             .iter()
+            .find_map(|(idx, val)| (*idx == index).then_some(val))
+            .expect("index out of bounds")
+    }
+}
+
+impl<Idx: Eq, T, const N: usize> IndexMut<Idx> for RefOutputIdxd<Idx, T, N> {
+    fn index_mut(&mut self, index: Idx) -> &mut Self::Output {
+        self.0
+            .iter_mut()
             .find_map(|(idx, val)| (*idx == index).then_some(val))
             .expect("index out of bounds")
     }

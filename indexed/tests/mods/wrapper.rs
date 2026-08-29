@@ -16,4 +16,8 @@ impl<T> Wrapper<T> {
     {
         self.0
     }
+
+    pub(crate) fn mut_to_mut(&mut self) -> &mut T {
+        &mut self.0
+    }
 }

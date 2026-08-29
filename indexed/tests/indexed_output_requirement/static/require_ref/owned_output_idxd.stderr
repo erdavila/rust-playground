@@ -1,4 +1,4 @@
-error[E0271]: type mismatch resolving `<View<u32, RefOutputIdxd<char, u32, 3>, impl Fn(&u32) -> u32> as Indexed<'a, char>>::Output == &_`
+error[E0271]: type mismatch resolving `<View<u32, AsIndexed<RefOutputIdxd<char, u32, 3>>, fn(&u32) -> u32> as Indexed<'a, char>>::Output == &_`
  --> tests/indexed_output_requirement/static/require_ref/owned_output_idxd.rs:7:45
   |
 7 |     ref_output::required_by_static_dispatch(&owned_output::idxd!());

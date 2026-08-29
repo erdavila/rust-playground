@@ -55,10 +55,54 @@ mod refs {
     }
 }
 
+mod muts {
+    use crate::{IndexedMut, IndexedRef, Indices, Len};
+
+    impl<A> Len for &mut A
+    where
+        A: Len + ?Sized,
+    {
+        fn len(&self) -> usize {
+            (**self).len()
+        }
+    }
+
+    impl<'a, A, Idx> Indices<'a, Idx> for &mut A
+    where
+        A: Indices<'a, Idx> + ?Sized,
+    {
+        type Indices = A::Indices;
+
+        fn indices(&'a self) -> Self::Indices {
+            (**self).indices()
+        }
+    }
+
+    impl<A, Idx> IndexedRef<Idx> for &mut A
+    where
+        A: IndexedRef<Idx> + ?Sized,
+    {
+        type Target = A::Target;
+
+        fn get(&self, index: Idx) -> Option<&Self::Target> {
+            (**self).get(index)
+        }
+    }
+
+    impl<A, Idx> IndexedMut<Idx> for &mut A
+    where
+        A: IndexedMut<Idx> + ?Sized,
+    {
+        fn get_mut(&mut self, index: Idx) -> Option<&mut Self::Target> {
+            (**self).get_mut(index)
+        }
+    }
+}
+
 mod slice {
     use core::ops::Range;
 
-    use crate::{Indexed, Indices, Len};
+    use crate::{IndexedMut, IndexedRef, Indices, Len};
 
     impl<T> Len for [T] {
         fn len(&self) -> usize {
@@ -69,7 +113,7 @@ mod slice {
     /*
         NOTE: when the `SliceIndex` methods stabilize, we may have a generic `impl<'a, T, Idx> Indices<'a, Idx>
         for [T]` instead of only `impl<'a, T> Indices<'a, usize> for [T]`.
-        The same applies for `[T; N]` and `Vec<T>`, and with the `Indexed` trait.
+        The same applies for `[T; N]` and `Vec<T>`, and with the `IndexedRef` and `IndexedMut` traits.
     */
 
     impl<'a, T> Indices<'a, usize> for [T] {
@@ -80,11 +124,17 @@ mod slice {
         }
     }
 
-    impl<'a, T: 'a> Indexed<'a, usize> for [T] {
-        type Output = &'a T;
+    impl<T> IndexedRef<usize> for [T] {
+        type Target = T;
 
-        fn get(&'a self, index: usize) -> Option<Self::Output> {
+        fn get(&self, index: usize) -> Option<&Self::Target> {
             self.get(index)
+        }
+    }
+
+    impl<T> IndexedMut<usize> for [T] {
+        fn get_mut(&mut self, index: usize) -> Option<&mut Self::Target> {
+            self.get_mut(index)
         }
     }
 }
@@ -92,7 +142,7 @@ mod slice {
 mod array {
     use core::ops::Range;
 
-    use crate::{Indexed, Indices, Len};
+    use crate::{IndexedMut, IndexedRef, Indices, Len};
 
     impl<T, const N: usize> Len for [T; N] {
         fn len(&self) -> usize {
@@ -108,11 +158,17 @@ mod array {
         }
     }
 
-    impl<'a, T: 'a, const N: usize> Indexed<'a, usize> for [T; N] {
-        type Output = &'a T;
+    impl<T, const N: usize> IndexedRef<usize> for [T; N] {
+        type Target = T;
 
-        fn get(&'a self, index: usize) -> Option<Self::Output> {
+        fn get(&self, index: usize) -> Option<&Self::Target> {
             self.as_slice().get(index)
+        }
+    }
+
+    impl<T, const N: usize> IndexedMut<usize> for [T; N] {
+        fn get_mut(&mut self, index: usize) -> Option<&mut Self::Target> {
+            self.as_mut_slice().get_mut(index)
         }
     }
 }
@@ -122,7 +178,7 @@ mod vec {
     use alloc::vec::Vec;
     use core::ops::Range;
 
-    use crate::{Indexed, Indices, Len};
+    use crate::{IndexedMut, IndexedRef, Indices, Len};
 
     impl<T> Len for Vec<T> {
         fn len(&self) -> usize {
@@ -138,11 +194,17 @@ mod vec {
         }
     }
 
-    impl<'a, T: 'a> Indexed<'a, usize> for Vec<T> {
-        type Output = &'a T;
+    impl<T> IndexedRef<usize> for Vec<T> {
+        type Target = T;
 
-        fn get(&'a self, index: usize) -> Option<Self::Output> {
+        fn get(&self, index: usize) -> Option<&Self::Target> {
             self.as_slice().get(index)
+        }
+    }
+
+    impl<T> IndexedMut<usize> for Vec<T> {
+        fn get_mut(&mut self, index: usize) -> Option<&mut Self::Target> {
+            self.as_mut_slice().get_mut(index)
         }
     }
 }
@@ -152,7 +214,7 @@ mod vec_deque {
     use alloc::collections::VecDeque;
     use core::ops::Range;
 
-    use crate::{Indexed, Indices, Len};
+    use crate::{IndexedMut, IndexedRef, Indices, Len};
 
     impl<T> Len for VecDeque<T> {
         fn len(&self) -> usize {
@@ -168,11 +230,17 @@ mod vec_deque {
         }
     }
 
-    impl<'a, T: 'a> Indexed<'a, usize> for VecDeque<T> {
-        type Output = &'a T;
+    impl<T> IndexedRef<usize> for VecDeque<T> {
+        type Target = T;
 
-        fn get(&'a self, index: usize) -> Option<Self::Output> {
+        fn get(&self, index: usize) -> Option<&Self::Target> {
             self.get(index)
+        }
+    }
+
+    impl<T> IndexedMut<usize> for VecDeque<T> {
+        fn get_mut(&mut self, index: usize) -> Option<&mut Self::Target> {
+            self.get_mut(index)
         }
     }
 }
@@ -183,7 +251,7 @@ mod btree_map {
     use core::borrow::Borrow;
     use core::iter::Map;
 
-    use crate::{Indexed, Indices, Len};
+    use crate::{IndexedMut, IndexedRef, Indices, Len};
 
     impl<K, V> Len for BTreeMap<K, V> {
         fn len(&self) -> usize {
@@ -203,15 +271,25 @@ mod btree_map {
         }
     }
 
-    impl<'a, K: 'a, Q, V: 'a> Indexed<'a, &'a Q> for BTreeMap<K, V>
+    impl<K, Q, V> IndexedRef<&Q> for BTreeMap<K, V>
     where
         K: Borrow<Q> + Ord,
         Q: Ord + ?Sized,
     {
-        type Output = &'a V;
+        type Target = V;
 
-        fn get(&'a self, index: &Q) -> Option<Self::Output> {
+        fn get(&self, index: &Q) -> Option<&Self::Target> {
             self.get(index)
+        }
+    }
+
+    impl<K, Q, V> IndexedMut<&Q> for BTreeMap<K, V>
+    where
+        K: Borrow<Q> + Ord,
+        Q: Ord + ?Sized,
+    {
+        fn get_mut(&mut self, index: &Q) -> Option<&mut Self::Target> {
+            self.get_mut(index)
         }
     }
 }
@@ -223,7 +301,7 @@ mod hash_map {
     use core::iter::Map;
     use std::collections::{HashMap, hash_map};
 
-    use crate::{Indexed, Indices, Len};
+    use crate::{IndexedMut, IndexedRef, Indices, Len};
 
     impl<K, V, S> Len for HashMap<K, V, S> {
         fn len(&self) -> usize {
@@ -242,16 +320,27 @@ mod hash_map {
         }
     }
 
-    impl<'a, K: 'a, Q, V: 'a, S> Indexed<'a, &'a Q> for HashMap<K, V, S>
+    impl<K, Q, V, S> IndexedRef<&Q> for HashMap<K, V, S>
     where
         K: Borrow<Q> + Eq + Hash,
         Q: Eq + Hash,
         S: BuildHasher,
     {
-        type Output = &'a V;
+        type Target = V;
 
-        fn get(&'a self, index: &Q) -> Option<Self::Output> {
+        fn get(&self, index: &Q) -> Option<&Self::Target> {
             self.get(index)
+        }
+    }
+
+    impl<K, Q, V, S> IndexedMut<&Q> for HashMap<K, V, S>
+    where
+        K: Borrow<Q> + Eq + Hash,
+        Q: Eq + Hash,
+        S: BuildHasher,
+    {
+        fn get_mut(&mut self, index: &Q) -> Option<&mut Self::Target> {
+            self.get_mut(index)
         }
     }
 }

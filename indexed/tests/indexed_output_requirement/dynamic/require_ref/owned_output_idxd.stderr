@@ -1,4 +1,4 @@
-error[E0271]: type mismatch resolving `<View<u32, RefOutputIdxd<char, u32, 3>, impl Fn(&u32) -> u32> as Indexed<'a, char>>::Output == &_`
+error[E0271]: type mismatch resolving `<View<u32, AsIndexed<RefOutputIdxd<char, u32, 3>>, fn(&u32) -> u32> as Indexed<'a, char>>::Output == &_`
  --> tests/indexed_output_requirement/dynamic/require_ref/owned_output_idxd.rs:7:46
   |
 7 |     ref_output::required_by_dynamic_dispatch(&owned_output::idxd!());
@@ -6,4 +6,4 @@ error[E0271]: type mismatch resolving `<View<u32, RefOutputIdxd<char, u32, 3>, i
   |
   = note: expected reference `&_`
                   found type `u32`
-  = note: required for the cast from `&View<u32, RefOutputIdxd<char, u32, 3>, impl for<'a> Fn(&'a u32) -> u32>` to `&dyn for<'a> indexed::Indexed<'a, char, Output = &'a _>`
+  = note: required for the cast from `&View<u32, indexed::indexed_ref::AsIndexed<RefOutputIdxd<char, u32, 3>>, for<'a> fn(&'a u32) -> u32>` to `&dyn for<'a> indexed::Indexed<'a, char, Output = &'a _>`
