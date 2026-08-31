@@ -105,4 +105,18 @@ pub trait IndexedOwned<Idx>: Len {
     {
         AsIndexed::new(self)
     }
+
+    fn as_fn(&self) -> impl Fn(Idx) -> Option<Self::Output>
+    where
+        Self: Sized,
+    {
+        |index| self.get(index)
+    }
+
+    fn into_fn(self) -> impl Fn(Idx) -> Option<Self::Output>
+    where
+        Self: Sized,
+    {
+        move |index| self.get(index)
+    }
 }

@@ -1,6 +1,6 @@
 use indexed::{IndexedRef, Indices};
 
-use crate::mods::asserts::entries::{VALUES, values_mapped};
+use crate::mods::asserts::entries::{NONE_INDEX, VALUES, expected, values_mapped};
 use crate::mods::asserts::{assert_index, assert_indexed, assert_indexed_ref};
 use crate::mods::idxd::new_indexed_ref;
 use crate::mods::wrapper::Wrapper;
@@ -50,6 +50,18 @@ fn into_indexed() {
     assert_indexed!(ref: idxd);
     // `Index::index` is available when the inner is owned and the output is a reference.
     assert_index!(idxd);
+}
+
+#[test]
+fn as_fn() {
+    let idxd = new_indexed_ref(VALUES);
+
+    let fn_ = idxd.as_fn();
+
+    for (k, v) in expected::as_owned_ref() {
+        assert_eq!(fn_(k), Some(v));
+    }
+    assert_eq!(fn_(NONE_INDEX), None);
 }
 
 #[test]

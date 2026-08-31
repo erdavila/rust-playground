@@ -1,7 +1,7 @@
 use indexed::{Indexed, Indices};
 
-use crate::mods::asserts::assert_indexed;
-use crate::mods::asserts::entries::{VALUES, values_mapped};
+use crate::mods::asserts::entries::{NONE_INDEX, VALUES, expected, values_mapped};
+use crate::mods::asserts::{assert_indexed, assert_indexed_owned};
 use crate::mods::idxd::{new_owned_output_indexed, new_ref_output_indexed};
 use crate::mods::wrapper::Wrapper;
 
@@ -9,7 +9,6 @@ mod mods;
 
 mod owned_output {
     use super::*;
-    use crate::mods::asserts::assert_indexed_owned;
 
     #[test]
     fn get_and_len() {
@@ -64,6 +63,18 @@ mod owned_output {
     fn into_indexed_ref() {
         let t = trybuild::TestCases::new();
         t.compile_fail("tests/conversion/owned_output_indexed/into_indexed_ref.rs");
+    }
+
+    #[test]
+    fn as_fn() {
+        let idxd = new_owned_output_indexed(VALUES);
+
+        let fn_ = idxd.as_fn();
+
+        for (k, v) in expected::as_owned_owned() {
+            assert_eq!(fn_(k), Some(v));
+        }
+        assert_eq!(fn_(NONE_INDEX), None);
     }
 
     #[test]
@@ -148,6 +159,18 @@ mod ref_output {
         assert_indexed_ref!(idxd_ref);
         // `Index::index` is available when the inner is owned and the output is a reference.
         assert_index!(idxd_ref);
+    }
+
+    #[test]
+    fn as_fn() {
+        let idxd = new_ref_output_indexed(VALUES);
+
+        let fn_ = idxd.as_fn();
+
+        for (k, v) in expected::as_owned_ref() {
+            assert_eq!(fn_(k), Some(v));
+        }
+        assert_eq!(fn_(NONE_INDEX), None);
     }
 
     #[test]

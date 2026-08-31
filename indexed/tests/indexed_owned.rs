@@ -1,6 +1,6 @@
 use indexed::{IndexedOwned, Indices};
 
-use crate::mods::asserts::entries::{VALUES, values_mapped};
+use crate::mods::asserts::entries::{NONE_INDEX, VALUES, expected, values_mapped};
 use crate::mods::asserts::{assert_indexed, assert_indexed_owned};
 use crate::mods::idxd::new_indexed_owned;
 use crate::mods::wrapper::Wrapper;
@@ -48,6 +48,30 @@ fn into_indexed() {
     let idxd = idxd_owned.into_indexed();
 
     assert_indexed!(owned: idxd);
+}
+
+#[test]
+fn as_fn() {
+    let idxd = new_indexed_owned(VALUES);
+
+    let fn_ = idxd.as_fn();
+
+    for (k, v) in expected::as_owned_owned() {
+        assert_eq!(fn_(k), Some(v));
+    }
+    assert_eq!(fn_(NONE_INDEX), None);
+}
+
+#[test]
+fn into_fn() {
+    let idxd = new_indexed_owned(VALUES);
+
+    let fn_ = idxd.into_fn();
+
+    for (k, v) in expected::as_owned_owned() {
+        assert_eq!(fn_(k), Some(v));
+    }
+    assert_eq!(fn_(NONE_INDEX), None);
 }
 
 #[test]

@@ -38,4 +38,12 @@ pub trait IndexedRef<Idx>: Len {
     {
         AsIndexed::new(self)
     }
+
+    fn as_fn<'a>(&'a self) -> impl Fn(Idx) -> Option<&'a Self::Target>
+    where
+        Self::Target: 'a,
+        Self: Sized,
+    {
+        |index| self.get(index)
+    }
 }
