@@ -30,6 +30,7 @@ members = [
     "min-max-binary-heap",
     "music",
     "ratatui-scrolling",
+    "rc-cycle",
     "ref-count",
     "rewrap-rustdoc",
     "same-elements",
