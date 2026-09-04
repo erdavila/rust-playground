@@ -1,8 +1,8 @@
 #![no_std]
-#![feature(try_trait_v2)]
+#![feature(try_trait_v2, try_trait_v2_residual)]
 use core::cmp::Ordering;
 use core::iter::Peekable;
-use core::ops::{ControlFlow, FromResidual, Try};
+use core::ops::{ControlFlow, FromResidual, Residual, Try};
 use core::str::Chars;
 
 // As specified in https://doc.rust-lang.org/style-guide/index.html#sorting.
@@ -72,6 +72,11 @@ enum NonEqual {
     Less,
     Greater,
 }
+
+impl Residual<()> for NonEqual {
+    type TryType = Result;
+}
+
 
 struct VersionSorting<'a> {
     a_chars: Peekable<Chars<'a>>,
