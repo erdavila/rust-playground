@@ -1,12 +1,12 @@
 [package]
-name = "avl_tree"
+name = "approximate-count-distinct"
 version = "0.1.0"
 edition = "2024"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-
+rand = "0.8"
 
 [lints]
 workspace = true

@@ -1,5 +1,5 @@
 [package]
-name = "ref_count"
+name = "happy-number"
 version = "0.1.0"
 edition = "2024"
 
