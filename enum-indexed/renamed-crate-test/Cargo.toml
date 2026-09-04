@@ -5,3 +5,6 @@ edition = "2024"
 
 [dependencies]
 renamed-crate = { path = "..", package = "enum-indexed" }
+
+[lints]
+workspace = true

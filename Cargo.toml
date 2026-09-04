@@ -39,5 +39,10 @@ members = [
     "wavelength-to-rgb",
 ]
 
+[workspace.dependencies]
+cpf-cnpj.path = "cpf-cnpj"
+enum-indexed.path = "enum-indexed"
+syn-dump.path = "syn-dump"
+
 [workspace.lints.clippy]
 pedantic = "warn"
