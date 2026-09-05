@@ -1,0 +1,8 @@
+set allow-duplicate-recipes
+
+import '../justfile'
+
+default: check fmt test clippy
+
+miri-test *ARGS:
+  cargo +nightly miri test {{ARGS}}

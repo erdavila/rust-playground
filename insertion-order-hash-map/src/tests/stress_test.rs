@@ -1,7 +1,6 @@
-use std::collections::HashMap;
-use std::ops::Add;
 use std::time::{Duration, Instant};
 
+use hashbrown::HashMap;
 use rand::Rng;
 use rand::rngs::ThreadRng;
 use rand::seq::IteratorRandom;
@@ -14,7 +13,7 @@ fn stress_test() {
     const HALF_DURATION: Duration = Duration::from_millis(1000);
 
     let begin = Instant::now();
-    let end = begin.add(HALF_DURATION);
+    let end = begin + HALF_DURATION;
 
     let mut data = StressTestData {
         iohm: InsertionOrderHashMap::new(),

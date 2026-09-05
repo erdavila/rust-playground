@@ -1,6 +1,7 @@
-use std::cell::RefCell;
+use core::assert_matches;
+use core::cell::RefCell;
 
-use super::consistency;
+use crate::tests::consistency;
 use crate::{Entry, InsertionOrderHashMap, OccupiedEntry, VacantEntry};
 
 #[test]
@@ -10,10 +11,7 @@ fn test_entry_occupied() {
 
     let entry = iohm.entry("A");
 
-    match entry {
-        Entry::Occupied(_) => (),
-        Entry::Vacant(_) => panic!("entry should be occupied"),
-    }
+    assert_matches!(entry, Entry::Occupied(_));
     consistency::assert(&iohm);
 }
 
@@ -23,10 +21,7 @@ fn test_entry_vacant() {
 
     let entry = iohm.entry("B");
 
-    match entry {
-        Entry::Occupied(_) => panic!("entry should be vacant"),
-        Entry::Vacant(_) => (),
-    }
+    assert_matches!(entry, Entry::Vacant(_));
     consistency::assert(&iohm);
 }
 
@@ -38,7 +33,7 @@ fn test_entry_or_insert_on_occupied() {
 
     let value = entry.or_insert(2);
 
-    assert_eq!(value, &1);
+    assert_eq!(value, &mut 1);
     assert_eq!(iohm.get(&"A"), Some(&1));
     consistency::assert(&iohm);
 }
@@ -50,7 +45,7 @@ fn test_entry_or_insert_on_vacant() {
 
     let value = entry.or_insert(2);
 
-    assert_eq!(value, &2);
+    assert_eq!(value, &mut 2);
     assert_eq!(iohm.get(&"A"), Some(&2));
     consistency::assert(&iohm);
 }
@@ -63,7 +58,7 @@ fn test_entry_or_insert_with_on_occupied() {
 
     let value = entry.or_insert_with(|| 2);
 
-    assert_eq!(value, &1);
+    assert_eq!(value, &mut 1);
     assert_eq!(iohm.get(&"A"), Some(&1));
     consistency::assert(&iohm);
 }
@@ -75,7 +70,7 @@ fn test_entry_or_insert_with_on_vacant() {
 
     let value = entry.or_insert_with(|| 2);
 
-    assert_eq!(value, &2);
+    assert_eq!(value, &mut 2);
     assert_eq!(iohm.get(&"A"), Some(&2));
     consistency::assert(&iohm);
 }
@@ -93,7 +88,7 @@ fn test_entry_or_insert_with_key_on_occupied() {
         2
     });
 
-    assert_eq!(value, &1);
+    assert_eq!(value, &mut 1);
     assert_eq!(iohm.get(&"A"), Some(&1));
     assert!(!*closure_was_called.borrow());
     consistency::assert(&iohm);
@@ -111,7 +106,7 @@ fn test_entry_or_insert_with_key_on_vacant() {
         2
     });
 
-    assert_eq!(value, &2);
+    assert_eq!(value, &mut 2);
     assert_eq!(iohm.get(&"A"), Some(&2));
     assert!(*closure_was_called.borrow());
     consistency::assert(&iohm);
@@ -148,10 +143,10 @@ fn test_entry_and_modify_on_occupied() {
 
     let entry = entry.and_modify(|value| *value += 1);
 
-    match entry {
-        Entry::Occupied(occupied_entry) => assert_eq!(occupied_entry.get(), &2),
-        Entry::Vacant(_) => panic!("Entry should be Occupied(_)"),
-    }
+    let Entry::Occupied(occupied_entry) = entry else {
+        panic!("Entry should be Occupied(_)");
+    };
+    assert_eq!(occupied_entry.get(), &2);
     assert_eq!(iohm.get(&"A"), Some(&2));
     consistency::assert(&iohm);
 }
@@ -163,10 +158,7 @@ fn test_entry_and_modify_on_vacant() {
 
     let entry = entry.and_modify(|value| *value += 1);
 
-    match entry {
-        Entry::Occupied(_) => panic!("Entry should be Vacant(_)"),
-        Entry::Vacant(_) => (),
-    }
+    assert_matches!(entry, Entry::Vacant(_));
     assert_eq!(iohm.get(&"A"), None);
     consistency::assert(&iohm);
 }
@@ -179,7 +171,7 @@ fn test_entry_or_default_on_occupied() {
 
     let value = entry.or_default();
 
-    assert_eq!(value, &1);
+    assert_eq!(value, &mut 1);
     consistency::assert(&iohm);
 }
 
@@ -190,7 +182,7 @@ fn test_entry_or_default_on_vacant() {
 
     let value = entry.or_default();
 
-    assert_eq!(value, &0);
+    assert_eq!(value, &mut 0);
     assert_eq!(iohm.get(&"A"), Some(&0));
     consistency::assert(&iohm);
 }
@@ -227,7 +219,7 @@ fn test_occupied_entry_get() {
 
     let value: &i32 = occupied_entry.get();
 
-    assert_eq!(*value, 1);
+    assert_eq!(value, &1);
     consistency::assert(&iohm);
 }
 
@@ -238,7 +230,7 @@ fn test_occupied_entry_get_mut() {
 
     let value: &mut i32 = occupied_entry.get_mut();
 
-    assert_eq!(*value, 1);
+    assert_eq!(value, &mut 1);
     consistency::assert(&iohm);
 }
 
@@ -249,7 +241,7 @@ fn test_occupied_entry_into_mut() {
 
     let value: &mut i32 = occupied_entry.into_mut();
 
-    assert_eq!(*value, 1);
+    assert_eq!(&mut *value, &mut 1);
     consistency::assert(&iohm);
 }
 
@@ -317,21 +309,21 @@ fn insert_and_get_occupied_entry<K, V>(
     value: V,
 ) -> OccupiedEntry<'_, K, V>
 where
-    K: std::hash::Hash + Eq + Clone,
+    K: core::hash::Hash + Eq + Clone,
 {
     iohm.insert(key.clone(), value);
-    match iohm.entry(key) {
-        Entry::Occupied(occupied_entry) => occupied_entry,
-        Entry::Vacant(_) => panic!("Entry should be Occupied(_)"),
-    }
+    let Entry::Occupied(occupied_entry) = iohm.entry(key) else {
+        panic!("Entry should be Occupied(_)")
+    };
+    occupied_entry
 }
 
 fn get_vacant_entry<K, V>(iohm: &mut InsertionOrderHashMap<K, V>, key: K) -> VacantEntry<'_, K, V>
 where
-    K: std::hash::Hash + Eq,
+    K: core::hash::Hash + Eq,
 {
-    match iohm.entry(key) {
-        Entry::Occupied(_) => panic!("Entry should be Vacant(_)"),
-        Entry::Vacant(occupied_entry) => occupied_entry,
-    }
+    let Entry::Vacant(occupied_entry) = iohm.entry(key) else {
+        panic!("Entry should be Vacant(_)");
+    };
+    occupied_entry
 }
