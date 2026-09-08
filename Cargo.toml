@@ -24,6 +24,7 @@ members = [
     "indexed",
     "insertion-order-hash-map",
     "interlace",
+    "interval-map",
     "iters",
     "json-diff",
     "method-resolution",
