@@ -28,3 +28,7 @@ doc *ARGS:
 [no-cd]
 run *ARGS:
   cargo run {{ARGS}}
+
+[no-cd]
+miri *ARGS:
+  cargo +nightly miri {{ARGS}}
