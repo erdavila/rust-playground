@@ -33,6 +33,8 @@ members = [
     "rewrap-rustdoc",
     "same-elements",
     "shared-ownership",
+    "symbolic-calculus",
+    "symbolic-calculus/macros",
     "syn-dump",
     "tailcall",
     "version-sorting",
