@@ -25,6 +25,7 @@ members = [
     "interlace",
     "iters",
     "json-diff",
+    "math",
     "method-resolution",
     "min-max-binary-heap",
     "music",

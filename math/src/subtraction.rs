@@ -1,0 +1,255 @@
+use core::fmt::{self, Display};
+use core::ops::Sub;
+
+use crate::util::{BinaryOperation, UnaryOperation};
+use crate::{
+    AlwaysConst, Apply, ComparisonTokens, Derivative, EvaluatedDisplayData, Function,
+    FunctionDisplay, Negation, Output, RenameVariable, StaticZero, VariableNames, comparison,
+    comparison_id, display_enum, impl_ops_for,
+};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Subtraction<L, R> {
+    pub left: L,
+    pub right: R,
+}
+
+impl<L, R> Subtraction<L, R> {
+    pub const fn new(left: L, right: R) -> Self {
+        Self { left, right }
+    }
+}
+
+impl<L, R> Function for Subtraction<L, R> {}
+
+impl<L, R, I> Output<I> for Subtraction<L, R>
+where
+    L: Output<I>,
+    R: Output<I>,
+    L::Output: Sub<R::Output>,
+{
+    type Output = <L::Output as Sub<R::Output>>::Output;
+}
+
+impl<L, R, I> Apply<I> for Subtraction<L, R>
+where
+    L: Apply<I>,
+    R: Apply<I>,
+    L::Output: Sub<R::Output>,
+    I: Clone,
+{
+    fn apply(this: &Self, input: I) -> Self::Output {
+        this.binop_apply(input, Sub::sub)
+    }
+}
+
+impl<L, R, const V: usize> Derivative<V> for Subtraction<L, R>
+where
+    L: Derivative<V>,
+    R: Derivative<V>,
+    L::Derivative: Sub<R::Derivative>,
+{
+    type Derivative = <L::Derivative as Sub<R::Derivative>>::Output;
+
+    fn derivative(this: &Self) -> Self::Derivative {
+        /*
+           f(x) = g(x) - h(x)
+           f'(x) = g'(x) - h'(x)
+        */
+        this.left.derivative() - this.right.derivative()
+    }
+}
+
+impl<L, R> ComparisonTokens for Subtraction<L, R>
+where
+    L: ComparisonTokens,
+    R: ComparisonTokens,
+{
+    fn comparison_tokens(&self) -> impl Iterator<Item = comparison::Token<'_>> {
+        self.binop_comparison_tokens(comparison_id!(Subtraction))
+    }
+}
+
+impl<L, R, const V: usize> RenameVariable<V> for Subtraction<L, R>
+where
+    L: RenameVariable<V>,
+    R: RenameVariable<V>,
+{
+    type RenamedVar<N> = Subtraction<L::RenamedVar<N>, R::RenamedVar<N>>;
+
+    fn rename_var_num<N: Clone>(this: &Self, name: N) -> Self::RenamedVar<N> {
+        // TODO: binop
+        Subtraction::new(
+            this.left.rename_var_num(name.clone()),
+            this.right.rename_var_num(name),
+        )
+    }
+}
+
+impl<L, R> VariableNames for Subtraction<L, R>
+where
+    L: VariableNames,
+    R: VariableNames,
+{
+    fn var_names(&self) -> impl Iterator<Item = (usize, &dyn Display)> {
+        self.binop_var_names()
+    }
+}
+
+impl<L, R> FunctionDisplay for Subtraction<L, R>
+where
+    L: FunctionDisplay,
+    R: FunctionDisplay,
+{
+    const PRECEDENCE: u8 = 0;
+
+    fn evaluate_display_data(&self) -> EvaluatedDisplayData<impl Display> {
+        display_enum! {
+            Case {
+                Zero,
+                Left,
+                NegativeRight,
+                NonSimplified,
+            }
+        }
+
+        let right = self.right.evaluate_display_data();
+
+        // TODO: match on right before left?
+        // TODO: single match for both evalutations?
+        match right.always_const {
+            // x - 0 = x
+            Some(AlwaysConst::Zero) => self.left.evaluate_display_data().map(Case::Left),
+            // ? - 1
+            Some(AlwaysConst::One) => {
+                let left = self.left.evaluate_display_data();
+                match left.always_const {
+                    // 0 - 1 = -1
+                    Some(AlwaysConst::Zero) => {
+                        Negation::<R>::unop_evaluated_display_data(right.display_data)
+                            .map(Case::NegativeRight)
+                    }
+                    // 1 - 1 = 0
+                    Some(AlwaysConst::One) => StaticZero::<Self>::new()
+                        .evaluate_display_data()
+                        .map(Case::Zero),
+                    // x - 1
+                    None => {
+                        Self::binop_evaluated_display_data(left.display_data, right.display_data)
+                            .map(Case::NonSimplified)
+                    }
+                }
+            }
+            // ? - y
+            None => {
+                let left = self.left.evaluate_display_data();
+                match left.always_const {
+                    // 0 - y = -y
+                    Some(AlwaysConst::Zero) => {
+                        Negation::<R>::unop_evaluated_display_data(right.display_data)
+                            .map(Case::NegativeRight)
+                    }
+                    // 1 - y, x - y
+                    Some(AlwaysConst::One) | None => {
+                        Self::binop_evaluated_display_data(left.display_data, right.display_data)
+                            .map(Case::NonSimplified)
+                    }
+                }
+            }
+        }
+    }
+}
+
+impl<L, R> Display for Subtraction<L, R>
+where
+    Self: FunctionDisplay,
+{
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        self.display_fmt(f)
+    }
+}
+
+impl<L, R> BinaryOperation<L, R> for Subtraction<L, R> {
+    const SYMBOL: char = '-';
+
+    fn left(&self) -> &L {
+        &self.left
+    }
+
+    fn right(&self) -> &R {
+        &self.right
+    }
+}
+
+impl_ops_for!(Subtraction<L, R>);
+
+#[macro_export]
+macro_rules! impl_sub_for {
+    ($name:ident $($token:tt)*) => {
+        $crate::__parse_type_args!(impl_sub_for [@parsed $name] $($token)*);
+    };
+
+    (@parsed $name:ident [$($decl:tt)*] [$($use:tt)*]) => {
+        impl< $($decl)* __F> core::ops::Sub<__F> for $name< $($use)* > {
+            type Output = $crate::Subtraction<Self, __F>;
+
+            fn sub(self, rhs: __F) -> Self::Output {
+                $crate::Subtraction::new(self, rhs)
+            }
+        }
+    };
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::util::FixedType;
+    use crate::{
+        Addition, Division, Multiplication, Negation, Squared, StaticOne, Subtraction, TypedConst,
+        Variable,
+    };
+
+    type OtherConstType = TypedConst<f64>;
+    type VariableType = Variable<0, &'static str>;
+
+    const ZERO: StaticZero<FixedType<f64>> = StaticZero::new();
+    const ONE: StaticOne<FixedType<f64>> = StaticOne::new();
+    const OTHER: OtherConstType = TypedConst::new(7.0);
+
+    const VAR: VariableType = Variable::with_name0("x");
+    const NEG: Negation<OtherConstType> = Negation::new(OTHER);
+    const ADD: Addition<OtherConstType, VariableType> = Addition::new(OTHER, VAR);
+    const SUB: Subtraction<VariableType, OtherConstType> = Subtraction::new(VAR, OTHER);
+    const MUL: Multiplication<OtherConstType, VariableType> = Multiplication::new(OTHER, VAR);
+    const DIV: Division<VariableType, OtherConstType> = Division::new(VAR, OTHER);
+    const SQR: Squared<OtherConstType> = Squared::new(OTHER);
+
+    mod function_display {
+        use super::*;
+
+        #[test]
+        fn simplification() {
+            assert_eq!((ZERO - ZERO).to_string(), "0");
+            assert_eq!((ZERO - ONE).to_string(), "-1");
+            assert_eq!((ZERO - VAR).to_string(), "-x");
+
+            assert_eq!((ONE - ZERO).to_string(), "1");
+            assert_eq!((ONE - ONE).to_string(), "0");
+            assert_eq!((ONE - VAR).to_string(), "1 - x");
+
+            assert_eq!((VAR - ZERO).to_string(), "x");
+            assert_eq!((VAR - ONE).to_string(), "x - 1");
+            assert_eq!((VAR - VAR).to_string(), "x - x");
+        }
+
+        #[test]
+        fn precedence() {
+            assert_eq!((NEG - NEG).to_string(), "-7 - -7");
+            assert_eq!((ADD - ADD).to_string(), "7 + x - (7 + x)");
+            assert_eq!((SUB - SUB).to_string(), "x - 7 - (x - 7)");
+            assert_eq!((MUL - MUL).to_string(), "7 * x - 7 * x");
+            assert_eq!((DIV - DIV).to_string(), "x / 7 - x / 7");
+            assert_eq!((SQR - SQR).to_string(), "7² - 7²");
+        }
+    }
+}

@@ -1,0 +1,160 @@
+
+Y1 = 6 - x
+  Y1(x) = 6 - x : R -> R
+    vectorized:
+      Y1(x) = ⟨6 - x⟩ : R¹ -> R¹
+        Y1(x) = 6 - x : R -> R
+          dY1(x)/dx = -1 : R -> R
+>>>>Subtraction { left: StaticZero(PhantomData<math::util::FixedType<f64>>), right: StaticOne(PhantomData<math::variable::Variable<0, math::variable::DefaultVariableName<0>>>) }
+  Y1(a+bi) = 6 - a+bi : C -> C
+    vectorized:
+      Y1(a, b) = ⟨6 - a, -b⟩ : R² -> R²
+        Y1[r](a, b) = 6 - a : R² -> R
+          dY1[r](a, b)/da = -1 : R² -> R
+>>>>Subtraction { left: StaticZero(PhantomData<math::util::FixedType<f64>>), right: StaticOne(PhantomData<math::variable::Variable<0, &str>>) }
+          dY1[r](a, b)/db = 0 : R² -> R
+>>>>Subtraction { left: StaticZero(PhantomData<math::util::FixedType<f64>>), right: StaticZero(PhantomData<math::variable::Variable<0, &str>>) }
+        Y1[i](a, b) = -b : R² -> R
+          dY1[i](a, b)/da = 0 : R² -> R
+>>>>Negation(StaticZero(PhantomData<math::variable::Variable<1, &str>>))
+          dY1[i](a, b)/db = -1 : R² -> R
+>>>>Negation(StaticOne(PhantomData<math::variable::Variable<1, &str>>))
+Y2 = 36 / x
+  Y2(x) = 36 / x : R -> R
+    vectorized:
+      Y2(x) = ⟨36 / x⟩ : R¹ -> R¹
+        Y2(x) = 36 / x : R -> R
+          dY2(x)/dx = -36 / x² : R -> R
+>>>>Division { left: Subtraction { left: Multiplication { left: StaticZero(PhantomData<math::util::FixedType<f64>>), right: Variable { name: DefaultVariableName } }, right: Multiplication { left: TypedConst { value: 36.0 }, right: StaticOne(PhantomData<math::variable::Variable<0, math::variable::DefaultVariableName<0>>>) } }, right: Squared(Variable { name: DefaultVariableName }) }
+  Y2(a+bi) = 36 / a+bi : C -> C
+    vectorized:
+      Y2(a, b) = ⟨36 * a / (a² + b²), -36 * b / (a² + b²)⟩ : R² -> R²
+        Y2[r](a, b) = 36 * a / (a² + b²) : R² -> R
+          dY2[r](a, b)/da = (36 * (a² + b²) - 36 * a * (2 * a)) / (a² + b²)² : R² -> R
+>>>>Division { left: Subtraction { left: Multiplication { left: Addition { left: Multiplication { left: StaticZero(PhantomData<math::util::FixedType<f64>>), right: Variable { name: "a" } }, right: Multiplication { left: TypedConst { value: 36.0 }, right: StaticOne(PhantomData<math::variable::Variable<0, &str>>) } }, right: Addition { left: Squared(Variable { name: "a" }), right: Squared(Variable { name: "b" }) } }, right: Multiplication { left: Multiplication { left: TypedConst { value: 36.0 }, right: Variable { name: "a" } }, right: Addition { left: Multiplication { left: Multiplication { left: StaticTwo(PhantomData<math::variable::Variable<0, &str>>), right: Variable { name: "a" } }, right: StaticOne(PhantomData<math::variable::Variable<0, &str>>) }, right: Multiplication { left: Multiplication { left: StaticTwo(PhantomData<math::variable::Variable<1, &str>>), right: Variable { name: "b" } }, right: StaticZero(PhantomData<math::variable::Variable<1, &str>>) } } } }, right: Squared(Addition { left: Squared(Variable { name: "a" }), right: Squared(Variable { name: "b" }) }) }
+          dY2[r](a, b)/db = -(36 * a * (2 * b)) / (a² + b²)² : R² -> R
+>>>>Division { left: Subtraction { left: Multiplication { left: Addition { left: Multiplication { left: StaticZero(PhantomData<math::util::FixedType<f64>>), right: Variable { name: "a" } }, right: Multiplication { left: TypedConst { value: 36.0 }, right: StaticZero(PhantomData<math::variable::Variable<0, &str>>) } }, right: Addition { left: Squared(Variable { name: "a" }), right: Squared(Variable { name: "b" }) } }, right: Multiplication { left: Multiplication { left: TypedConst { value: 36.0 }, right: Variable { name: "a" } }, right: Addition { left: Multiplication { left: Multiplication { left: StaticTwo(PhantomData<math::variable::Variable<0, &str>>), right: Variable { name: "a" } }, right: StaticZero(PhantomData<math::variable::Variable<0, &str>>) }, right: Multiplication { left: Multiplication { left: StaticTwo(PhantomData<math::variable::Variable<1, &str>>), right: Variable { name: "b" } }, right: StaticOne(PhantomData<math::variable::Variable<1, &str>>) } } } }, right: Squared(Addition { left: Squared(Variable { name: "a" }), right: Squared(Variable { name: "b" }) }) }
+        Y2[i](a, b) = -36 * b / (a² + b²) : R² -> R
+          dY2[i](a, b)/da = -(-36 * b * (2 * a)) / (a² + b²)² : R² -> R
+>>>>Division { left: Subtraction { left: Multiplication { left: Addition { left: Multiplication { left: Negation(StaticZero(PhantomData<math::util::FixedType<f64>>)), right: Variable { name: "b" } }, right: Multiplication { left: Negation(TypedConst { value: 36.0 }), right: StaticZero(PhantomData<math::variable::Variable<1, &str>>) } }, right: Addition { left: Squared(Variable { name: "a" }), right: Squared(Variable { name: "b" }) } }, right: Multiplication { left: Multiplication { left: Negation(TypedConst { value: 36.0 }), right: Variable { name: "b" } }, right: Addition { left: Multiplication { left: Multiplication { left: StaticTwo(PhantomData<math::variable::Variable<0, &str>>), right: Variable { name: "a" } }, right: StaticOne(PhantomData<math::variable::Variable<0, &str>>) }, right: Multiplication { left: Multiplication { left: StaticTwo(PhantomData<math::variable::Variable<1, &str>>), right: Variable { name: "b" } }, right: StaticZero(PhantomData<math::variable::Variable<1, &str>>) } } } }, right: Squared(Addition { left: Squared(Variable { name: "a" }), right: Squared(Variable { name: "b" }) }) }
+          dY2[i](a, b)/db = (-36 * (a² + b²) - -36 * b * (2 * b)) / (a² + b²)² : R² -> R
+>>>>Division { left: Subtraction { left: Multiplication { left: Addition { left: Multiplication { left: Negation(StaticZero(PhantomData<math::util::FixedType<f64>>)), right: Variable { name: "b" } }, right: Multiplication { left: Negation(TypedConst { value: 36.0 }), right: StaticOne(PhantomData<math::variable::Variable<1, &str>>) } }, right: Addition { left: Squared(Variable { name: "a" }), right: Squared(Variable { name: "b" }) } }, right: Multiplication { left: Multiplication { left: Negation(TypedConst { value: 36.0 }), right: Variable { name: "b" } }, right: Addition { left: Multiplication { left: Multiplication { left: StaticTwo(PhantomData<math::variable::Variable<0, &str>>), right: Variable { name: "a" } }, right: StaticZero(PhantomData<math::variable::Variable<0, &str>>) }, right: Multiplication { left: Multiplication { left: StaticTwo(PhantomData<math::variable::Variable<1, &str>>), right: Variable { name: "b" } }, right: StaticOne(PhantomData<math::variable::Variable<1, &str>>) } } } }, right: Squared(Addition { left: Squared(Variable { name: "a" }), right: Squared(Variable { name: "b" }) }) }
+DIFF = 6 - x - 36 / x
+  DIFF(x) = 6 - x - 36 / x : R -> R
+    vectorized:
+      DIFF(x) = ⟨6 - x - 36 / x⟩ : R¹ -> R¹
+        DIFF(x) = 6 - x - 36 / x : R -> R
+          dDIFF(x)/dx = -1 - -36 / x² : R -> R
+>>>>Subtraction { left: Subtraction { left: StaticZero(PhantomData<math::util::FixedType<f64>>), right: StaticOne(PhantomData<math::variable::Variable<0, math::variable::DefaultVariableName<0>>>) }, right: Division { left: Subtraction { left: Multiplication { left: StaticZero(PhantomData<math::util::FixedType<f64>>), right: Variable { name: DefaultVariableName } }, right: Multiplication { left: TypedConst { value: 36.0 }, right: StaticOne(PhantomData<math::variable::Variable<0, math::variable::DefaultVariableName<0>>>) } }, right: Squared(Variable { name: DefaultVariableName }) } }
+  DIFF(a+bi) = 6 - a+bi - 36 / a+bi : C -> C
+    vectorized:
+      DIFF(a, b) = ⟨6 - a - 36 * a / (a² + b²), -b - -36 * b / (a² + b²)⟩ : R² -> R²
+        DIFF[r](a, b) = 6 - a - 36 * a / (a² + b²) : R² -> R
+          dDIFF[r](a, b)/da = -1 - (36 * (a² + b²) - 36 * a * (2 * a)) / (a² + b²)² : R² -> R
+>>>>Subtraction { left: Subtraction { left: StaticZero(PhantomData<math::util::FixedType<f64>>), right: StaticOne(PhantomData<math::variable::Variable<0, &str>>) }, right: Division { left: Subtraction { left: Multiplication { left: Addition { left: Multiplication { left: StaticZero(PhantomData<math::util::FixedType<f64>>), right: Variable { name: "a" } }, right: Multiplication { left: TypedConst { value: 36.0 }, right: StaticOne(PhantomData<math::variable::Variable<0, &str>>) } }, right: Addition { left: Squared(Variable { name: "a" }), right: Squared(Variable { name: "b" }) } }, right: Multiplication { left: Multiplication { left: TypedConst { value: 36.0 }, right: Variable { name: "a" } }, right: Addition { left: Multiplication { left: Multiplication { left: StaticTwo(PhantomData<math::variable::Variable<0, &str>>), right: Variable { name: "a" } }, right: StaticOne(PhantomData<math::variable::Variable<0, &str>>) }, right: Multiplication { left: Multiplication { left: StaticTwo(PhantomData<math::variable::Variable<1, &str>>), right: Variable { name: "b" } }, right: StaticZero(PhantomData<math::variable::Variable<1, &str>>) } } } }, right: Squared(Addition { left: Squared(Variable { name: "a" }), right: Squared(Variable { name: "b" }) }) } }
+          dDIFF[r](a, b)/db = -(-(36 * a * (2 * b)) / (a² + b²)²) : R² -> R
+>>>>Subtraction { left: Subtraction { left: StaticZero(PhantomData<math::util::FixedType<f64>>), right: StaticZero(PhantomData<math::variable::Variable<0, &str>>) }, right: Division { left: Subtraction { left: Multiplication { left: Addition { left: Multiplication { left: StaticZero(PhantomData<math::util::FixedType<f64>>), right: Variable { name: "a" } }, right: Multiplication { left: TypedConst { value: 36.0 }, right: StaticZero(PhantomData<math::variable::Variable<0, &str>>) } }, right: Addition { left: Squared(Variable { name: "a" }), right: Squared(Variable { name: "b" }) } }, right: Multiplication { left: Multiplication { left: TypedConst { value: 36.0 }, right: Variable { name: "a" } }, right: Addition { left: Multiplication { left: Multiplication { left: StaticTwo(PhantomData<math::variable::Variable<0, &str>>), right: Variable { name: "a" } }, right: StaticZero(PhantomData<math::variable::Variable<0, &str>>) }, right: Multiplication { left: Multiplication { left: StaticTwo(PhantomData<math::variable::Variable<1, &str>>), right: Variable { name: "b" } }, right: StaticOne(PhantomData<math::variable::Variable<1, &str>>) } } } }, right: Squared(Addition { left: Squared(Variable { name: "a" }), right: Squared(Variable { name: "b" }) }) } }
+        DIFF[i](a, b) = -b - -36 * b / (a² + b²) : R² -> R
+          dDIFF[i](a, b)/da = -(-(-36 * b * (2 * a)) / (a² + b²)²) : R² -> R
+>>>>Subtraction { left: Negation(StaticZero(PhantomData<math::variable::Variable<1, &str>>)), right: Division { left: Subtraction { left: Multiplication { left: Addition { left: Multiplication { left: Negation(StaticZero(PhantomData<math::util::FixedType<f64>>)), right: Variable { name: "b" } }, right: Multiplication { left: Negation(TypedConst { value: 36.0 }), right: StaticZero(PhantomData<math::variable::Variable<1, &str>>) } }, right: Addition { left: Squared(Variable { name: "a" }), right: Squared(Variable { name: "b" }) } }, right: Multiplication { left: Multiplication { left: Negation(TypedConst { value: 36.0 }), right: Variable { name: "b" } }, right: Addition { left: Multiplication { left: Multiplication { left: StaticTwo(PhantomData<math::variable::Variable<0, &str>>), right: Variable { name: "a" } }, right: StaticOne(PhantomData<math::variable::Variable<0, &str>>) }, right: Multiplication { left: Multiplication { left: StaticTwo(PhantomData<math::variable::Variable<1, &str>>), right: Variable { name: "b" } }, right: StaticZero(PhantomData<math::variable::Variable<1, &str>>) } } } }, right: Squared(Addition { left: Squared(Variable { name: "a" }), right: Squared(Variable { name: "b" }) }) } }
+          dDIFF[i](a, b)/db = -1 - (-36 * (a² + b²) - -36 * b * (2 * b)) / (a² + b²)² : R² -> R
+>>>>Subtraction { left: Negation(StaticOne(PhantomData<math::variable::Variable<1, &str>>)), right: Division { left: Subtraction { left: Multiplication { left: Addition { left: Multiplication { left: Negation(StaticZero(PhantomData<math::util::FixedType<f64>>)), right: Variable { name: "b" } }, right: Multiplication { left: Negation(TypedConst { value: 36.0 }), right: StaticOne(PhantomData<math::variable::Variable<1, &str>>) } }, right: Addition { left: Squared(Variable { name: "a" }), right: Squared(Variable { name: "b" }) } }, right: Multiplication { left: Multiplication { left: Negation(TypedConst { value: 36.0 }), right: Variable { name: "b" } }, right: Addition { left: Multiplication { left: Multiplication { left: StaticTwo(PhantomData<math::variable::Variable<0, &str>>), right: Variable { name: "a" } }, right: StaticZero(PhantomData<math::variable::Variable<0, &str>>) }, right: Multiplication { left: Multiplication { left: StaticTwo(PhantomData<math::variable::Variable<1, &str>>), right: Variable { name: "b" } }, right: StaticOne(PhantomData<math::variable::Variable<1, &str>>) } } } }, right: Squared(Addition { left: Squared(Variable { name: "a" }), right: Squared(Variable { name: "b" }) }) } }
+ERROR = |6 - x - 36 / x|²
+  ERROR(x) = |6 - x - 36 / x|² : R -> R
+    vectorized:
+      ERROR(x) = ⟨(6 - x - 36 / x)²⟩ : R¹ -> R¹
+        ERROR(x) = (6 - x - 36 / x)² : R -> R
+          dERROR(x)/dx = 2 * (6 - x - 36 / x) * (-1 - -36 / x²) : R -> R
+>>>>Multiplication { left: Multiplication { left: StaticTwo(PhantomData<math::subtraction::Subtraction<math::subtraction::Subtraction<math::typed_const::TypedConst<f64>, math::variable::Variable<0, math::variable::DefaultVariableName<0>>>, math::division::Division<math::typed_const::TypedConst<f64>, math::variable::Variable<0, math::variable::DefaultVariableName<0>>>>>), right: Subtraction { left: Subtraction { left: TypedConst { value: 6.0 }, right: Variable { name: DefaultVariableName } }, right: Division { left: TypedConst { value: 36.0 }, right: Variable { name: DefaultVariableName } } } }, right: Subtraction { left: Subtraction { left: StaticZero(PhantomData<math::util::FixedType<f64>>), right: StaticOne(PhantomData<math::variable::Variable<0, math::variable::DefaultVariableName<0>>>) }, right: Division { left: Subtraction { left: Multiplication { left: StaticZero(PhantomData<math::util::FixedType<f64>>), right: Variable { name: DefaultVariableName } }, right: Multiplication { left: TypedConst { value: 36.0 }, right: StaticOne(PhantomData<math::variable::Variable<0, math::variable::DefaultVariableName<0>>>) } }, right: Squared(Variable { name: DefaultVariableName }) } } }
+  ERROR(a+bi) = |6 - a+bi - 36 / a+bi|² : C -> R
+    vectorized:
+      ERROR(a, b) = ⟨(6 - a - 36 * a / (a² + b²))² + (-b - -36 * b / (a² + b²))²⟩ : R² -> R
+        ERROR(a, b) = (6 - a - 36 * a / (a² + b²))² + (-b - -36 * b / (a² + b²))² : R² -> R
+          dERROR(a, b)/da = 2 * (6 - a - 36 * a / (a² + b²)) * (-1 - (36 * (a² + b²) - 36 * a * (2 * a)) / (a² + b²)²) + 2 * (-b - -36 * b / (a² + b²)) * -(-(-36 * b * (2 * a)) / (a² + b²)²) : R² -> R
+>>>>Addition { left: Multiplication { left: Multiplication { left: StaticTwo(PhantomData<math::subtraction::Subtraction<math::subtraction::Subtraction<math::typed_const::TypedConst<f64>, math::variable::Variable<0, &str>>, math::division::Division<math::multiplication::Multiplication<math::typed_const::TypedConst<f64>, math::variable::Variable<0, &str>>, math::addition::Addition<math::squared::Squared<math::variable::Variable<0, &str>>, math::squared::Squared<math::variable::Variable<1, &str>>>>>>), right: Subtraction { left: Subtraction { left: TypedConst { value: 6.0 }, right: Variable { name: "a" } }, right: Division { left: Multiplication { left: TypedConst { value: 36.0 }, right: Variable { name: "a" } }, right: Addition { left: Squared(Variable { name: "a" }), right: Squared(Variable { name: "b" }) } } } }, right: Subtraction { left: Subtraction { left: StaticZero(PhantomData<math::util::FixedType<f64>>), right: StaticOne(PhantomData<math::variable::Variable<0, &str>>) }, right: Division { left: Subtraction { left: Multiplication { left: Addition { left: Multiplication { left: StaticZero(PhantomData<math::util::FixedType<f64>>), right: Variable { name: "a" } }, right: Multiplication { left: TypedConst { value: 36.0 }, right: StaticOne(PhantomData<math::variable::Variable<0, &str>>) } }, right: Addition { left: Squared(Variable { name: "a" }), right: Squared(Variable { name: "b" }) } }, right: Multiplication { left: Multiplication { left: TypedConst { value: 36.0 }, right: Variable { name: "a" } }, right: Addition { left: Multiplication { left: Multiplication { left: StaticTwo(PhantomData<math::variable::Variable<0, &str>>), right: Variable { name: "a" } }, right: StaticOne(PhantomData<math::variable::Variable<0, &str>>) }, right: Multiplication { left: Multiplication { left: StaticTwo(PhantomData<math::variable::Variable<1, &str>>), right: Variable { name: "b" } }, right: StaticZero(PhantomData<math::variable::Variable<1, &str>>) } } } }, right: Squared(Addition { left: Squared(Variable { name: "a" }), right: Squared(Variable { name: "b" }) }) } } }, right: Multiplication { left: Multiplication { left: StaticTwo(PhantomData<math::subtraction::Subtraction<math::negation::Negation<math::variable::Variable<1, &str>>, math::division::Division<math::multiplication::Multiplication<math::negation::Negation<math::typed_const::TypedConst<f64>>, math::variable::Variable<1, &str>>, math::addition::Addition<math::squared::Squared<math::variable::Variable<0, &str>>, math::squared::Squared<math::variable::Variable<1, &str>>>>>>), right: Subtraction { left: Negation(Variable { name: "b" }), right: Division { left: Multiplication { left: Negation(TypedConst { value: 36.0 }), right: Variable { name: "b" } }, right: Addition { left: Squared(Variable { name: "a" }), right: Squared(Variable { name: "b" }) } } } }, right: Subtraction { left: Negation(StaticZero(PhantomData<math::variable::Variable<1, &str>>)), right: Division { left: Subtraction { left: Multiplication { left: Addition { left: Multiplication { left: Negation(StaticZero(PhantomData<math::util::FixedType<f64>>)), right: Variable { name: "b" } }, right: Multiplication { left: Negation(TypedConst { value: 36.0 }), right: StaticZero(PhantomData<math::variable::Variable<1, &str>>) } }, right: Addition { left: Squared(Variable { name: "a" }), right: Squared(Variable { name: "b" }) } }, right: Multiplication { left: Multiplication { left: Negation(TypedConst { value: 36.0 }), right: Variable { name: "b" } }, right: Addition { left: Multiplication { left: Multiplication { left: StaticTwo(PhantomData<math::variable::Variable<0, &str>>), right: Variable { name: "a" } }, right: StaticOne(PhantomData<math::variable::Variable<0, &str>>) }, right: Multiplication { left: Multiplication { left: StaticTwo(PhantomData<math::variable::Variable<1, &str>>), right: Variable { name: "b" } }, right: StaticZero(PhantomData<math::variable::Variable<1, &str>>) } } } }, right: Squared(Addition { left: Squared(Variable { name: "a" }), right: Squared(Variable { name: "b" }) }) } } } }
+          dERROR(a, b)/db = 2 * (6 - a - 36 * a / (a² + b²)) * -(-(36 * a * (2 * b)) / (a² + b²)²) + 2 * (-b - -36 * b / (a² + b²)) * (-1 - (-36 * (a² + b²) - -36 * b * (2 * b)) / (a² + b²)²) : R² -> R
+>>>>Addition { left: Multiplication { left: Multiplication { left: StaticTwo(PhantomData<math::subtraction::Subtraction<math::subtraction::Subtraction<math::typed_const::TypedConst<f64>, math::variable::Variable<0, &str>>, math::division::Division<math::multiplication::Multiplication<math::typed_const::TypedConst<f64>, math::variable::Variable<0, &str>>, math::addition::Addition<math::squared::Squared<math::variable::Variable<0, &str>>, math::squared::Squared<math::variable::Variable<1, &str>>>>>>), right: Subtraction { left: Subtraction { left: TypedConst { value: 6.0 }, right: Variable { name: "a" } }, right: Division { left: Multiplication { left: TypedConst { value: 36.0 }, right: Variable { name: "a" } }, right: Addition { left: Squared(Variable { name: "a" }), right: Squared(Variable { name: "b" }) } } } }, right: Subtraction { left: Subtraction { left: StaticZero(PhantomData<math::util::FixedType<f64>>), right: StaticZero(PhantomData<math::variable::Variable<0, &str>>) }, right: Division { left: Subtraction { left: Multiplication { left: Addition { left: Multiplication { left: StaticZero(PhantomData<math::util::FixedType<f64>>), right: Variable { name: "a" } }, right: Multiplication { left: TypedConst { value: 36.0 }, right: StaticZero(PhantomData<math::variable::Variable<0, &str>>) } }, right: Addition { left: Squared(Variable { name: "a" }), right: Squared(Variable { name: "b" }) } }, right: Multiplication { left: Multiplication { left: TypedConst { value: 36.0 }, right: Variable { name: "a" } }, right: Addition { left: Multiplication { left: Multiplication { left: StaticTwo(PhantomData<math::variable::Variable<0, &str>>), right: Variable { name: "a" } }, right: StaticZero(PhantomData<math::variable::Variable<0, &str>>) }, right: Multiplication { left: Multiplication { left: StaticTwo(PhantomData<math::variable::Variable<1, &str>>), right: Variable { name: "b" } }, right: StaticOne(PhantomData<math::variable::Variable<1, &str>>) } } } }, right: Squared(Addition { left: Squared(Variable { name: "a" }), right: Squared(Variable { name: "b" }) }) } } }, right: Multiplication { left: Multiplication { left: StaticTwo(PhantomData<math::subtraction::Subtraction<math::negation::Negation<math::variable::Variable<1, &str>>, math::division::Division<math::multiplication::Multiplication<math::negation::Negation<math::typed_const::TypedConst<f64>>, math::variable::Variable<1, &str>>, math::addition::Addition<math::squared::Squared<math::variable::Variable<0, &str>>, math::squared::Squared<math::variable::Variable<1, &str>>>>>>), right: Subtraction { left: Negation(Variable { name: "b" }), right: Division { left: Multiplication { left: Negation(TypedConst { value: 36.0 }), right: Variable { name: "b" } }, right: Addition { left: Squared(Variable { name: "a" }), right: Squared(Variable { name: "b" }) } } } }, right: Subtraction { left: Negation(StaticOne(PhantomData<math::variable::Variable<1, &str>>)), right: Division { left: Subtraction { left: Multiplication { left: Addition { left: Multiplication { left: Negation(StaticZero(PhantomData<math::util::FixedType<f64>>)), right: Variable { name: "b" } }, right: Multiplication { left: Negation(TypedConst { value: 36.0 }), right: StaticOne(PhantomData<math::variable::Variable<1, &str>>) } }, right: Addition { left: Squared(Variable { name: "a" }), right: Squared(Variable { name: "b" }) } }, right: Multiplication { left: Multiplication { left: Negation(TypedConst { value: 36.0 }), right: Variable { name: "b" } }, right: Addition { left: Multiplication { left: Multiplication { left: StaticTwo(PhantomData<math::variable::Variable<0, &str>>), right: Variable { name: "a" } }, right: StaticZero(PhantomData<math::variable::Variable<0, &str>>) }, right: Multiplication { left: Multiplication { left: StaticTwo(PhantomData<math::variable::Variable<1, &str>>), right: Variable { name: "b" } }, right: StaticOne(PhantomData<math::variable::Variable<1, &str>>) } } } }, right: Squared(Addition { left: Squared(Variable { name: "a" }), right: Squared(Variable { name: "b" }) }) } } } }
+y1 = 6 - x
+y2 = 36 / x
+diff = 6 - x - 36 / x
+error = |6 - x - 36 / x|²
+
+=== Naive Descent ===
+
+== Real ==
+  x = -6.00000, e = 324.0, from -20 with 14 turns (MaxTurns)
+    y1 = 12.00000
+      x * y1 = -72.00000
+    y2 = -6.00000
+      x + y2 = -12.00000
+  x = 6.00000, e = 36.0, from 2 with 4 turns (MaxTurns)
+    y1 = 0.00000
+      x * y1 = 0.00000
+    y2 = 6.00000
+      x + y2 = 12.00000
+== Complex ==
+  x = 3.00000-5.19615i, e = 0.0, from -20-14i with 97 turns (ZeroError)
+    y1 = 3.00000+5.19615i
+      x * y1 = 36.00000
+    y2 = 3.00000+5.19615i
+      x + y2 = 6.00000
+  x = 3.00000+5.19615i, e = 0.0, from -20 with 97 turns (ZeroError)
+    y1 = 3.00000-5.19615i
+      x * y1 = 36.00000
+    y2 = 3.00000-5.19615i
+      x + y2 = 6.00000
+
+=== Gradient Descent ===
+
+== Real ==
+  x = -4.77819, e = 335.3449646641031, from -2 with 100 turns (MaxTurns)
+    y1 = 10.77819
+      x * y1 = -51.50016
+    y2 = -7.53424
+      x + y2 = -12.31243
+  x = -9.00323, e = 361.0681457096475, from -4 with 100 turns (MaxTurns)
+    y1 = 15.00323
+      x * y1 = -135.07746
+    y2 = -3.99857
+      x + y2 = -13.00179
+  x = -6.00000, e = 324.0, from -6 with 0 turns (Saturated)
+    y1 = 12.00000
+      x * y1 = -72.00000
+    y2 = -6.00000
+      x + y2 = -12.00000
+  x = 6.00000, e = 36.0, from 2 with 30 turns (Saturated)
+    y1 = 0.00000
+      x * y1 = 0.00000
+    y2 = 6.00000
+      x + y2 = 12.00000
+== Complex ==
+  x = 3.00000-5.19615i, e = 0.0, from -20-20i with 27 turns (ZeroError)
+    y1 = 3.00000+5.19615i
+      x * y1 = 36.00000
+    y2 = 3.00000+5.19615i
+      x + y2 = 6.00000
+  x = -4.77819, e = 335.3449646641031, from -18 with 100 turns (MaxTurns)
+    y1 = 10.77819
+      x * y1 = -51.50016
+    y2 = -7.53424-0.00000i
+      x + y2 = -12.31243
+  x = 3.00000+5.19615i, e = 0.0, from -20+2i with 28 turns (ZeroError)
+    y1 = 3.00000-5.19615i
+      x * y1 = 36.00000
+    y2 = 3.00000-5.19615i
+      x + y2 = 6.00000
+  x = -9.00323, e = 361.0681457096474, from -8 with 100 turns (MaxTurns)
+    y1 = 15.00323
+      x * y1 = -135.07746
+    y2 = -3.99857-0.00000i
+      x + y2 = -13.00179
+  x = -6.00000, e = 324.0, from -6 with 0 turns (Saturated)
+    y1 = 12.00000
+      x * y1 = -72.00000
+    y2 = -6.00000-0.00000i
+      x + y2 = -12.00000
+  x = 6.00000, e = 36.0, from 2 with 30 turns (Saturated)
+    y1 = 0.00000
+      x * y1 = 0.00000
+    y2 = 6.00000-0.00000i
+      x + y2 = 12.00000

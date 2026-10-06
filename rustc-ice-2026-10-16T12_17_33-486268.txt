@@ -1,0 +1,64 @@
+thread 'rustc' panicked at /rustc-dev/822182db4c4a1827256881d8c7aa685f0bcf2b11/compiler/rustc_infer/src/infer/mod.rs:1705:64:
+internal error: entered unreachable code
+stack backtrace:
+   0:     0x76e05f9f9b05 - <std[5973c7964af9b600]::backtrace::Backtrace>::create
+   1:     0x76e05f9f9a55 - <std[5973c7964af9b600]::backtrace::Backtrace>::force_capture
+   2:     0x76e05e7adf42 - std[5973c7964af9b600]::panicking::update_hook::<alloc[121a7db9d405704b]::boxed::Box<rustc_driver_impl[642e5338f9e9821d]::install_ice_hook::{closure#1}>>::{closure#0}
+   3:     0x76e05fa0fd52 - std[5973c7964af9b600]::panicking::panic_with_hook
+   4:     0x76e05f9ed4b4 - std[5973c7964af9b600]::panicking::panic_handler::{closure#0}
+   5:     0x76e05f9e48b9 - std[5973c7964af9b600]::sys::backtrace::__rust_end_short_backtrace::<std[5973c7964af9b600]::panicking::panic_handler::{closure#0}, !>
+   6:     0x76e05f9ef1dd - __rustc[3e7819e8f9559761]::rust_begin_unwind
+   7:     0x76e05b8440ec - core[3b9553ef3b53823b]::panicking::panic_fmt
+   8:     0x76e05c8b1492 - core[3b9553ef3b53823b]::panicking::panic
+   9:     0x76e0609b625c - <rustc_next_trait_solver[978810f3a14b7d2]::solve::eval_ctxt::EvalCtxt<rustc_trait_selection[51385fe8230b3032]::solve::delegate::SolverDelegate, rustc_middle[50f406ae809bdc6f]::ty::context::TyCtxt>>::evaluate_const
+  10:     0x76e060238b79 - <rustc_next_trait_solver[978810f3a14b7d2]::solve::eval_ctxt::EvalCtxt<rustc_trait_selection[51385fe8230b3032]::solve::delegate::SolverDelegate, rustc_middle[50f406ae809bdc6f]::ty::context::TyCtxt>>::evaluate_const_and_instantiate_projection_term
+  11:     0x76e060fe8e64 - <rustc_type_ir[106a3e2efa670358]::search_graph::SearchGraph<rustc_next_trait_solver[978810f3a14b7d2]::solve::search_graph::SearchGraphDelegate<rustc_trait_selection[51385fe8230b3032]::solve::delegate::SolverDelegate>, rustc_middle[50f406ae809bdc6f]::ty::context::TyCtxt>>::evaluate_goal_in_task
+  12:     0x76e060e2e4f7 - <rustc_next_trait_solver[978810f3a14b7d2]::solve::eval_ctxt::EvalCtxt<rustc_trait_selection[51385fe8230b3032]::solve::delegate::SolverDelegate, rustc_middle[50f406ae809bdc6f]::ty::context::TyCtxt>>::evaluate_goal_no_fast_paths
+  13:     0x76e060e1c0b3 - <rustc_next_trait_solver[978810f3a14b7d2]::solve::eval_ctxt::EvalCtxt<rustc_trait_selection[51385fe8230b3032]::solve::delegate::SolverDelegate, rustc_middle[50f406ae809bdc6f]::ty::context::TyCtxt>>::evaluate_goal
+  14:     0x76e060e13f8f - <rustc_next_trait_solver[978810f3a14b7d2]::solve::eval_ctxt::EvalCtxt<rustc_trait_selection[51385fe8230b3032]::solve::delegate::SolverDelegate, rustc_middle[50f406ae809bdc6f]::ty::context::TyCtxt>>::normalize::<rustc_middle[50f406ae809bdc6f]::ty::Ty>::{closure#0}
+  15:     0x76e060e13a5b - <rustc_next_trait_solver[978810f3a14b7d2]::normalize::NormalizationFolder<rustc_infer[891b2b1395134454]::infer::InferCtxt, rustc_middle[50f406ae809bdc6f]::ty::context::TyCtxt, <rustc_next_trait_solver[978810f3a14b7d2]::solve::eval_ctxt::EvalCtxt<rustc_trait_selection[51385fe8230b3032]::solve::delegate::SolverDelegate, rustc_middle[50f406ae809bdc6f]::ty::context::TyCtxt>>::normalize<rustc_middle[50f406ae809bdc6f]::ty::predicate::Predicate>::{closure#0}> as rustc_type_ir[106a3e2efa670358]::fold::FallibleTypeFolder<rustc_middle[50f406ae809bdc6f]::ty::context::TyCtxt>>::try_fold_const::{closure#0}
+  16:     0x76e060e11672 - <&rustc_middle[50f406ae809bdc6f]::ty::list::RawList<(), rustc_middle[50f406ae809bdc6f]::ty::generic_args::GenericArg> as rustc_type_ir[106a3e2efa670358]::fold::TypeFoldable<rustc_middle[50f406ae809bdc6f]::ty::context::TyCtxt>>::try_fold_with::<rustc_next_trait_solver[978810f3a14b7d2]::normalize::NormalizationFolder<rustc_infer[891b2b1395134454]::infer::InferCtxt, rustc_middle[50f406ae809bdc6f]::ty::context::TyCtxt, <rustc_next_trait_solver[978810f3a14b7d2]::solve::eval_ctxt::EvalCtxt<rustc_trait_selection[51385fe8230b3032]::solve::delegate::SolverDelegate, rustc_middle[50f406ae809bdc6f]::ty::context::TyCtxt>>::normalize<rustc_middle[50f406ae809bdc6f]::ty::predicate::Predicate>::{closure#0}>>
+  17:     0x76e0610fc0ec - <rustc_next_trait_solver[978810f3a14b7d2]::solve::eval_ctxt::EvalCtxt<rustc_trait_selection[51385fe8230b3032]::solve::delegate::SolverDelegate, rustc_middle[50f406ae809bdc6f]::ty::context::TyCtxt>>::compute_trait_goal
+  18:     0x76e060fe722e - <rustc_type_ir[106a3e2efa670358]::search_graph::SearchGraph<rustc_next_trait_solver[978810f3a14b7d2]::solve::search_graph::SearchGraphDelegate<rustc_trait_selection[51385fe8230b3032]::solve::delegate::SolverDelegate>, rustc_middle[50f406ae809bdc6f]::ty::context::TyCtxt>>::evaluate_goal_in_task
+  19:     0x76e060e2e4f7 - <rustc_next_trait_solver[978810f3a14b7d2]::solve::eval_ctxt::EvalCtxt<rustc_trait_selection[51385fe8230b3032]::solve::delegate::SolverDelegate, rustc_middle[50f406ae809bdc6f]::ty::context::TyCtxt>>::evaluate_goal_no_fast_paths
+  20:     0x76e060e196b3 - <rustc_trait_selection[51385fe8230b3032]::solve::delegate::SolverDelegate as rustc_next_trait_solver[978810f3a14b7d2]::solve::eval_ctxt::SolverDelegateEvalExt>::evaluate_root_goal::{closure#0}
+  21:     0x76e0610ae1aa - <rustc_trait_selection[51385fe8230b3032]::solve::fulfill::FulfillmentCtxt<rustc_trait_selection[51385fe8230b3032]::traits::FulfillmentError> as rustc_infer[891b2b1395134454]::traits::engine::TraitEngine<rustc_trait_selection[51385fe8230b3032]::traits::FulfillmentError>>::try_evaluate_obligations
+  22:     0x76e0610ad0bd - <rustc_trait_selection[51385fe8230b3032]::traits::engine::ObligationCtxt<rustc_trait_selection[51385fe8230b3032]::traits::FulfillmentError>>::try_evaluate_obligations
+  23:     0x76e05f75bab2 - <rustc_trait_selection[51385fe8230b3032]::error_reporting::TypeErrCtxt>::report_similar_impl_candidates::{closure#2}
+  24:     0x76e05f7baa8b - <rustc_trait_selection[51385fe8230b3032]::error_reporting::TypeErrCtxt>::report_similar_impl_candidates
+  25:     0x76e05f7b3b70 - <rustc_trait_selection[51385fe8230b3032]::error_reporting::TypeErrCtxt>::try_to_add_help_message
+  26:     0x76e05f7a3fc2 - <rustc_trait_selection[51385fe8230b3032]::error_reporting::TypeErrCtxt>::report_selection_error
+  27:     0x76e05f7c591d - <rustc_trait_selection[51385fe8230b3032]::error_reporting::TypeErrCtxt>::report_fulfillment_error
+  28:     0x76e05df93407 - <rustc_trait_selection[51385fe8230b3032]::error_reporting::TypeErrCtxt>::report_fulfillment_errors
+  29:     0x76e0600dabda - <rustc_hir_typeck[3e940f520bf3b29e]::fn_ctxt::FnCtxt>::check_expr_call
+  30:     0x76e060a1d986 - <rustc_hir_typeck[3e940f520bf3b29e]::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  31:     0x76e060a1640e - <rustc_hir_typeck[3e940f520bf3b29e]::fn_ctxt::FnCtxt>::check_expr_block
+  32:     0x76e060a1e282 - <rustc_hir_typeck[3e940f520bf3b29e]::fn_ctxt::FnCtxt>::check_expr_with_expectation_and_args
+  33:     0x76e060a10de1 - rustc_hir_typeck[3e940f520bf3b29e]::check::check_fn
+  34:     0x76e06146e051 - rustc_hir_typeck[3e940f520bf3b29e]::typeck_with_inspect::{closure#0}
+  35:     0x76e06146c4b0 - rustc_query_impl[e3932da73fb533b]::query_vtables::typeck_root::invoke_provider_fn::__rust_begin_short_backtrace
+  36:     0x76e06044a13b - rustc_query_impl[e3932da73fb533b]::execution::try_execute_query::<rustc_data_structures[c3461be0c5b51291]::vec_cache::VecCache<rustc_span[94d51ae37cfad2df]::def_id::LocalDefId, rustc_middle[50f406ae809bdc6f]::query::erase::ErasedData<[u8; 8usize]>, rustc_middle[50f406ae809bdc6f]::dep_graph::graph::DepNodeIndex>, true>
+  37:     0x76e06044984e - rustc_query_impl[e3932da73fb533b]::query_vtables::typeck_root::execute_query_incr::__rust_end_short_backtrace
+  38:     0x76e060684616 - <rustc_middle[50f406ae809bdc6f]::ty::context::TyCtxt>::par_hir_body_owners::<rustc_hir_analysis[46ea49d74bf95593]::check_crate::{closure#1}>::{closure#0}
+  39:     0x76e060683cc7 - rustc_hir_analysis[46ea49d74bf95593]::check_crate
+  40:     0x76e060696579 - rustc_interface[a68ffc0296649d7b]::passes::analysis
+  41:     0x76e06156f32f - rustc_query_impl[e3932da73fb533b]::execution::try_execute_query::<rustc_middle[50f406ae809bdc6f]::query::caches::SingleCache<rustc_middle[50f406ae809bdc6f]::query::erase::ErasedData<[u8; 0usize]>>, true>
+  42:     0x76e06156eb9d - rustc_query_impl[e3932da73fb533b]::query_vtables::analysis::execute_query_incr::__rust_end_short_backtrace
+  43:     0x76e061332965 - rustc_interface[a68ffc0296649d7b]::interface::run_compiler::<(), rustc_driver_impl[642e5338f9e9821d]::compiler_entrypoint::{closure#0}>::{closure#2}
+  44:     0x76e061360202 - std[5973c7964af9b600]::sys::backtrace::__rust_begin_short_backtrace::<rustc_interface[a68ffc0296649d7b]::util::run_in_thread_with_globals<rustc_interface[a68ffc0296649d7b]::util::run_in_thread_pool_with_globals<rustc_interface[a68ffc0296649d7b]::interface::run_compiler<(), rustc_driver_impl[642e5338f9e9821d]::compiler_entrypoint::{closure#0}>::{closure#2}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>
+  45:     0x76e06135ffad - <std[5973c7964af9b600]::thread::lifecycle::spawn_unchecked<rustc_interface[a68ffc0296649d7b]::util::run_in_thread_with_globals<rustc_interface[a68ffc0296649d7b]::util::run_in_thread_pool_with_globals<rustc_interface[a68ffc0296649d7b]::interface::run_compiler<(), rustc_driver_impl[642e5338f9e9821d]::compiler_entrypoint::{closure#0}>::{closure#2}, ()>::{closure#0}, ()>::{closure#0}::{closure#0}, ()>::{closure#1} as core[3b9553ef3b53823b]::ops::function::FnOnce<()>>::call_once::{shim:vtable#0}
+  46:     0x76e06135b3ad - <std[5973c7964af9b600]::sys::thread::unix::Thread>::new::thread_start
+  47:     0x76e05a29cb84 - start_thread
+                               at ./nptl/pthread_create.c:447:8
+  48:     0x76e05a329ecc - clone3
+                               at ./misc/../sysdeps/unix/sysv/linux/x86_64/clone3.S:78:0
+  49:                0x0 - <unknown>
+
+
+rustc version: 1.101.0-nightly (822182db4 2026-10-13)
+platform: x86_64-unknown-linux-gnu
+
+query stack during panic:
+#0 [typeck_root] type-checking `derivatives_check::check`
+#1 [analysis] running analysis passes on crate `minimize`
+end of query stack
