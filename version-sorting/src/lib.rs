@@ -77,7 +77,6 @@ impl Residual<()> for NonEqual {
     type TryType = Result;
 }
 
-
 struct VersionSorting<'a> {
     a_chars: Peekable<Chars<'a>>,
     b_chars: Peekable<Chars<'a>>,
