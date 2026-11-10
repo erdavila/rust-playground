@@ -16,6 +16,3 @@ syn = { version = "3.0.*", default-features = false, features = [
     "printing",
     "proc-macro",
 ] }
-
-[lints]
-workspace = true

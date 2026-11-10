@@ -16,10 +16,13 @@ fn test_fn() {
         obj_mut_ref.access();
         owned.access();
 
-        // obj_mut_ref.mutate(); // Mutability required - the closure couldn't be Fn
-        // owned.mutate(); // Mutability required - the closure couldn't be Fn
+        // Mutability required - the closure couldn't be Fn.
+        // obj_mut_ref.mutate();
+        // Mutability required - the closure couldn't be Fn.
+        // owned.mutate();
 
-        // owned.r#move(); // Ownership required - the closure couldn't be Fn
+        // Ownership required - the closure couldn't be Fn.
+        // owned.r#move();
     };
 
     let closure = accept_fn(closure);
@@ -30,13 +33,17 @@ fn test_fn() {
     obj_mut_ref.access();
     owned.access();
 
-    // obj_mut_ref.mutate(); // Cannot borrow as mutable because it is borrowed as mutable by the closure
-    // owned.mutate(); // Cannot borrow as mutable because it is borrowed as immutable by the closure
+    // Cannot borrow as mutable because it is borrowed as mutable by the closure.
+    // obj_mut_ref.mutate();
+    // Cannot borrow as mutable because it is borrowed as immutable by the closure.
+    // owned.mutate();
 
-    // owned.r#move(); // Cannot move because it is borrowed by the closure
+    // Cannot move because it is borrowed by the closure.
+    // owned.r#move();
 
     closure();
-    closure(); // Can be called again
+    // Can be called again.
+    closure();
 
     obj_ref.access();
     obj_mut_ref.access();
@@ -61,25 +68,33 @@ fn test_fn_mut() {
         obj_mut_ref.mutate();
         owned.mutate();
 
-        // owned.r#move(); // Ownership required - the closure couldn't be FnMut
+        // Ownership required - the closure couldn't be FnMut.
+        // owned.r#move();
     };
 
-    // let closure = accept_fn(closure); // Closure that mutates captured value cannot be Fn
+    // Closure that mutates captured value cannot be Fn.
+    // let closure = accept_fn(closure);
     let closure = accept_fn_mut(closure);
     let closure = accept_fn_once(closure);
     let mut closure = closure;
 
     obj_ref.access();
-    // obj_mut_ref.access(); // Cannot borrow as immutable because it is borrowed as mutable by the closure
-    // owned.access(); // Cannot borrow as immutable because it is borrowed as mutable by the closure
+    // Cannot borrow as immutable because it is borrowed as mutable by the closure.
+    // obj_mut_ref.access();
+    // Cannot borrow as immutable because it is borrowed as mutable by the closure.
+    // owned.access();
 
-    // obj_mut_ref.mutate(); // Cannot borrow as mutable because it is borrowed as mutable by the closure
-    // owned.mutate(); // Cannot borrow as mutable because it is borrowed as mutable by the closure
+    // Cannot borrow as mutable because it is borrowed as mutable by the closure.
+    // obj_mut_ref.mutate();
+    // Cannot borrow as mutable because it is borrowed as mutable by the closure.
+    // owned.mutate();
 
-    // owned.r#move(); // Cannot move because it is borrowed by the closure
+    // Cannot move because it is borrowed by the closure.
+    // owned.r#move();
 
     closure();
-    closure(); // Can be called again
+    // Can be called again.
+    closure();
 
     obj_ref.access();
     obj_mut_ref.access();
@@ -107,28 +122,39 @@ fn test_fn_once() {
         owned.r#move();
     };
 
-    // let closure = accept_fn(closure); // Closure that uses ownership of captured value cannot be Fn
-    // let closure = accept_fn_mut(closure); // Closure that uses ownership of captured value cannot be Fn
+    // Closure that uses ownership of captured value cannot be Fn.
+    // let closure = accept_fn(closure);
+    // Closure that uses ownership of captured value cannot be Fn.
+    // let closure = accept_fn_mut(closure);
     let closure = accept_fn_once(closure);
 
     obj_ref.access();
-    // obj_mut_ref.access(); // Cannot borrow as immutable because it is borrowed as mutable by the closure
-    // owned.access(); // Cannot borrow because it is moved by the closure
+    // Cannot borrow as immutable because it is borrowed as mutable by the closure.
+    // obj_mut_ref.access();
+    // Cannot borrow because it is moved by the closure.
+    // owned.access();
 
-    // obj_mut_ref.mutate(); // Cannot borrow as mutable because it is borrowed as mutable by the closure
-    // owned.mutate(); // Cannot borrow because it is moved by the closure
+    // Cannot borrow as mutable because it is borrowed as mutable by the closure.
+    // obj_mut_ref.mutate();
+    // Cannot borrow because it is moved by the closure.
+    // owned.mutate();
 
-    // owned.r#move(); // Cannot move because it is moved by the closure
+    // Cannot move because it is moved by the closure.
+    // owned.r#move();
 
     closure();
-    // closure(); // Cannot be called again
+    // Cannot be called again.
+    // closure();
 
     obj_ref.access();
     obj_mut_ref.access();
-    // owned.access(); // Cannot borrow because it was moved by the closure
+    // Cannot borrow because it was moved by the closure.
+    // owned.access();
 
     obj_mut_ref.mutate();
-    // owned.mutate(); // Cannot borrow because it was moved by the closure
+    // Cannot borrow because it was moved by the closure.
+    // owned.mutate();
 
-    // owned.r#move(); // Cannot borrow because it was moved by the closure
+    // Cannot borrow because it was moved by the closure.
+    // owned.r#move();
 }

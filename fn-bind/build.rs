@@ -99,7 +99,6 @@ impl MethodGenerator {
         let all_vars = self.variables().all();
 
         quote! {
-            #[must_use]
             fn #method_name (self, #(#vars_taken: #types_taken),* ) -> impl FnOnce( #(#remaining_types),* ) -> R
             where
                 Self: Sized,
@@ -121,7 +120,6 @@ impl MethodGenerator {
         let all_vars = self.variables().all();
 
         quote! {
-            #[must_use]
             fn #method_name (self, #(#vars_taken1: #types_taken1),* ) -> impl Fn( #(#remaining_types),* ) -> R + Clone
             where
                 Self: Clone,

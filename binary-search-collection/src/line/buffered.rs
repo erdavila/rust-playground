@@ -365,7 +365,7 @@ impl<S> Reader<S> {
     where
         S: io::Read + io::Seek,
     {
-        assert!(!buffer.is_empty());
+        assert_ne!(buffer, []);
         self.source.seek(io::SeekFrom::Start(convert_int(start)?))?;
         self.source.read_exact(buffer)?;
         Ok(())
@@ -869,7 +869,7 @@ impl<'a, S> BufferedLineBytes<'a, S> {
         };
 
         if let Some(chunk) = &chunk {
-            assert!(!chunk.is_empty());
+            assert_ne!(chunk, &[]);
             self.next_position += chunk.len();
         }
 
@@ -970,21 +970,21 @@ mod tests {
 
         macro_rules! test_case {
             ($source:expr, $buffer_len:expr, $locs:expr, $($arg:tt)+) => {
-                let mut source = $source;
+                let source = $source;
                 let buffer_len = $buffer_len;
                 let locs = $locs;
 
                 for line in LINES {
                     let target = &line[..2];
                     assert_line_not_found!(
-                        binary_search(target, &mut source, buffer_len),
+                        binary_search(target, &mut *source, buffer_len),
                         before: locs[line],
                         "expecting not found: target={target:?}, {}", format_args!($($arg)+)
                     );
 
                     let target = line;
                     assert_line_found!(
-                        binary_search(target, &mut source, buffer_len),
+                        binary_search(target, &mut *source, buffer_len),
                         locs[line],
                         "expecting found: target={target:?}, {}", format_args!($($arg)+)
                     );
@@ -992,7 +992,7 @@ mod tests {
 
                 let target = "uv";
                 assert_line_not_found!(
-                    binary_search(target, &mut source, buffer_len),
+                    binary_search(target, &mut *source, buffer_len),
                     after: locs["qrst"],
                     "expecting not found: target={target:?}, {}", format_args!($($arg)+)
                 );

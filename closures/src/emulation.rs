@@ -50,16 +50,22 @@ fn test_fn() {
                 obj_mut_ref.access();
                 owned.access();
 
-                // obj_mut_ref.mutate(); // Mutability required
-                // owned.mutate(); // Mutability required
+                // Mutability required.
+                // obj_mut_ref.mutate();
+                // Mutability required.
+                // owned.mutate();
 
-                // owned.r#move(); // Ownership required
+                // Ownership required.
+                // owned.r#move();
             }
         }
         EmulatedFn(
-            obj_ref,     // Immutable reference captured as immutable reference
-            obj_mut_ref, // Mutable reference captured as immutable reference
-            &owned,      // Owned value captured as immutable reference
+            // Immutable reference captured as immutable reference.
+            obj_ref,
+            // Mutable reference captured as immutable reference.
+            obj_mut_ref,
+            // Owned value captured as immutable reference.
+            &owned,
         )
     };
 
@@ -71,13 +77,17 @@ fn test_fn() {
     obj_mut_ref.access();
     owned.access();
 
-    // obj_mut_ref.mutate(); // Cannot borrow as mutable because it is borrowed as mutable by the closure
-    // owned.mutate(); // Cannot borrow as mutable because it is borrowed as immutable by the closure
+    // Cannot borrow as mutable because it is borrowed as mutable by the closure.
+    // obj_mut_ref.mutate();
+    // Cannot borrow as mutable because it is borrowed as immutable by the closure.
+    // owned.mutate();
 
-    // owned.r#move(); // Cannot move because it is borrowed by the closure
+    // Cannot move because it is borrowed by the closure.
+    // owned.r#move();
 
     closure.call(());
-    closure.call(()); // Can be called again
+    // Can be called again.
+    closure.call(());
 
     obj_ref.access();
     obj_mut_ref.access();
@@ -113,32 +123,43 @@ fn test_fn_mut() {
                 obj_mut_ref.mutate();
                 owned.mutate();
 
-                // owned.r#move(); // Cannot move because it is borrowed
+                // Cannot move because it is borrowed.
+                // owned.r#move();
             }
         }
         EmulatedFnMut(
-            obj_ref,     // Immutable reference captured as immutable reference
-            obj_mut_ref, // Mutable reference captured as mutable reference
-            &mut owned,  // Owned value captured as mutable reference
+            // Immutable reference captured as immutable reference.
+            obj_ref,
+            // Mutable reference captured as mutable reference.
+            obj_mut_ref,
+            // Owned value captured as mutable reference.
+            &mut owned,
         )
     };
 
-    // let closure = accept_fn(closure); // Closure that mutates captured value cannot be FnClosure
+    // Closure that mutates captured value cannot be FnClosure.
+    // let closure = accept_fn(closure);
     let closure = accept_fn_mut(closure);
     let closure = accept_fn_once(closure);
 
     obj_ref.access();
-    // obj_mut_ref.access(); // Cannot borrow as immutable because it is borrowed as mutable by the closure
-    // owned.access(); // Cannot borrow as immutable because it is borrowed as mutable by the closure
+    // Cannot borrow as immutable because it is borrowed as mutable by the closure.
+    // obj_mut_ref.access();
+    // Cannot borrow as immutable because it is borrowed as mutable by the closure.
+    // owned.access();
 
-    // obj_mut_ref.mutate(); // Cannot borrow as mutable because it is borrowed as mutable by the closure
-    // owned.mutate(); // Cannot borrow as mutable because it is borrowed as immutable by the closure
+    // Cannot borrow as mutable because it is borrowed as mutable by the closure.
+    // obj_mut_ref.mutate();
+    // Cannot borrow as mutable because it is borrowed as immutable by the closure.
+    // owned.mutate();
 
-    // owned.r#move(); // Cannot move because it is borrowed by the closure
+    // Cannot move because it is borrowed by the closure.
+    // owned.r#move();
 
     let mut closure = closure;
     closure.call_mut(());
-    closure.call_mut(()); // Can be called again
+    // Can be called again.
+    closure.call_mut(());
 
     obj_ref.access();
     obj_mut_ref.access();
@@ -153,7 +174,8 @@ fn test_fn_mut() {
 fn test_fn_once() {
     let obj_ref = &Object;
     let obj_mut_ref = &mut Object;
-    let owned = Object; // EMULATION DISCREPANCY: Mutability is not required
+    // EMULATION DISCREPANCY: Mutability is not required.
+    let owned = Object;
 
     let closure = {
         struct EmulatedFnOnce<'a>(&'a Object, &'a mut Object, Object);
@@ -163,7 +185,8 @@ fn test_fn_once() {
                 let EmulatedFnOnce(
                     obj_ref,
                     obj_mut_ref,
-                    mut owned, // EMULATION: Mutability must be signaled here
+                    // EMULATION: Mutability must be signaled here.
+                    mut owned,
                 ) = self;
 
                 obj_ref.access();
@@ -177,36 +200,50 @@ fn test_fn_once() {
             }
         }
         EmulatedFnOnce(
-            obj_ref,     // Immutable reference captured as immutable reference
-            obj_mut_ref, // Mutable reference captured as mutable reference
-            owned,       // Owned value captured by moving
+            // Immutable reference captured as immutable reference.
+            obj_ref,
+            // Mutable reference captured as mutable reference.
+            obj_mut_ref,
+            // Owned value captured by moving.
+            owned,
         )
     };
 
-    // let closure = accept_fn(closure); // Closure that uses ownership of captured value cannot be FnClosure
-    // let closure = accept_fn_mut(closure); // Closure that uses ownership of captured value cannot be FnMutClosure
+    // Closure that uses ownership of captured value cannot be FnClosure.
+    // let closure = accept_fn(closure);
+    // Closure that uses ownership of captured value cannot be FnMutClosure.
+    // let closure = accept_fn_mut(closure);
     let closure = accept_fn_once(closure);
 
     obj_ref.access();
-    // obj_mut_ref.access(); // Cannot borrow as immutable because it is borrowed as mutable by the closure
-    // owned.access(); // Cannot borrow because it is moved by the closure
+    // Cannot borrow as immutable because it is borrowed as mutable by the closure.
+    // obj_mut_ref.access();
+    // Cannot borrow because it is moved by the closure.
+    // owned.access();
 
-    // obj_mut_ref.mutate(); // Cannot borrow as mutable because it is borrowed as mutable by the closure
-    // owned.mutate(); // Cannot borrow because it is moved by the closure
+    // Cannot borrow as mutable because it is borrowed as mutable by the closure.
+    // obj_mut_ref.mutate();
+    // Cannot borrow because it is moved by the closure.
+    // owned.mutate();
 
-    // owned.r#move(); // Cannot move because it is moved by the closure
+    // Cannot move because it is moved by the closure.
+    // owned.r#move();
 
     closure.call_once(());
-    // closure.call_once(()); // Cannot be called again
+    // Cannot be called again.
+    // closure.call_once(());
 
     obj_ref.access();
     obj_mut_ref.access();
-    // owned.access(); // Cannot borrow because it was moved by the closure
+    // Cannot borrow because it was moved by the closure.
+    // owned.access();
 
     obj_mut_ref.mutate();
-    // owned.mutate(); // Cannot borrow because it was moved by the closure
+    // Cannot borrow because it was moved by the closure.
+    // owned.mutate();
 
-    // owned.r#move(); // Cannot borrow because it was moved by the closure
+    // Cannot borrow because it was moved by the closure.
+    // owned.r#move();
 }
 
 fn test_moving_fn() {
@@ -235,16 +272,22 @@ fn test_moving_fn() {
                 obj_mut_ref.access();
                 owned.access();
 
-                // obj_mut_ref.mutate(); // Cannot borrow as mutable because it is borrowed as immutable
-                // owned.mutate(); // Cannot borrow as mutable because it is borrowed as immutable
+                // Cannot borrow as mutable because it is borrowed as immutable.
+                // obj_mut_ref.mutate();
+                // Cannot borrow as mutable because it is borrowed as immutable.
+                // owned.mutate();
 
-                // owned.r#move(); // Cannot move because it is borrowed
+                // Cannot move because it is borrowed.
+                // owned.r#move();
             }
         }
         EmulatedMovingFn(
-            obj_ref,     // Immutable reference captured as immutable reference
-            obj_mut_ref, // Immutable reference captured as immutable reference
-            owned,       // Owned value captured by moving
+            // Immutable reference captured as immutable reference.
+            obj_ref,
+            // Immutable reference captured as immutable reference.
+            obj_mut_ref,
+            // Owned value captured by moving.
+            owned,
         )
     };
 
@@ -253,21 +296,27 @@ fn test_moving_fn() {
     let closure = accept_fn_once(closure);
 
     obj_ref.access();
-    // obj_mut_ref.access(); // EMULATION DISCREPANCY: mutable reference should have been moved into closure
-    // owned.access(); // Moved into closure
+    // EMULATION DISCREPANCY: mutable reference should have been moved into.
+    // obj_mut_ref.access();
+    // Moved into closure.
+    // closure owned.access();
 
     closure.call(());
-    closure.call(()); // Can be called again
+    // Can be called again.
+    closure.call(());
 
     obj_ref.access();
-    // obj_mut_ref.access(); // EMULATION DISCREPANCY: mutable reference should have been moved into closure
-    // owned.access(); // Moved into closure
+    // EMULATION DISCREPANCY: mutable reference should have been moved into.
+    // obj_mut_ref.access();
+    // Moved into closure.
+    // closure owned.access();
 }
 
 fn test_moving_fn_mut() {
     let obj_ref = &Object;
     let obj_mut_ref = &mut Object;
-    let owned = Object; // EMULATION DISCREPANCY: Mutability is not required
+    // EMULATION DISCREPANCY: Mutability is not required.
+    let owned = Object;
 
     let closure = {
         struct EmulatedMovingFnMut<'a>(&'a Object, &'a mut Object, Object);
@@ -288,37 +337,48 @@ fn test_moving_fn_mut() {
                 obj_mut_ref.mutate();
                 owned.mutate();
 
-                // owned.r#move(); // Cannot move because it is borrowed
+                // Cannot move because it is borrowed.
+                // owned.r#move();
             }
         }
         EmulatedMovingFnMut(
-            obj_ref,     // Immutable reference captured as immutable reference
-            obj_mut_ref, // Mutable reference captured as mutable reference
-            owned,       // Owned value captured by moving
+            // Immutable reference captured as immutable reference.
+            obj_ref,
+            // Mutable reference captured as mutable reference.
+            obj_mut_ref,
+            // Owned value captured by moving.
+            owned,
         )
     };
 
-    // let closure = accept_fn(closure); // Closure that mutates captured value cannot be FnClosure
+    // Closure that mutates captured value cannot be FnClosure.
+    // let closure = accept_fn(closure);
     let closure = accept_fn_mut(closure);
     let closure = accept_fn_once(closure);
 
     obj_ref.access();
-    // obj_mut_ref.access();  // Moved into closure
-    // owned.access(); // Moved into closure
+    // Moved into closure.
+    // obj_mut_ref.access();
+    // Moved into closure.
+    // owned.access();
 
     let mut closure = closure;
     closure.call_mut(());
-    closure.call_mut(()); // Can be called again
+    // Can be called again.
+    closure.call_mut(());
 
     obj_ref.access();
-    // obj_mut_ref.access(); // EMULATION DISCREPANCY: mutable reference should have been moved into closure
-    // owned.access(); // Moved into closure
+    // EMULATION DISCREPANCY: mutable reference should have been moved into.
+    // obj_mut_ref.access();
+    // Moved into closure.
+    // closure owned.access();
 }
 
 fn test_moving_fn_once() {
     let obj_ref = &Object;
     let obj_mut_ref = &mut Object;
-    let owned = Object; // EMULATION DISCREPANCY: Mutability is not required
+    // EMULATION DISCREPANCY: Mutability is not required.
+    let owned = Object;
 
     let closure = {
         struct EmulatedMovingFnOnce<'a>(&'a Object, &'a mut Object, Object);
@@ -328,7 +388,8 @@ fn test_moving_fn_once() {
                 let EmulatedMovingFnOnce(
                     obj_ref,
                     obj_mut_ref,
-                    mut owned, // EMULATION: Mutability must be signaled here
+                    // EMULATION: Mutability must be signaled here.
+                    mut owned,
                 ) = self;
 
                 obj_ref.access();
@@ -342,26 +403,36 @@ fn test_moving_fn_once() {
             }
         }
         EmulatedMovingFnOnce(
-            obj_ref,     // Immutable reference captured as immutable reference
-            obj_mut_ref, // Mutable reference captured as mutable reference
-            owned,       // Owned value captured by moving
+            // Immutable reference captured as immutable reference.
+            obj_ref,
+            // Mutable reference captured as mutable reference.
+            obj_mut_ref,
+            // Owned value captured by moving.
+            owned,
         )
     };
 
-    // let closure = accept_fn(closure); // Closure that uses ownership of captured value cannot be FnClosure
-    // let closure = accept_fn_mut(closure); // Closure that uses ownership of captured value cannot be FnMutClosure
+    // Closure that uses ownership of captured value cannot be FnClosure.
+    // let closure = accept_fn(closure);
+    // Closure that uses ownership of captured value cannot be FnMutClosure.
+    // let closure = accept_fn_mut(closure);
     let closure = accept_fn_once(closure);
 
     obj_ref.access();
-    // obj_mut_ref.access(); // Moved into closure
-    // owned.access(); // Moved into closure
+    // Moved into closure.
+    // obj_mut_ref.access();
+    // Moved into closure.
+    // owned.access();
 
     closure.call_once(());
-    // closure.call_once(()); // Cannot be called again
+    // Cannot be called again.
+    // closure.call_once(());
 
     obj_ref.access();
-    // obj_mut_ref.access(); // EMULATION DISCREPANCY: mutable reference should have been moved into closure
-    // owned.access(); // Moved into closure
+    // EMULATION DISCREPANCY: mutable reference should have been moved into.
+    // obj_mut_ref.access();
+    // Moved into closure.
+    // closure owned.access();
 }
 
 fn accept_fn<Args, F: EmulatedFn<Args>>(f: F) -> F {

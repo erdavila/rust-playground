@@ -32,12 +32,6 @@ impl Default for FadingOptions {
 
 pub const DEFAULT_GAMMA: f64 = 0.8;
 
-#[derive(Debug, Clone)]
-pub struct Converter {
-    pub fading: Option<FadingOptions>,
-    pub gamma: Option<f64>,
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Color {
     pub r: u8,
@@ -50,6 +44,12 @@ impl Color {
     pub fn new(r: u8, g: u8, b: u8) -> Self {
         Self { r, g, b }
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct Converter {
+    pub fading: Option<FadingOptions>,
+    pub gamma: Option<f64>,
 }
 
 impl Converter {
@@ -226,7 +226,7 @@ mod tests {
     }
 
     #[test]
-    #[expect(clippy::float_cmp)]
+    // #[expect(clippy::float_cmp)]
     fn test_map() {
         assert_eq!(remap(0.0, 0.0..1.0, 0.0..1.0), 0.0);
         assert_eq!(remap(0.5, 0.0..1.0, 0.0..1.0), 0.5);

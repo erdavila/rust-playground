@@ -2,9 +2,7 @@
 name = "music"
 version = "0.1.0"
 edition = "2024"
+workspace = "../.workspace"
 
 [dependencies]
 enum-indexed.workspace = true
-
-[lints]
-workspace = true

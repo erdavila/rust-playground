@@ -19,7 +19,7 @@ test *ARGS:
 
 [no-cd]
 clippy:
-  cargo clippy --all-targets
+  cargo clippy --all-targets -- -Wclippy::pedantic
 
 [no-cd]
 doc *ARGS:

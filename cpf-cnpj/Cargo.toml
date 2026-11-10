@@ -1,10 +1,15 @@
-[package]
-name = "cpf-cnpj"
+[workspace]
+resolver = "2"
+members = [
+    "core",
+    "cli",
+]
+
+default-members = ["core", "cli"]
+
+[workspace.package]
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
 
-[dependencies]
-
-
-[lints]
-workspace = true
+[workspace.dependencies]
+cpf-cnpj = { path = "core", version = "0.1.0" }

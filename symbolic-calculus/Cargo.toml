@@ -6,6 +6,3 @@ edition = "2024"
 [dependencies]
 ops-traits-macros = { git = "https://github.com/erdavila/ops-traits-macros.git", branch = "sqr" }
 symbolic-calculus-macros = { path = "macros" }
-
-[lints]
-workspace = true

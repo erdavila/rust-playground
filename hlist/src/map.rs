@@ -5,7 +5,7 @@ use crate::{HCons, HList, HNil};
 /// # Examples
 ///
 /// ```
-/// use hlist::{hlist, HList, Map};
+/// use hlist::{HList, Map, hlist};
 ///
 /// let hlist = hlist!(123i32, "abc", true);
 /// let hlist = hlist.map({
@@ -36,10 +36,10 @@ use crate::{HCons, HList, HNil};
 ///
 /// With some state:
 /// ```
-/// use hlist::{hlist, HList, Map};
+/// use hlist::{HList, Map, hlist};
 ///
 /// struct State {
-///     count: usize
+///     count: usize,
 /// }
 /// let mut state = State { count: 0 };
 ///

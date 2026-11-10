@@ -53,9 +53,7 @@ pub(crate) mod tests {
 
     static FORMATTED_STR: &str = "12.AbC.345/01De";
     static RAW_STR: &str = "12AbC34501De";
-    pub(crate) static BYTES: [u8; UncheckedCNPJ::LENGTH] = [
-        b'1', b'2', b'A', b'B', b'C', b'3', b'4', b'5', b'0', b'1', b'D', b'E',
-    ];
+    pub(crate) static BYTES: [u8; UncheckedCNPJ::LENGTH] = *b"12ABC34501DE";
 
     #[test]
     fn from_iter() {
@@ -87,12 +85,7 @@ pub(crate) mod tests {
     fn with_check_digits() {
         let unchecked_cnpj = UncheckedCNPJ(BYTES);
 
-        assert_eq!(
-            unchecked_cnpj.with_check_digits(),
-            CNPJ([
-                b'1', b'2', b'A', b'B', b'C', b'3', b'4', b'5', b'0', b'1', b'D', b'E', b'3', b'5'
-            ])
-        );
+        assert_eq!(unchecked_cnpj.with_check_digits(), CNPJ(*b"12ABC34501DE35"));
     }
 
     #[test]

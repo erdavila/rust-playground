@@ -24,7 +24,7 @@ macro_rules! hlist {
 /// # Example
 ///
 /// ```
-/// use hlist::{hcons, hlist, hnil, hlist_type};
+/// use hlist::{hcons, hlist, hlist_type, hnil};
 ///
 /// let hlist: hlist_type!(usize, char) = hlist!(42, '@');
 ///

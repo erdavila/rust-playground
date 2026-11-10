@@ -85,7 +85,8 @@ where
                     shared_state.buffer.first_item_number
                 );
 
-                // Don't need to increment shared_state.buffer.first_item_number or state.next_item_number
+                // Don't need to increment shared_state.buffer.first_item_number or
+                // state.next_item_number
             } else if let Some(elem) = &elem {
                 shared_state.buffer.push(elem);
                 state.advance();
@@ -519,7 +520,10 @@ mod tests {
         first.clone().for_each(drop); // Transfer remaining elements from source to buffer
         assert_forking_clones![first, second];
         assert_eq!(second.shared_state.borrow().buffer.len(), 2);
-        assert!(first.state.borrow().next_item_number == second.state.borrow().next_item_number);
+        assert_eq!(
+            first.state.borrow().next_item_number,
+            second.state.borrow().next_item_number,
+        );
         assert!(first.state.borrow().prev.is_none());
 
         drop(first);

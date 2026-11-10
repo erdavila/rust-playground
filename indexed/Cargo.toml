@@ -10,8 +10,5 @@ alloc = []
 
 [dependencies]
 
-[lints]
-workspace = true
-
 [dev-dependencies]
 trybuild = "1.0.120"

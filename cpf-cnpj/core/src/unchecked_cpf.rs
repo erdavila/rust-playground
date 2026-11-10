@@ -50,8 +50,7 @@ pub(crate) mod tests {
 
     static FORMATTED_STR: &str = "111.444.777";
     static RAW_STR: &str = "111444777";
-    pub(crate) static BYTES: [u8; UncheckedCPF::LENGTH] =
-        [b'1', b'1', b'1', b'4', b'4', b'4', b'7', b'7', b'7'];
+    pub(crate) static BYTES: [u8; UncheckedCPF::LENGTH] = *b"111444777";
 
     #[test]
     fn from_iter() {

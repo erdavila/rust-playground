@@ -89,7 +89,7 @@ pub trait HList {
     ///
     /// # Example
     /// ```
-    /// use hlist::{HList, hlist, Map};
+    /// use hlist::{HList, Map, hlist};
     ///
     /// let hlist = hlist!(123i32, true);
     ///
@@ -125,10 +125,10 @@ pub trait HList {
     ///
     /// # Example
     /// ```
-    /// use hlist::{hlist, HList, ForEach};
+    /// use hlist::{ForEach, HList, hlist};
     ///
     /// struct State {
-    ///     count: usize
+    ///     count: usize,
     /// }
     /// let mut state = State { count: 0 };
     ///
@@ -162,10 +162,8 @@ pub trait HList {
     ///
     /// # Example
     /// ```
-    /// use hlist::{
-    ///     HList, hlist,
-    ///     index::{Zero, Succ}
-    /// };
+    /// use hlist::index::{Succ, Zero};
+    /// use hlist::{HList, hlist};
     ///
     /// let hlist = hlist!(123i32, "abc", true);
     ///
@@ -193,10 +191,7 @@ pub trait HList {
     /// ```
     /// use hlist::{HList, hlist, hnil};
     ///
-    /// let hlist = hnil()
-    ///     .push_back(123)
-    ///     .push_back("abc")
-    ///     .push_back(true);
+    /// let hlist = hnil().push_back(123).push_back("abc").push_back(true);
     /// assert_eq!(hlist, hlist!(123, "abc", true));
     /// ```
     fn push_back<A>(self, value: A) -> <Self as PushBack<A>>::Output
@@ -420,7 +415,7 @@ where
     /// # Example
     /// ```
     /// use hlist::hlist;
-    /// use hlist::index::{Zero, Succ};
+    /// use hlist::index::{Succ, Zero};
     ///
     /// let hlist = hlist!(123i32, "abc", true);
     ///
@@ -445,7 +440,7 @@ where
     /// # Example
     /// ```
     /// use hlist::hlist;
-    /// use hlist::index::{Zero, Succ};
+    /// use hlist::index::{Succ, Zero};
     ///
     /// let hlist = hlist!(123i32, "abc", true);
     ///
@@ -466,7 +461,7 @@ where
     /// # Example
     /// ```
     /// use hlist::hlist;
-    /// use hlist::index::{Zero, Succ};
+    /// use hlist::index::{Succ, Zero};
     ///
     /// let mut hlist = hlist!(123i32, "abc", true);
     ///

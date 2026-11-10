@@ -16,10 +16,13 @@ fn test_fn() {
         obj_mut_ref.access();
         owned.access();
 
-        // obj_mut_ref.mutate(); // Mutability required - the closure couldn't be Fn
-        // owned.mutate(); // Mutability required - the closure couldn't be Fn
+        // Mutability required - the closure couldn't be Fn.
+        // obj_mut_ref.mutate();
+        // Mutability required - the closure couldn't be Fn.
+        // owned.mutate();
 
-        // owned.r#move(); // Ownership required - the closure couldn't be Fn
+        // Ownership required - the closure couldn't be Fn.
+        // owned.r#move();
     };
 
     let closure = accept_fn(closure);
@@ -27,15 +30,17 @@ fn test_fn() {
     let closure = accept_fn_once(closure);
 
     obj_ref.access();
-    // obj_mut_ref.access(); // Moved into closure
-    // owned.access(); // Moved into closure
+    // Moved into closure.
+    // obj_mut_ref.access();
+    // Moved into closure.
+    // owned.access();
 
     closure();
     closure();
 
     obj_ref.access();
-    // obj_mut_ref.access(); // Moved into closure
-    // owned.access(); // Moved into closure
+    // obj_mut_ref.access(); // Moved into closure.
+    // owned.access(); // Moved into closure.
 }
 
 fn test_fn_mut() {
@@ -51,24 +56,30 @@ fn test_fn_mut() {
         obj_mut_ref.mutate();
         owned.mutate();
 
-        // owned.r#move(); // Ownership required - the closure couldn't be FnMu
+        // Ownership required - the closure couldn't be FnMut.
+        // owned.r#move();
     };
 
-    // let closure = accept_fn(closure); // Closure that mutates captured value cannot be Fn
+    // Closure that mutates captured value cannot be Fn.
+    // let closure = accept_fn(closure);
     let closure = accept_fn_mut(closure);
     let closure = accept_fn_once(closure);
     let mut closure = closure;
 
     obj_ref.access();
-    // obj_mut_ref.access();  // Moved into closure
-    // owned.access(); // Moved into closure
+    // Moved into closure.
+    // obj_mut_ref.access();
+    // Moved into closure.
+    // owned.access();
 
     closure();
     closure();
 
     obj_ref.access();
-    // obj_mut_ref.access(); // Moved into closure
-    // owned.access(); // Moved into closure
+    // Moved into closure.
+    // obj_mut_ref.access();
+    // Moved into closure.
+    // owned.access();
 }
 
 fn test_fn_once() {
@@ -87,18 +98,25 @@ fn test_fn_once() {
         owned.r#move();
     };
 
-    // let closure = accept_fn(closure); // Closure that uses ownership of captured value cannot be Fn
-    // let closure = accept_fn_mut(closure); // Closure that uses ownership of captured value cannot be Fn
+    // Closure that uses ownership of captured value cannot be Fn.
+    // let closure = accept_fn(closure);
+    // Closure that uses ownership of captured value cannot be Fn.
+    // let closure = accept_fn_mut(closure);
     let closure = accept_fn_once(closure);
 
     obj_ref.access();
-    // obj_mut_ref.access(); // Moved into closure
-    // owned.access(); // Moved into closure
+    // Moved into closure.
+    // obj_mut_ref.access();
+    // Moved into closure.
+    // owned.access();
 
     closure();
-    // closure(); // Cannot be called again
+    // Cannot be called again.
+    // closure();
 
     obj_ref.access();
-    // obj_mut_ref.access(); // Moved into closure
-    // owned.access(); // Moved into closure
+    // Moved into closure.
+    // obj_mut_ref.access();
+    // Moved into closure.
+    // owned.access();
 }

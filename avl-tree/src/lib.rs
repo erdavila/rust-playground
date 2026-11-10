@@ -397,7 +397,8 @@ mod algo {
         direction: RotationDirection,
     ) {
         /*
-         * These diagrams show what happens on a LEFT rotation (direction = RotationDirection::Left)
+         * These diagrams show what happens on a LEFT rotation (direction =
+         * RotationDirection::Left)
          *
          *
          *       N                      R

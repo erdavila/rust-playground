@@ -5,10 +5,10 @@ use crate::{HCons, HList, HNil};
 /// # Examples
 ///
 /// ```
-/// use hlist::{hlist, HList, ForEach};
+/// use hlist::{ForEach, HList, hlist};
 ///
 /// struct State {
-///     count: usize
+///     count: usize,
 /// }
 /// let mut state = State { count: 0 };
 ///

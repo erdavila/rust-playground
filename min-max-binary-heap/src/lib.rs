@@ -525,7 +525,8 @@ where
             let max_heap_index = entry.max_heap_index;
             drop(entry); // Release the RefMut
 
-            // At this point, the referenced value may have changed, so we need to re-heapify the heaps.
+            // At this point, the referenced value may have changed, so we need to re-heapify the
+            // heaps.
 
             let min_max_binary_heap = unsafe { self.min_max_binary_heap.as_mut() };
             min_max_binary_heap

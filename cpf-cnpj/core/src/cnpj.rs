@@ -13,9 +13,7 @@ mod tests {
 
     static FORMATTED_STR: &str = "12.AbC.345/01De-35";
     static RAW_STR: &str = "12ABC34501DE35";
-    static BYTES: [u8; CNPJ::LENGTH] = [
-        b'1', b'2', b'A', b'B', b'C', b'3', b'4', b'5', b'0', b'1', b'D', b'E', b'3', b'5',
-    ];
+    static BYTES: [u8; CNPJ::LENGTH] = *b"12ABC34501DE35";
 
     #[test]
     fn from_iter() {

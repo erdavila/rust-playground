@@ -389,7 +389,7 @@ fn test_keys_on_empty() {
     let keys = iohm.keys();
 
     let keys_vec: Vec<_> = keys.collect();
-    assert!(keys_vec.is_empty());
+    assert_eq!(keys_vec, [] as [&String; 0]);
     consistency::assert(&iohm);
 }
 
@@ -455,7 +455,7 @@ fn test_into_keys_on_empty() {
     let keys = iohm.into_keys();
 
     let keys_vec: Vec<_> = keys.collect();
-    assert!(keys_vec.is_empty());
+    assert_eq!(keys_vec, [] as [String; 0]);
 }
 
 #[test]
@@ -519,7 +519,7 @@ fn test_values_on_empty() {
     let values = iohm.values();
 
     let values_vec: Vec<_> = values.collect();
-    assert!(values_vec.is_empty());
+    assert_eq!(values_vec, [] as [&i32; 0]);
     consistency::assert(&iohm);
 }
 
@@ -585,7 +585,7 @@ fn test_values_mut_on_empty() {
     let values = iohm.values_mut();
 
     let values_vec: Vec<_> = values.collect();
-    assert!(values_vec.is_empty());
+    assert_eq!(values_vec, [] as [&mut i32; 0]);
     consistency::assert(&iohm);
 }
 
@@ -650,7 +650,7 @@ fn test_into_values_on_empty() {
     let values = iohm.into_values();
 
     let values_vec: Vec<_> = values.collect();
-    assert!(values_vec.is_empty());
+    assert_eq!(values_vec, []);
 }
 
 #[test]
@@ -714,7 +714,7 @@ fn test_iter_on_empty() {
     let iter = iohm.iter();
 
     let iter_vec: Vec<_> = iter.collect();
-    assert!(iter_vec.is_empty());
+    assert_eq!(iter_vec, []);
     consistency::assert(&iohm);
 }
 
@@ -780,7 +780,7 @@ fn test_iter_mut_on_empty() {
     let iter = iohm.iter_mut();
 
     let iter_vec: Vec<_> = iter.collect();
-    assert!(iter_vec.is_empty());
+    assert_eq!(iter_vec, []);
     consistency::assert(&iohm);
 }
 

@@ -1,0 +1,11 @@
+[workspace]
+resolver = "2"
+members = [
+    "../enum-indexed",
+    "../enum-indexed/macro",
+    "../enum-indexed/renamed-crate-test",
+    "../music",
+]
+
+[workspace.dependencies]
+enum-indexed.path = "../enum-indexed"

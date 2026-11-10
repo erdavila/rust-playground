@@ -13,9 +13,8 @@ pub(crate) mod tests {
 
     static FORMATTED_STR: &str = "111.444.777-35";
     static RAW_STR: &str = "11144477735";
-    pub(crate) static BYTES: [u8; CPF::LENGTH] = [
-        b'1', b'1', b'1', b'4', b'4', b'4', b'7', b'7', b'7', b'3', b'5',
-    ];
+    pub(crate) static BYTES: [u8; CPF::LENGTH] = *b"11144477735";
+
     static CHARS: [char; CPF::LENGTH] = ['1', '1', '1', '4', '4', '4', '7', '7', '7', '3', '5'];
 
     #[test]
