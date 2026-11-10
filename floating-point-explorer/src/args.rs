@@ -110,7 +110,6 @@ pub fn parse() -> Result<Option<WrappedFloatingPointNumber>> {
 
 fn parse_value<N: FloatingPointNumber>(arg: &str) -> Result<N> {
     for f in [
-        parse_nan,
         parse_predefined_value,
         parse_binary,
         parse_hexadecimal,
@@ -123,11 +122,6 @@ fn parse_value<N: FloatingPointNumber>(arg: &str) -> Result<N> {
     }
 
     Err(Error::UnrecognizedNumberFormat)
-}
-
-#[expect(clippy::unnecessary_wraps)]
-fn parse_nan<N: FloatingPointNumber>(arg: &str) -> Result<Option<N>> {
-    Ok((arg == "nan").then_some(N::NAN))
 }
 
 #[expect(clippy::unnecessary_wraps)]
@@ -154,6 +148,7 @@ fn parse_predefined_value<N: FloatingPointNumber>(arg: &str) -> Result<Option<N>
         "smallest_normal" => compose(1, 0),
         "largest_subnormal" => compose(0, all_fraction_bits_set()),
         "smallest_subnormal" | "smallest" => compose(0, 1),
+        "nan" => N::NAN,
         "pi" => N::PI,
         "e" => N::E,
         _ => return Ok(None),
@@ -212,7 +207,7 @@ fn parse_decimal_bytes<N: FloatingPointNumber>(arg: &str) -> Result<Option<N>> {
 
 #[expect(clippy::unnecessary_wraps)]
 fn parse_composed<N: FloatingPointNumber>(arg: &str) -> Result<Option<N>> {
-    match split(arg, ['e', 'b']) {
+    match split(arg, &['e', 'b']) {
         Some((mantissa, base_char, exponent)) => {
             if let (Some(mantissa), Some(exponent)) =
                 (parse_mantissa::<N>(mantissa), parse_exponent(exponent))
@@ -234,7 +229,7 @@ fn parse_composed<N: FloatingPointNumber>(arg: &str) -> Result<Option<N>> {
 fn parse_mantissa<N: FloatingPointNumber>(mantissa: &str) -> Option<N> {
     let is_mantissa = {
         let unsigned_mantissa = strip_sign(mantissa);
-        let (int, fraction) = match split(unsigned_mantissa, ['.']) {
+        let (int, fraction) = match split(unsigned_mantissa, &['.']) {
             Some((int, _, fraction)) => (int, fraction),
             None => (unsigned_mantissa, ""),
         };
@@ -255,13 +250,14 @@ fn parse_exponent(exponent: &str) -> Option<i32> {
     is_exponent.then(|| exponent.parse().unwrap())
 }
 
-fn split<const N: usize>(arg: &str, separators: [char; N]) -> Option<(&str, char, &str)> {
-    arg.find(separators).map(|index| {
-        let before = &arg[..index];
-        let separator = arg.chars().nth(index).unwrap();
-        let after = &arg[(index + 1)..];
-        (before, separator, after)
-    })
+fn split<'a>(arg: &'a str, separators: &[char]) -> Option<(&'a str, char, &'a str)> {
+    arg.char_indices()
+        .find(|(_, c)| separators.contains(c))
+        .map(|(index, separator)| {
+            let before = &arg[..index];
+            let after = &arg[index + separator.len_utf8()..];
+            (before, separator, after)
+        })
 }
 
 fn strip_sign(arg: &str) -> &str {
@@ -283,33 +279,33 @@ fn print_help() {
     println!();
     println!("VALUE");
     println!();
-    println!("  Binary digits - the character 'b' followed by the binary digits.");
-    println!("    Exactly 32 binary digits are expected for single-precision values.");
-    println!("    Exactly 64 binary digits are expected for double-precision values.");
-    println!("    The separator ':' is used only for visual aid, and is ignored during parsing.");
+    println!("  Binary digits - the character 'b' followed by binary digits.");
+    println!("    Single-precision values: 32 binary digits.");
+    println!("    Double-precision values: 64 binary digits.");
+    println!("    The separator ':' can be used for visual aid, and is ignored during parsing.");
     println!("    Examples:");
     println!("      single b:1001:0110:1011:0110:0010:0101:1010:0101");
     println!(
         "      double b:10010110:10110110:00100101:10100101:10010110:10110110:00100101:10100101"
     );
     println!();
-    println!("  Hexadecimal digits - the character 'h' or 'x' followed by the hexadecimal digits.");
-    println!("    Exactly 8 hexadecimal digits are expected for single-precision values.");
-    println!("    Exactly 16 hexadecimal digits are expected for double-precision values.");
-    println!("    The separator ':' is used only for visual aid, and is ignored during parsing.");
+    println!("  Hexadecimal digits - the character 'h' or 'x' followed by hexadecimal digits.");
+    println!("    Single-precision values: 8 hexadecimal digits.");
+    println!("    Double-precision values: 16 hexadecimal digits.");
+    println!("    The separator ':' can be used for visual aid, and is ignored during parsing.");
     println!("    Examples:");
     println!("      single h:96b6:25a5");
     println!("      double h:4009:21FB:5444:2D18");
     println!();
-    println!("  Decimal bytes - comma-delimited bytes values in decimal representation.");
-    println!("    Exactly 4 byte values are expected for single-precision values.");
-    println!("    Exactly 8 byte values are expected for double-precision values.");
+    println!("  Decimal bytes - comma-delimited byte values in decimal representation.");
+    println!("    Single-precision values: 4 byte values.");
+    println!("    Double-precision values: 8 byte values.");
     println!("    Examples:");
     println!("      single 150,182,37,165");
     println!("      double 150,182,37,165,150,182,37,165");
     println!();
     println!(
-        "  Mantissa and exponent - a mantissa value is optionally followed by the base indicator and the exponent value."
+        "  Mantissa and exponent - a mantissa value optionally followed by a base indicator and an exponent value."
     );
     println!(
         "    The mantissa value is composed by an optional sign, followed by digits possibly containing a decimal point."
@@ -324,20 +320,17 @@ fn print_help() {
     println!("      single 1.2e3  # meaning 1.2 x 10^3 = 1200.0");
     println!("      double -1.2b-3  # meaning -1.2 x 2^-3 = -0.15");
     println!();
-    println!("  Not-a-number - simply the string 'NaN'.");
-    println!("    Examples:");
-    println!("      single NAN");
-    println!("      double nan");
-    println!();
     println!("  Predefined values - all optionally signed.");
     println!("    'inf' or 'infinity' or 'infinite'");
     println!("    'largest_normal' or 'largest'");
     println!("    'smallest_normal'");
     println!("    'largest_subnormal'");
     println!("    'smallest_subnormal' or 'smallest'");
+    println!("    'nan'");
     println!("    'pi'");
     println!("    'e'");
     println!("    Examples:");
-    println!("      single -inf");
+    println!("      single inf");
     println!("      double +smallest");
+    println!("      single -nan");
 }

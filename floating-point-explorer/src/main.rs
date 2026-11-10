@@ -52,10 +52,10 @@ fn explore<N: FloatingPointNumber>(value: N) {
             ]
             .into_iter(),
         ),
-        ":",
+        ':',
     );
-    print_bytes_in_base("Hex", bytes.iter().map(|byte| format!("{byte:0>2x}")), ":");
-    print_bytes_in_base("Dec", bytes.iter().map(|byte| format!("{byte:>3} ")), ",");
+    print_bytes_in_base("Hex", bytes.iter().map(|byte| format!("{byte:0>2x}")), ':');
+    print_bytes_in_base("Dec", bytes.iter().map(|byte| format!("{byte:>3} ")), ',');
     println!();
 
     let sign = sign_color(if sign_bits.value == 0x0 { "+" } else { "-" });
@@ -65,7 +65,7 @@ fn explore<N: FloatingPointNumber>(value: N) {
 
     let value_composition = |exponent, int| {
         format!(
-            "{value} = {value_exp} = (-1)^{sign} x 2^{exponent} x ({int} + {fraction})",
+            "{value} = {value_exp} = (-1)^{sign} × 2^{exponent} × ({int} + {fraction})",
             value = bold(ensure_dot(value)),
             value_exp = bold(format!("{value:e}")),
             sign = sign_color(sign_bits.value),
@@ -139,27 +139,31 @@ fn explore<N: FloatingPointNumber>(value: N) {
     println!("Value: {value}");
 }
 
-fn print_bytes_in_base(title: &str, bytes: impl IntoIterator<Item = String>, separator: &str) {
+fn print_bytes_in_base(title: &str, bytes: impl IntoIterator<Item = String>, separator: char) {
+    let mut buffer = [0u8; 4];
+
     println!(
         "{title}: {}",
         bytes
             .into_iter()
             .map(|byte| format!("{byte:^8}"))
             .collect::<Vec<_>>()
-            .join(separator)
+            .join(separator.encode_utf8(&mut buffer))
     );
 }
 
 fn ensure_dot<D: Display>(d: D) -> String {
-    let s = d.to_string();
-    if s.contains('.') { s } else { s + ".0" }
+    let mut s = d.to_string();
+    if !s.contains('.') {
+        s.push_str(".0");
+    }
+    s
 }
 
 fn ensure_sign<D: Display>(d: D) -> String {
-    let s = d.to_string();
-    if s.starts_with(['+', '-']) {
-        s
-    } else {
-        format!("+{s}")
+    let mut s = d.to_string();
+    if !s.starts_with(['+', '-']) {
+        s.insert(0, '+');
     }
+    s
 }
