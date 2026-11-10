@@ -16,6 +16,7 @@ members = [
     "enum-indexed",
     "enum-indexed/macro",
     "enum-indexed/renamed-crate-test",
+    "floating-point-cmp",
     "floating-point-explorer",
     "fn-bind",
     "happy-number",
